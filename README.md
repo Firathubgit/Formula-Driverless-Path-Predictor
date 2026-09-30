@@ -3,7 +3,9 @@
 **Make autonomous racing decisions visible.** A native C++20 and Qt 6 racing simulator that shows *why* a driverless
 car accelerates, holds speed, brakes or changes line, and lets you take the wheel yourself.
 
-![The driver's display braking before the first corner](docs/assets/drivers-display.png)
+![The application driving a lap, shown at three times speed](docs/assets/demo.gif)
+
+*A lap in the desktop application, shown at three times speed.*
 
 ## Highlights
 
