@@ -1,0 +1,375 @@
+{
+  "verified_on": "2026-09-16",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0019-track-conditioning.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 3.3"
+  ],
+  "source_fingerprint": "3522c3034519f0170c864c83c77bec2e5c843cceec94d6a99f95aec7cca02770",
+  "headless_ctest": {
+    "passed": 15,
+    "total": 15,
+    "test_seconds": 146.68
+  },
+  "desktop_ctest": {
+    "passed": 16,
+    "total": 16,
+    "test_seconds": 180.7,
+    "qml_checks": 360,
+    "qml_warnings": []
+  },
+  "suites": {
+    "fd_track_conditioning_groups": 11
+  },
+  "method": {
+    "resampling": "closed polyline resampled linearly at input_spacing_m (default 1 m)",
+    "fit": "periodic uniform cubic B-spline, a knot every two resampled points, penalty on squared second differences of control points (P-spline); weight by bisection on log10 in [-8, 12], 48 halvings, largest weight whose rms parameter-matched distance <= smoothing_rms_m (default 0.1 m)",
+    "solver": "cyclic banded normal equations, Cholesky over the row envelope",
+    "resampling_out": "uniform arc length every output_spacing_m (default 0.6 m), five-point Gauss-Legendre over quarter knot spans, Newton on arc length",
+    "curvature_normals": "analytic from spline derivatives; left normals",
+    "checks": [
+      "centreline crosses itself: any two non-adjacent segments meet",
+      "normals across the width cross within pi * width / 2 along the track",
+      "corridor overlaps itself: samples farther apart along the track than pi * width / 2 closer than the width"
+    ],
+    "tum_correspondence": "TUM smoothing factor s = points * smoothing_rms_m^2; TUM checks normals within 10 samples and supports per-side widths and inflation, not reproduced"
+  },
+  "tests": {
+    "noisy_foundry_0.1_m": {
+      "curvature_error_beyond_10_m_of_joins_1pm": 0.00408458,
+      "bound": 0.005555555555555556,
+      "curvature_error_within_10_m_1pm": 0.0277707,
+      "bound_within": 0.03333333333333333,
+      "largest_distance_from_preset_m": 0.188797,
+      "length_m": 507.053,
+      "preset_length_m": 507.562
+    },
+    "clean_circle_30_m_allowance_0.002": {
+      "radius_error_m": 0.00500915,
+      "curvature_error_1pm": 0.000801364,
+      "length_m": 188.466
+    },
+    "clean_circle_under_absolute_10_m2_before_rms_change": {
+      "length_m": 187.017,
+      "expected_m": 188.496,
+      "radius_shrink_m": 0.235
+    },
+    "clean_preset": {
+      "largest_curvature_step_1pm": 0.00252106,
+      "preset_step_1pm": 0.0555556,
+      "largest_curvature_1pm": 0.0601251,
+      "residual_rms_m": 0.1,
+      "max_deviation_m": 0.249514
+    },
+    "allowance_effect": {
+      "0.1_m": {
+        "residual_rms_m": 0.1,
+        "total_curvature_variation_1pm": 0.494707
+      },
+      "0.3_m": {
+        "residual_rms_m": 0.3,
+        "total_curvature_variation_1pm": 0.415851
+      },
+      "0.05_m_under_0.1_m_noise": "refused: normals cross near 136.2 m"
+    },
+    "refusals": {
+      "figure_eight": "Conditioned centreline crosses itself between 181.9 m and 364.5 m",
+      "4_m_hairpins_10_m_wide": "Normals across the track cross near 59.3 m",
+      "9_m_waist_10_m_wide": "Track corridor overlaps itself: 75.0 m and 271.2 m"
+    },
+    "kinematic_on_trace_20_s": {
+      "progress_m": 314.773,
+      "largest_tracking_error_m": 0.240486,
+      "invalid_samples": 0
+    }
+  },
+  "contract": {
+    "polygon_72_sides_60_m": {
+      "length_m": 376.133,
+      "samples": 627,
+      "width_m": 8,
+      "residual_rms_m": 0.1,
+      "max_deviation_m": 0.136
+    }
+  },
+  "cost_measurement_only_s": {
+    "500_m_loop": 0.007126,
+    "2.5_km_loop": 0.145108,
+    "5_km_loop": 0.575421
+  },
+  "centreline_files": {
+    "out/tracks/foundry-centreline.csv": "the preset's 851 recorded samples, 0.6 m apart",
+    "out/tracks/foundry-traced.csv": "the preset every metre with 0.1 m of seeded normal noise per axis (seed 20260916), 507 points"
+  },
+  "headless_runs": [
+    {
+      "run": "plan-fractions",
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "samples": 851,
+      "largest_curvature_step_1pm": 0.0556,
+      "largest_curvature_1pm": 0.0556,
+      "speed_plan": "grip fractions",
+      "model": "four-wheel car with rotating wheels, load transfer and aerodynamics, rear axle reference",
+      "lap_times_s": [
+        34.045,
+        32.345
+      ],
+      "plan_lap_estimate_s": 31.889,
+      "braking_for_first_corner_from_m": 111.245015466,
+      "first_corner_slowest_planned_mps": 10.712,
+      "max_tracking_error_m": 0.344,
+      "max_grip_use": 0.826,
+      "max_rear_sideslip_rad": 0.041,
+      "invalid_samples": 0,
+      "total_samples": 13279
+    },
+    {
+      "run": "cond-fractions",
+      "track": "foundry-centreline",
+      "track_length_m": 506.865,
+      "samples": 845,
+      "largest_curvature_step_1pm": 0.0025,
+      "largest_curvature_1pm": 0.0601,
+      "speed_plan": "grip fractions",
+      "model": "four-wheel car with rotating wheels, load transfer and aerodynamics, rear axle reference",
+      "lap_times_s": [
+        32.31,
+        30.445
+      ],
+      "plan_lap_estimate_s": 29.963,
+      "braking_for_first_corner_from_m": 118.768304354,
+      "first_corner_slowest_planned_mps": 10.296,
+      "max_tracking_error_m": 0.434,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.109,
+      "invalid_samples": 562,
+      "total_samples": 12552
+    },
+    {
+      "run": "traced-fractions",
+      "track": "foundry-traced",
+      "track_length_m": 507.07,
+      "samples": 845,
+      "largest_curvature_step_1pm": 0.0029,
+      "largest_curvature_1pm": 0.0595,
+      "speed_plan": "grip fractions",
+      "model": "four-wheel car with rotating wheels, load transfer and aerodynamics, rear axle reference",
+      "lap_times_s": [
+        32.505,
+        30.66
+      ],
+      "plan_lap_estimate_s": 30.191,
+      "max_tracking_error_m": 0.435,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.097,
+      "invalid_samples": 323,
+      "total_samples": 12634
+    },
+    {
+      "run": "plan-envelope",
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "samples": 851,
+      "largest_curvature_step_1pm": 0.0556,
+      "largest_curvature_1pm": 0.0556,
+      "speed_plan": "performance envelope",
+      "model": "four-wheel car with rotating wheels, load transfer and aerodynamics, rear axle reference",
+      "lap_times_s": [
+        31.95,
+        30.695
+      ],
+      "plan_lap_estimate_s": 30.286,
+      "braking_for_first_corner_from_m": 116.627838795,
+      "first_corner_slowest_planned_mps": 11.609,
+      "max_tracking_error_m": 0.514,
+      "max_grip_use": 0.977,
+      "max_rear_sideslip_rad": 0.057,
+      "invalid_samples": 0,
+      "total_samples": 12530
+    },
+    {
+      "run": "cond-envelope",
+      "track": "foundry-centreline",
+      "track_length_m": 506.865,
+      "samples": 845,
+      "largest_curvature_step_1pm": 0.0025,
+      "largest_curvature_1pm": 0.0601,
+      "speed_plan": "performance envelope",
+      "model": "four-wheel car with rotating wheels, load transfer and aerodynamics, rear axle reference",
+      "lap_times_s": [
+        31.105,
+        29.795
+      ],
+      "plan_lap_estimate_s": 29.4,
+      "braking_for_first_corner_from_m": 119.967984196,
+      "first_corner_slowest_planned_mps": 11.147,
+      "max_tracking_error_m": 0.354,
+      "max_grip_use": 0.968,
+      "max_rear_sideslip_rad": 0.062,
+      "invalid_samples": 0,
+      "total_samples": 12181
+    },
+    {
+      "run": "traced-envelope",
+      "track": "foundry-traced",
+      "track_length_m": 507.07,
+      "samples": 845,
+      "largest_curvature_step_1pm": 0.0029,
+      "largest_curvature_1pm": 0.0595,
+      "speed_plan": "performance envelope",
+      "model": "four-wheel car with rotating wheels, load transfer and aerodynamics, rear axle reference",
+      "lap_times_s": [
+        31.245,
+        29.94
+      ],
+      "plan_lap_estimate_s": 29.551,
+      "max_tracking_error_m": 0.397,
+      "max_grip_use": 0.962,
+      "max_rear_sideslip_rad": 0.065,
+      "invalid_samples": 0,
+      "total_samples": 12238
+    },
+    {
+      "run": "plan-envelope-whole",
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "samples": 851,
+      "largest_curvature_step_1pm": 0.0556,
+      "largest_curvature_1pm": 0.0556,
+      "speed_plan": "performance envelope",
+      "model": "four-wheel car with rotating wheels, load transfer and aerodynamics, rear axle reference",
+      "lap_times_s": [
+        30.33,
+        29.025
+      ],
+      "plan_lap_estimate_s": 28.257,
+      "braking_for_first_corner_from_m": 122.608753606,
+      "first_corner_slowest_planned_mps": 13.02,
+      "max_tracking_error_m": 1.305,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.097,
+      "invalid_samples": 1091,
+      "total_samples": 11872
+    },
+    {
+      "run": "cond-envelope-whole",
+      "track": "foundry-centreline",
+      "track_length_m": 506.865,
+      "samples": 845,
+      "largest_curvature_step_1pm": 0.0025,
+      "largest_curvature_1pm": 0.0601,
+      "speed_plan": "performance envelope",
+      "model": "four-wheel car with rotating wheels, load transfer and aerodynamics, rear axle reference",
+      "lap_times_s": [
+        30.32,
+        28.94
+      ],
+      "plan_lap_estimate_s": 27.619,
+      "braking_for_first_corner_from_m": 126.566223326,
+      "first_corner_slowest_planned_mps": 12.502,
+      "max_tracking_error_m": 2.592,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.876,
+      "invalid_samples": 4747,
+      "total_samples": 11853
+    },
+    {
+      "run": "plan-envelope-cg-0.6",
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "samples": 851,
+      "largest_curvature_step_1pm": 0.0556,
+      "largest_curvature_1pm": 0.0556,
+      "speed_plan": "performance envelope",
+      "model": "four-wheel car with rotating wheels, load transfer and aerodynamics, rear axle reference",
+      "lap_times_s": [
+        32.655,
+        31.26
+      ],
+      "plan_lap_estimate_s": 30.861,
+      "braking_for_first_corner_from_m": 113.039289909,
+      "first_corner_slowest_planned_mps": 11.34,
+      "max_tracking_error_m": 0.474,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.053,
+      "invalid_samples": 97,
+      "total_samples": 12784
+    },
+    {
+      "run": "cond-envelope-cg-0.6",
+      "track": "foundry-centreline",
+      "track_length_m": 506.865,
+      "samples": 845,
+      "largest_curvature_step_1pm": 0.0025,
+      "largest_curvature_1pm": 0.0601,
+      "speed_plan": "performance envelope",
+      "model": "four-wheel car with rotating wheels, load transfer and aerodynamics, rear axle reference",
+      "lap_times_s": [
+        32.185,
+        30.755
+      ],
+      "plan_lap_estimate_s": 30.388,
+      "braking_for_first_corner_from_m": 113.969584986,
+      "first_corner_slowest_planned_mps": 10.894,
+      "max_tracking_error_m": 0.316,
+      "max_grip_use": 0.982,
+      "max_rear_sideslip_rad": 0.055,
+      "invalid_samples": 0,
+      "total_samples": 12589
+    },
+    {
+      "run": "traced-kinematic",
+      "track": "foundry-traced",
+      "track_length_m": 507.07,
+      "samples": 845,
+      "largest_curvature_step_1pm": 0.0029,
+      "largest_curvature_1pm": 0.0595,
+      "speed_plan": "grip fractions",
+      "model": "kinematic bicycle, rear axle reference",
+      "lap_times_s": [
+        31.935,
+        30.125
+      ],
+      "plan_lap_estimate_s": 30.191,
+      "max_tracking_error_m": 0.244,
+      "max_grip_use": 0.848,
+      "max_rear_sideslip_rad": 0,
+      "invalid_samples": 0,
+      "total_samples": 12413
+    }
+  ],
+  "headless_run_checks": "all seven validate as schema 8 from this build; planner reproduction up to 3.4e-10 m/s; plant reproduction up to 1.0e-9 m",
+  "recordings_load": {
+    "total": 102,
+    "by_schema": {
+      "1": 18,
+      "2": 8,
+      "3": 7,
+      "4": 20,
+      "5": 4,
+      "6": 11,
+      "7": 17,
+      "8": 17
+    },
+    "rejected": 0,
+    "plant_reproduction_m": [
+      9.979e-11,
+      1e-09
+    ]
+  },
+  "findings": [
+    "the allowance is used in full, so clean shapes move by about the allowance",
+    "an allowance below the trace noise follows the noise into kinks the normals check refuses",
+    "rounding the 18 m corner raises its peak curvature 8%",
+    "on continuous curvature the grip fraction plan's separate caps meet and the four-wheel car passes tire peaks (562 samples); the 80% envelope plan does not",
+    "with the whole envelope the car spins at the first corner of the conditioned preset (4747 invalid samples); why was not investigated"
+  ],
+  "not_done": [
+    "desktop still drives the preset only",
+    "no per-point widths or inflation",
+    "OSQP for Phase 3.4 is not on this machine"
+  ]
+}

@@ -1,0 +1,452 @@
+{
+  "verified_on": "2026-09-16",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0018-envelope-speed-plan.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 3.2",
+    "TrackWayFastPlan Phase 3 Visible list: the speed plan chart switches to the envelope"
+  ],
+  "source_fingerprint": "57fe8ce2c2da52e81b558221aca4a72531ee6617c4b7b207da3a9ab3c44e1a1a",
+  "headless_ctest": {
+    "passed": 14,
+    "total": 14,
+    "test_seconds": 146.41
+  },
+  "desktop_ctest": {
+    "passed": 15,
+    "total": 15,
+    "test_seconds": 180.17,
+    "qml_checks": 360,
+    "previous_qml_checks": 339,
+    "qml_warnings": []
+  },
+  "suites": {
+    "fd_envelope_speed_plan_groups": 10,
+    "fd_recording_playback_groups": 12
+  },
+  "method": {
+    "planner": "make_speed_plan(track, config, envelope): null envelope is the grip fraction baseline",
+    "lateral_cap": "first speed from rest at which speed^2 * |curvature| exceeds share * lateral_limit(v, side); exact on linear pieces, bisection",
+    "passes": "forward from a sample: share * max(0, forward_limit(v_i, a_y_i / share)); braking into a sample: share * max(0, -braking_limit(v_j, a_y_j / share)); monotone periodic relaxation over every edge, seam included",
+    "no_double_counting": "envelope accelerations already include drag, power, torque, wheel inertia and slip losses",
+    "share": {
+      "config_key": "envelope_fraction",
+      "range": [
+        0.5,
+        1.0
+      ],
+      "default": 0.8,
+      "fingerprinted": false
+    },
+    "controller_bound": "applied acceleration within the car's whole straight-line forward and braking capacity at its speed",
+    "obstruction_hold": "obstruction_braking_fraction of braking capacity at the envelope's lowest grid speed",
+    "simulation": "SpeedPlanMode::performance_envelope derives the envelope at construction and again with the plan at each grip commit",
+    "derivation": "speeds and sides in parallel; default envelope 0.27 s against 1.3 s, byte-identical",
+    "recording": "schema 8: metadata.speed_plan {mode, envelope_fingerprint}, initial_config.envelope_fraction; plan reproduction re-derives envelopes per revision"
+  },
+  "share_selection_closed_loop_second_lap": [
+    {
+      "plan": "whole envelope",
+      "plan_estimate_s": 28.257,
+      "lap_s": 29.02,
+      "beyond_peak": 1173,
+      "samples": 13200,
+      "tracking_error_m": 1.305,
+      "rear_sideslip_rad": 0.097
+    },
+    {
+      "plan": "window 5 m",
+      "plan_estimate_s": 28.889,
+      "lap_s": 29.685,
+      "beyond_peak": 1242,
+      "samples": 13200,
+      "tracking_error_m": 1.329,
+      "rear_sideslip_rad": 0.098
+    },
+    {
+      "plan": "window 10 m",
+      "plan_estimate_s": 29.449,
+      "lap_s": 30.23,
+      "beyond_peak": 1005,
+      "samples": 13200,
+      "tracking_error_m": 1.336,
+      "rear_sideslip_rad": 0.099
+    },
+    {
+      "plan": "window 15 m",
+      "plan_estimate_s": 29.992,
+      "lap_s": 30.745,
+      "beyond_peak": 705,
+      "samples": 13200,
+      "tracking_error_m": 1.328,
+      "rear_sideslip_rad": 0.098
+    },
+    {
+      "plan": "share 0.9",
+      "plan_estimate_s": 29.151,
+      "lap_s": 29.67,
+      "beyond_peak": 136,
+      "samples": 13200,
+      "tracking_error_m": 0.76,
+      "rear_sideslip_rad": 0.078
+    },
+    {
+      "plan": "share 0.8",
+      "plan_estimate_s": 30.286,
+      "lap_s": 30.695,
+      "beyond_peak": 0,
+      "samples": 13200,
+      "tracking_error_m": 0.514,
+      "rear_sideslip_rad": 0.057
+    },
+    {
+      "plan": "window 10 m, share 0.9",
+      "plan_estimate_s": 30.582,
+      "lap_s": 31.1,
+      "beyond_peak": 0,
+      "samples": 13200,
+      "tracking_error_m": 0.781,
+      "rear_sideslip_rad": 0.08
+    },
+    {
+      "plan": "window 10 m, longitudinal 0.8",
+      "plan_estimate_s": 29.563,
+      "lap_s": 30.3,
+      "beyond_peak": 698,
+      "samples": 13200,
+      "tracking_error_m": 1.333,
+      "rear_sideslip_rad": 0.099
+    },
+    {
+      "plan": "window 10 m, lateral 0.95",
+      "plan_estimate_s": 29.958,
+      "lap_s": 30.605,
+      "beyond_peak": 213,
+      "samples": 13200,
+      "tracking_error_m": 0.994,
+      "rear_sideslip_rad": 0.091
+    },
+    {
+      "plan": "window 10 m, share 0.95",
+      "plan_estimate_s": 29.987,
+      "lap_s": 30.605,
+      "beyond_peak": 0,
+      "samples": 13200,
+      "tracking_error_m": 0.997,
+      "rear_sideslip_rad": 0.092
+    },
+    {
+      "plan": "window 15 m, share 0.9",
+      "plan_estimate_s": 31.248,
+      "lap_s": 31.78,
+      "beyond_peak": 0,
+      "samples": 13200,
+      "tracking_error_m": 0.779,
+      "rear_sideslip_rad": 0.08
+    },
+    {
+      "plan": "share 0.7",
+      "plan_estimate_s": 31.766,
+      "lap_s": 32.12,
+      "beyond_peak": 0,
+      "samples": 13200,
+      "tracking_error_m": 0.369,
+      "rear_sideslip_rad": 0.044
+    }
+  ],
+  "whole_envelope_beyond_peak_locations": {
+    "braking_into_corners": "rear inner tire, 2.4 to 3.7 m/s^2 lateral over zero track curvature (Pure Pursuit turns in early)",
+    "driving_out": "front inner tire, 0.7 to 2.8 m/s^2 lateral after curvature ended",
+    "mid_corner": "350 to 370 m, 9.58 against a 9.33 m/s^2 lateral limit"
+  },
+  "plan_tests": {
+    "first_corner_mps": {
+      "grip_fractions": 10.712,
+      "envelope_0.8": 11.609,
+      "envelope_1.0": 13.02
+    },
+    "braking_start_m": {
+      "grip_fractions": 111.245,
+      "envelope_0.8": 116.628,
+      "envelope_1.0": 122.609,
+      "grip_0.7_envelope_0.8": 105.862,
+      "matched_bias_0.62": 120.216,
+      "cg_0.6": 113.039,
+      "mass_1200": 115.432,
+      "downforce_3": 117.824
+    },
+    "circle_30_m_mps": {
+      "share_0.8": 15.0272,
+      "share_1.0": 16.7494
+    },
+    "controller_bound_mps2": {
+      "braking_at_10_mps": -7.79589,
+      "driving_at_5_mps": 7.7284,
+      "grip_fraction_budget": 5.39366
+    },
+    "envelope_fixture_plan_reproduction_mps": 3.46809e-10
+  },
+  "headless_runs": [
+    {
+      "run": "plan-fractions",
+      "speed_plan": {
+        "mode": "grip fractions"
+      },
+      "envelope_fraction": 0.8,
+      "grip_mu": 1,
+      "lap_times_s": [
+        34.045,
+        32.345
+      ],
+      "plan_lap_estimate_s": 31.889,
+      "first_corner_planned_mps": 10.712,
+      "braking_start_m": 111.245015466,
+      "max_tracking_error_m": 0.344,
+      "max_grip_use": 0.826,
+      "max_rear_sideslip_rad": 0.041,
+      "invalid_samples": 0,
+      "samples_beyond_tire_peak": 0,
+      "samples": 13279,
+      "completed": true
+    },
+    {
+      "run": "plan-envelope",
+      "speed_plan": {
+        "mode": "performance envelope",
+        "envelope_fingerprint": "033cc3dd344a93cd"
+      },
+      "envelope_fraction": 0.8,
+      "grip_mu": 1,
+      "lap_times_s": [
+        31.95,
+        30.695
+      ],
+      "plan_lap_estimate_s": 30.286,
+      "first_corner_planned_mps": 11.609,
+      "braking_start_m": 116.627838795,
+      "max_tracking_error_m": 0.514,
+      "max_grip_use": 0.977,
+      "max_rear_sideslip_rad": 0.057,
+      "invalid_samples": 0,
+      "samples_beyond_tire_peak": 0,
+      "samples": 12530,
+      "completed": true
+    },
+    {
+      "run": "plan-envelope-whole",
+      "speed_plan": {
+        "mode": "performance envelope",
+        "envelope_fingerprint": "033cc3dd344a93cd"
+      },
+      "envelope_fraction": 1,
+      "grip_mu": 1,
+      "lap_times_s": [
+        30.33,
+        29.025
+      ],
+      "plan_lap_estimate_s": 28.257,
+      "first_corner_planned_mps": 13.02,
+      "braking_start_m": 122.608753606,
+      "max_tracking_error_m": 1.305,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.097,
+      "invalid_samples": 1091,
+      "samples_beyond_tire_peak": 1091,
+      "samples": 11872,
+      "completed": true
+    },
+    {
+      "run": "plan-envelope-bias-0.62",
+      "speed_plan": {
+        "mode": "performance envelope",
+        "envelope_fingerprint": "33ca77dff0889620"
+      },
+      "envelope_fraction": 0.8,
+      "grip_mu": 1,
+      "lap_times_s": [
+        31.83,
+        30.605
+      ],
+      "plan_lap_estimate_s": 30.176,
+      "first_corner_planned_mps": 11.609,
+      "braking_start_m": 120.216387681,
+      "max_tracking_error_m": 0.516,
+      "max_grip_use": 0.989,
+      "max_rear_sideslip_rad": 0.058,
+      "invalid_samples": 0,
+      "samples_beyond_tire_peak": 0,
+      "samples": 12488,
+      "completed": true
+    },
+    {
+      "run": "plan-envelope-cg-0.6",
+      "speed_plan": {
+        "mode": "performance envelope",
+        "envelope_fingerprint": "44994f66f01a7921"
+      },
+      "envelope_fraction": 0.8,
+      "grip_mu": 1,
+      "lap_times_s": [
+        32.655,
+        31.26
+      ],
+      "plan_lap_estimate_s": 30.861,
+      "first_corner_planned_mps": 11.34,
+      "braking_start_m": 113.039289909,
+      "max_tracking_error_m": 0.474,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.053,
+      "invalid_samples": 97,
+      "samples_beyond_tire_peak": 97,
+      "samples": 12784,
+      "completed": true
+    },
+    {
+      "run": "plan-envelope-mass-1200",
+      "speed_plan": {
+        "mode": "performance envelope",
+        "envelope_fingerprint": "f0ead0588fa16c3f"
+      },
+      "envelope_fraction": 0.8,
+      "grip_mu": 1,
+      "lap_times_s": [
+        32.55,
+        31.295
+      ],
+      "plan_lap_estimate_s": 30.929,
+      "first_corner_planned_mps": 11.364,
+      "braking_start_m": 115.431655833,
+      "max_tracking_error_m": 0.515,
+      "max_grip_use": 0.967,
+      "max_rear_sideslip_rad": 0.058,
+      "invalid_samples": 0,
+      "samples_beyond_tire_peak": 0,
+      "samples": 12770,
+      "completed": true
+    },
+    {
+      "run": "plan-envelope-downforce-3",
+      "speed_plan": {
+        "mode": "performance envelope",
+        "envelope_fingerprint": "c1327d99bbd97278"
+      },
+      "envelope_fraction": 0.8,
+      "grip_mu": 1,
+      "lap_times_s": [
+        31.49,
+        30.245
+      ],
+      "plan_lap_estimate_s": 29.826,
+      "first_corner_planned_mps": 11.782,
+      "braking_start_m": 117.824021757,
+      "max_tracking_error_m": 0.528,
+      "max_grip_use": 0.972,
+      "max_rear_sideslip_rad": 0.058,
+      "invalid_samples": 0,
+      "samples_beyond_tire_peak": 0,
+      "samples": 12348,
+      "completed": true
+    },
+    {
+      "run": "plan-fractions-grip-0.7",
+      "speed_plan": {
+        "mode": "grip fractions"
+      },
+      "envelope_fraction": 0.8,
+      "grip_mu": 0.7,
+      "lap_times_s": [
+        39.58,
+        37.39
+      ],
+      "plan_lap_estimate_s": 36.872,
+      "first_corner_planned_mps": 8.962,
+      "braking_start_m": 95.6946369604,
+      "max_tracking_error_m": 0.324,
+      "max_grip_use": 0.771,
+      "max_rear_sideslip_rad": 0.042,
+      "invalid_samples": 0,
+      "samples_beyond_tire_peak": 0,
+      "samples": 15395,
+      "completed": true
+    },
+    {
+      "run": "plan-envelope-grip-0.7",
+      "speed_plan": {
+        "mode": "performance envelope",
+        "envelope_fingerprint": "65e0ab051a7c359d"
+      },
+      "envelope_fraction": 0.8,
+      "grip_mu": 0.7,
+      "lap_times_s": [
+        36.175,
+        34.71
+      ],
+      "plan_lap_estimate_s": 34.267,
+      "first_corner_planned_mps": 9.791,
+      "braking_start_m": 105.862192137,
+      "max_tracking_error_m": 0.51,
+      "max_grip_use": 0.949,
+      "max_rear_sideslip_rad": 0.063,
+      "invalid_samples": 0,
+      "samples_beyond_tire_peak": 0,
+      "samples": 14178,
+      "completed": true
+    },
+    {
+      "run": "plan-envelope-grip-drop",
+      "speed_plan": {
+        "mode": "performance envelope",
+        "envelope_fingerprint": "033cc3dd344a93cd"
+      },
+      "envelope_fraction": 0.8,
+      "grip_mu": 1,
+      "lap_times_s": [
+        33.94,
+        34.705
+      ],
+      "plan_lap_estimate_s": 30.286,
+      "first_corner_planned_mps": 11.609,
+      "braking_start_m": 116.627838795,
+      "max_tracking_error_m": 0.525,
+      "max_grip_use": 0.993,
+      "max_rear_sideslip_rad": 0.065,
+      "invalid_samples": 34,
+      "samples_beyond_tire_peak": 0,
+      "samples": 13730,
+      "completed": true
+    }
+  ],
+  "headless_run_checks": "all ten validate as schema 8; planner reproduction 3.1e-10 to 4.2e-10 m/s; plant reproduction up to 9.94e-10 m; envelope runs: this build derives the recorded envelope",
+  "recordings_load": {
+    "total": 95,
+    "by_schema": {
+      "1": 18,
+      "2": 8,
+      "3": 7,
+      "4": 20,
+      "5": 4,
+      "6": 11,
+      "7": 17,
+      "8": 10
+    },
+    "rejected": 0,
+    "plant_reproduction_m": [
+      9.979e-11,
+      9.989e-10
+    ]
+  },
+  "desktop": {
+    "controls": "PLAN row: Fractions and Envelope 80%, four-wheel car, paused, fresh run",
+    "explanation": "WHY THIS SPEED names the car's lateral, braking or acceleration envelope; braking bound is share * braking capacity at speed",
+    "gg_card": "draws the plan's share inside the envelope; uses the simulation's envelope",
+    "grip_slider": "applies on release under the envelope plan",
+    "capture": "docs/assets/envelope-plan.png"
+  },
+  "not_done": [
+    "shares between 0.8 and 0.9 were not tried; the 0.6 m high car needs more reserve than 0.8 gives",
+    "no racing line (Phase 3.4); the plan follows the centreline",
+    "fastest-lap G-G cross-check still awaits approval to download"
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "verified_on": "2026-09-14",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "scope": "Local action selection among lateral candidate lines, with scenario-stated blocked regions. Not minimum-time optimisation, not perception, not swept-body collision checking.",
+  "source_fingerprint": "019c988e64dee74ac1da2c874fe5fc53dc088034ef41e381428e2f537def69c3",
+  "desktop_ctest": {
+    "passed": 6,
+    "total": 6,
+    "seconds": 87.18,
+    "suites": ["fd_core_behavior", "fd_local_trajectory", "fd_local_planning", "fd_recording_playback", "fd_recording_contract", "fd_desktop_controls"]
+  },
+  "headless_ctest": {
+    "passed": 5,
+    "total": 5
+  },
+  "planner_tests": {
+    "groups": 9,
+    "names": [
+      "clear_track_reproduces_reference_following",
+      "blockage_outside_the_predicted_path_is_ignored",
+      "blocked_line_selects_the_clear_alternative",
+      "fully_blocked_corridor_brakes_instead_of_committing",
+      "invalid_scenarios_are_rejected",
+      "wrapped_blockage_is_handled_at_the_seam",
+      "selection_changes_the_driven_path",
+      "unavoidable_blockage_stops_the_car",
+      "planning_cost_is_measured"
+    ],
+    "clear_corridor_is_command_identical_to_plain_following": true,
+    "candidate_offsets_fraction_of_usable_half_width": [-0.75, -0.4, 0.0, 0.4, 0.75]
+  },
+  "qml_controls": {
+    "checks": 174,
+    "previous_checks": 138,
+    "failure": "",
+    "passed": true,
+    "qml_warnings": [],
+    "method": "Actual QML controls, bindings and QQuickWindow captures",
+    "scenario_checks": [
+      "decision panel and blockage geometry hidden with a clear corridor",
+      "Block lane states one blockage and draws it",
+      "the car chooses a line left of it without braking, and the reason names the blockage",
+      "rejected alternatives are drawn beside the chosen line",
+      "the car actually moves left of the reference line",
+      "Block track leaves no clear line, shows BLOCKED and holds the car below its blocked-line speed",
+      "Clear removes the blockage and hides the decision panel"
+    ]
+  },
+  "closed_loop_runs": {
+    "note": "Same configuration, track and start. Only the stated blockage differs. One preset and one geometry; not a general claim.",
+    "baseline": {
+      "directory": "out/runs/scenario-baseline",
+      "first_lap_s": 33.52,
+      "max_cross_track_error_m": 0.266731158981,
+      "max_combined_grip_utilization": 0.685950974649,
+      "invalid_samples": 0,
+      "lateral_offset_at_blocked_stations_m": 0.0
+    },
+    "avoiding": {
+      "directory": "out/runs/scenario-avoid",
+      "obstruction": {"identifier": "cone-cluster", "from_s_m": 62, "to_s_m": 68, "from_offset_m": -4.5, "to_offset_m": 1.0},
+      "first_lap_s": 33.24,
+      "max_cross_track_error_m": 3.31710512199,
+      "max_combined_grip_utilization": 0.995,
+      "invalid_samples": 0,
+      "lateral_offset_at_blocked_stations_m": 3.08,
+      "speed_while_passing_mps": 19.8
+    },
+    "stopping": {
+      "directory": "out/runs/scenario-stop",
+      "obstruction": {"identifier": "stalled-car", "from_s_m": 62, "to_s_m": 68, "from_offset_m": -4.5, "to_offset_m": 4.5},
+      "laps": 0,
+      "max_speed_mps": 14.2002070352,
+      "final_station_m": 61.78,
+      "final_speed_mps": 0.0,
+      "achieved_clearance_m": 0.22,
+      "planned_clearance_m": 1.0,
+      "invalid_samples": 0
+    }
+  },
+  "recording_contract": {
+    "added_field": "scenario_obstructions",
+    "backward_compatible": true,
+    "older_recordings_still_load": ["out/runs/replay-demo", "out/runs/verified-high", "out/runs/verified-low", "out/runs/verified-transient"],
+    "planner_reproduction_max_difference_mps": 4.191e-10,
+    "decision_is_not_recorded": "Schema 1 stores neither the alternatives nor the choice; replay says so rather than recomputing one."
+  },
+  "measured_planning_cost": {
+    "clear_decision_ms": 3.0,
+    "blocked_decision_ms": 16.0,
+    "control_period_ms": 20,
+    "note": "Host measurement only. The simulation is not wall-clock bound, so no result depends on it, but this is not real-time headroom.",
+    "dominant_cost": "project() is linear in track samples and is called at every predicted control point"
+  },
+  "app_captures": ["docs/assets/avoidance.png", "docs/assets/blocked.png"],
+  "limitations": [
+    "selects among feasible lines; does not solve for a fastest line",
+    "offsets do not re-derive curvature speed limits for the shifted line",
+    "blocked regions are scenario ground truth; no detection, classification or sensor model",
+    "sampled rectangular contact test, not continuous swept-body collision checking",
+    "achieved stopping clearance 0.22 m against a 1.0 m planned margin",
+    "no tire slip, wheel locking, ABS or mass sensitivity",
+    "16 ms blocked decision against a 20 ms control period",
+    "known track and ideal state",
+    "Linux and remote CI unexecuted"
+  ]
+}

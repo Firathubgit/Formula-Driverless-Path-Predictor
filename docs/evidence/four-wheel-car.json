@@ -1,0 +1,212 @@
+{
+  "verified_on": "2026-09-15",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0011-tire-slip-and-balance.md",
+    "docs/decisions/0012-four-rotating-wheels.md",
+    "docs/decisions/0013-recording-and-showing-wheels.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan Phase 1 Visible list",
+    "TrackWayFastPlan 2.1"
+  ],
+  "source_fingerprint": "4d1e4c225fcbc9f1e9bec85fbfcc7a8b54abccfbbe15a9380e6d7f20cc8c8cb4",
+  "headless_ctest": {
+    "passed": 9,
+    "total": 9,
+    "test_seconds": 77.07
+  },
+  "desktop_ctest": {
+    "passed": 10,
+    "total": 10,
+    "test_seconds": 85.46,
+    "qml_checks": 280,
+    "previous_qml_checks": 248,
+    "qml_warnings": []
+  },
+  "suites": {
+    "fd_wheel_model_groups": 11,
+    "fd_vehicle_model_groups": 17,
+    "fd_recording_playback_groups": 11
+  },
+  "balance": {
+    "definition": "understeer angle = (front slip angle - rear slip angle) toward the turn; understeer above +0.25 deg, oversteer below -0.25 deg, not cornering below 1 m/s^2",
+    "slip_angle_formula_error_rad_max": 1e-12,
+    "steady_turns_11_mps": {
+      "soft_front": {
+        "understeer_angle_rad": 0.00599394,
+        "steering_beyond_geometry_rad": 0.00597979,
+        "label": "understeer"
+      },
+      "soft_rear": {
+        "understeer_angle_rad": -0.00784202,
+        "steering_beyond_geometry_rad": -0.00786265,
+        "label": "oversteer"
+      },
+      "default": {
+        "understeer_angle_rad": 7.93106e-06,
+        "label": "neutral"
+      }
+    },
+    "replay_dynamic_fixture": {
+      "samples": 2401,
+      "tolerance_rad": 1e-09,
+      "understeering": 447,
+      "oversteering": 425
+    }
+  },
+  "four_wheel_car": {
+    "substep_s": 0.0025,
+    "lap_s": 33.805,
+    "lap_max_tracking_error_m": 0.357904,
+    "threshold_braking_0_95g_20_to_3_mps_m": 21.9811,
+    "locked_braking_2_5g_20_to_3_mps_m": 25.3157,
+    "locked_deceleration_mps2": 7.69695,
+    "tire_law_at_slip_ratio_minus_1_mps2": 7.69695,
+    "peak_mps2": 9.62474,
+    "braked_turn_front_bias_0_9": {
+      "yaw_rate_radps": [
+        0.244111,
+        -0.00395714
+      ],
+      "sideslip_rad": 0.000210146,
+      "locked": "front only"
+    },
+    "braked_turn_front_bias_0_1": {
+      "yaw_rate_radps": [
+        0.244111,
+        2.16648
+      ],
+      "sideslip_rad": -1.17627,
+      "locked": "rear only"
+    },
+    "wheelspin_4_mps": {
+      "acceleration_mps2": 3.58437,
+      "rear_peak_mps2": 4.81237,
+      "rear_slip_ratio": 4.16532
+    },
+    "power_limit_30_kw": {
+      "acceleration_mps2": 1.3938,
+      "speed_mps": 25.6269,
+      "power_over_speed_and_equivalent_mass": 1.40104
+    },
+    "braking_energy_j": {
+      "lost": 121722,
+      "brake_and_slip_work": 121652
+    },
+    "convergence_against_0_2_ms": {
+      "pull_away_m": 6.77669e-05,
+      "locked_braking_in_turn": {
+        "position_m": 0.00497729,
+        "speed_mps": 0.00391898
+      },
+      "threshold_braking_m": 0.00116988,
+      "wheelspin_m": 0.000773648,
+      "cornering_m": 4.74614e-05
+    },
+    "found": [
+      "wheel-chassis splitting cost 1.9% acceleration and 20 cm pull-away until each wheel's slip ratio was held through the chassis step",
+      "1 ms substep: 10.3 ms prediction, 66 ms blocked decision",
+      "5 ms substep made one second of wheelspin 100x less accurate (5.5e-3 vs 5.7e-5 m/s)",
+      "0.85 g braking is short of the tire threshold once wheel inertia is counted; 0.95 g used",
+      "10% front brake bias does not lock the rear under the planner's 0.55 g braking"
+    ],
+    "cost_ms_loaded_host_measurement_only": {
+      "prediction": [
+        3.4,
+        4.6
+      ],
+      "blocked_decision": [
+        18.7,
+        26.1
+      ],
+      "tick_us": 3.08,
+      "single_track_tick_us": 1.0
+    },
+    "differential": "open; viscous coupling deferred to Phase 2.2 because static loads give it no effect"
+  },
+  "existing_plants_unchanged": {
+    "reruns": {
+      "out/runs/wheels-scenario-avoid": "out/runs/schema4-scenario-avoid",
+      "out/runs/wheels-pursuit-default": "out/runs/map-pursuit-default",
+      "out/runs/wheels-map-soft": "out/runs/map-map-soft"
+    },
+    "result": "every file byte-identical; metadata differs only in run_identifier and source_fingerprint"
+  },
+  "schema_5": {
+    "metadata": "vehicle_model kind four_wheel_car with every parameter and both tires; requires schema 5; MAP refused for it",
+    "telemetry_columns_added": [
+      "front_left_wheel_speed_radps",
+      "front_right_wheel_speed_radps",
+      "rear_left_wheel_speed_radps",
+      "rear_right_wheel_speed_radps"
+    ],
+    "fixture": {
+      "brake_bias_front": 0,
+      "samples": 2201,
+      "rear_left_locked_while_moving": 264,
+      "plant_reproduction_m": 9.90074e-10
+    },
+    "tamper_cases": [
+      "kinematic-wheel-speed",
+      "negative-wheel-speed",
+      "four-wheel-map",
+      "four-wheel-in-schema-4",
+      "four-wheel-unknown-key"
+    ]
+  },
+  "headless_runs": {
+    "note": "recorded before a one-line headless message fix changed the source fingerprint",
+    "out/runs/wheels-lap": {
+      "lap_s": 33.805,
+      "max_tracking_error_m": 0.358,
+      "invalid": "0/6762",
+      "locked_samples": 0,
+      "plant_reproduction_m": 9.856e-10
+    },
+    "out/runs/wheels-bias-front-0.9": {
+      "duration_s": 20,
+      "max_tracking_error_m": 0.371,
+      "invalid": "86/4001 tire slip past its peak",
+      "locked_samples": 0,
+      "plant_reproduction_m": 9.889e-10
+    },
+    "out/runs/wheels-bias-front-0.1": {
+      "duration_s": 20,
+      "max_tracking_error_m": 0.345,
+      "invalid": "21/4001 tire slip past its peak",
+      "locked_samples": 0,
+      "plant_reproduction_m": 9.733e-10
+    },
+    "out/runs/wheels-bias-front-0": {
+      "duration_s": 20,
+      "max_tracking_error_m": 14.142,
+      "max_rear_sideslip_rad": 1.347,
+      "invalid": "2475/4001",
+      "locked_samples": 264,
+      "first_rear_lock_s": 7.965,
+      "plant_reproduction_m": 9.884e-10
+    }
+  },
+  "recordings_checked": {
+    "total": 57,
+    "schema_1": 18,
+    "schema_2": 8,
+    "schema_3": 7,
+    "schema_4": 20,
+    "schema_5": 4,
+    "rejected": 0,
+    "plant_reproduction_range_m": [
+      9.979e-11,
+      9.989e-10
+    ]
+  },
+  "desktop": {
+    "captures": [
+      "docs/assets/map-steering.png",
+      "docs/assets/four-wheel-lock.png",
+      "docs/assets/dynamic-plant.png"
+    ],
+    "layout_fix": "REAR SIDESLIP and MAP CORRECTION moved into the tire slip card after the replay scrubber covered them; status line elides"
+  }
+}

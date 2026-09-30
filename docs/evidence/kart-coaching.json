@@ -1,0 +1,41 @@
+{
+  "decision": "0039",
+  "date": "2026-09-28",
+  "guide": {
+    "retrace_max_difference_m": 0.9570130615618575,
+    "metres_per_px": 0.04946948364958795,
+    "poster_origin_px": [
+      757.37,
+      1616.16
+    ],
+    "samples": 1600,
+    "source_coverage": 0.983125,
+    "max_inset_adjustment_m": 0.6722594788588221,
+    "phase_samples": {
+      "brake": 215,
+      "accelerate": 1166,
+      "coast": 219
+    }
+  },
+  "guide_sha256": "48dc5b3f36cde40e4613c57eb843a7b5ca293b97d169a7c125709de4551d8bfe",
+  "track_sha256": "9855f04e6b6a593bc47194281a9f9736f758bd7743ee146b8270537f62653619",
+  "desktop_build": "Release fd_desktop target passed",
+  "ui": {
+    "checks": 728,
+    "failure": "",
+    "method": "Actual QML controls, bindings and QQuickWindow captures",
+    "passed": true,
+    "qml_warnings": []
+  },
+  "ui_seconds": 170.99,
+  "inspected_captures": [
+    "build/desktop/ui-evidence/compact-kart-guidance-settings.png",
+    "build/desktop/ui-evidence/compact-kart-guidance-overview.png",
+    "build/desktop/ui-evidence/compact-kart.png"
+  ],
+  "startup_capture": "out/tracks/kart-guide/startup.png",
+  "startup_exit_code": 0,
+  "reproduced_identical_csv": true,
+  "core_suites_rerun": false,
+  "physical_controller_exercised": false
+}

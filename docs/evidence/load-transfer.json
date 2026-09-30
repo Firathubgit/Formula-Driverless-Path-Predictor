@@ -1,0 +1,270 @@
+{
+  "verified_on": "2026-09-15",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0014-quasi-static-load-transfer.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 2.2",
+    "TrackWayFastPlan Phase 2 Visible list: friction circles and vertical load bars"
+  ],
+  "source_fingerprint": "e2714e28be22e5047688a8f80f9f5f66aaf5e106a6fe9930a8dff6d46645c138",
+  "headless_ctest": {
+    "passed": 10,
+    "total": 10,
+    "test_seconds": 68.35
+  },
+  "desktop_ctest": {
+    "passed": 11,
+    "total": 11,
+    "test_seconds": 90.63,
+    "qml_checks": 301,
+    "previous_qml_checks": 280,
+    "qml_warnings": []
+  },
+  "suites": {
+    "fd_load_transfer_groups": 10,
+    "fd_wheel_model_groups": 11,
+    "fd_vehicle_model_groups": 17,
+    "fd_recording_playback_groups": 11
+  },
+  "model": {
+    "equations": "weight; sum x*Fz = -h*Fx; sum y*Fz = -h*Fy about the centre of gravity; (Fz_fr - Fz_fl)(1 - D) + (Fz_rl - Fz_rr) D = 0; lifted wheel clamped at zero",
+    "force_source": "RK4-weighted tire forces of the previous substep; through the 1-3 m/s blend band blended toward the kinematic bicycle's rolling force",
+    "state": "PlantState::wheel_loads_n",
+    "defaults": {
+      "cg_height_m": 0.35,
+      "roll_balance_front": 0.5
+    },
+    "valid_range": {
+      "cg_height_m": "0 to half the narrower track",
+      "roll_balance_front": "0 to 1"
+    }
+  },
+  "balance_equations": {
+    "random_sets": 5000,
+    "unlifted": 3865,
+    "lifted": 1135,
+    "relative_tolerance": 1e-09
+  },
+  "tum_closed_form": {
+    "equal_tracks_straight_max_difference_n": 9.09495e-13,
+    "equal_tracks_steered_max_difference_n": 53.3386,
+    "equal_tracks_steered_max_dropped_term_n": 53.3386,
+    "unequal_tracks_max_difference_n": 95.9433,
+    "unequal_tracks_max_dropped_term_n": 187.45
+  },
+  "closed_loop_transfers": {
+    "braking": {
+      "measured_mps2": -4.69869,
+      "front_axle_n": 4428.67,
+      "static_front_axle_n": 3922.66,
+      "m_a_h_over_L_n": 506.013
+    },
+    "driving": {
+      "measured_mps2": 2.39266,
+      "front_axle_n": 3664.99,
+      "m_a_h_over_L_n": 257.671
+    },
+    "cornering": [
+      {
+        "roll_balance_front": 0.3,
+        "lateral_mps2": 3.64152,
+        "moved_outward_n": 679.743,
+        "m_ay_h_over_track_n": 679.75,
+        "front_share": 0.3
+      },
+      {
+        "roll_balance_front": 0.5,
+        "lateral_mps2": 3.64281,
+        "moved_outward_n": 679.984,
+        "m_ay_h_over_track_n": 679.992,
+        "front_share": 0.5
+      },
+      {
+        "roll_balance_front": 0.8,
+        "lateral_mps2": 3.64468,
+        "moved_outward_n": 680.332,
+        "m_ay_h_over_track_n": 680.34,
+        "front_share": 0.8
+      }
+    ]
+  },
+  "roll_balance_near_limit": [
+    {
+      "roll_balance_front": 0.2,
+      "lateral_mps2": 7.26348,
+      "understeer_angle_rad": -0.000648922
+    },
+    {
+      "roll_balance_front": 0.5,
+      "lateral_mps2": 7.17013,
+      "understeer_angle_rad": 0.000517598
+    },
+    {
+      "roll_balance_front": 0.8,
+      "lateral_mps2": 7.08812,
+      "understeer_angle_rad": 0.00152573
+    }
+  ],
+  "brake_bias_095g_20_to_3_mps": {
+    "no_load_transfer_bias_0.5_m": 21.9811,
+    "cg_0.35_bias_0.5_m": 25.5941,
+    "cg_0.35_bias_0.5_rear_locked": true,
+    "matched_bias": 0.617232,
+    "cg_0.35_matched_bias_m": 21.9812,
+    "matched_bias_locked": false
+  },
+  "lifted_wheel": {
+    "cg_height_m": 0.75,
+    "roll_balance_front": 1,
+    "lifted_at_s": 0.295,
+    "outer_front_n": 3991.61,
+    "rear_each_n": 1929.26
+  },
+  "substep_convergence_against_0.2ms": {
+    "hard_braking_into_a_turn_matched_bias": {
+      "position_m": 0.000411069,
+      "speed_mps": 0.000478699,
+      "yaw_rate_radps": 4.48059e-06,
+      "load_n": 0.325165
+    },
+    "threshold_braking_matched_bias": {
+      "position_m": 0.00123592,
+      "speed_mps": 0.00079008,
+      "yaw_rate_radps": 0,
+      "load_n": 6.48015e-11
+    },
+    "turning_in_until_a_wheel_lifts": {
+      "position_m": 7.12254e-05,
+      "speed_mps": 6.62497e-06,
+      "yaw_rate_radps": 5.86899e-06,
+      "load_n": 0.0930486
+    },
+    "rear_wheel_drive_out_of_a_corner": {
+      "position_m": 0.000559642,
+      "speed_mps": 0.000264307,
+      "yaw_rate_radps": 1.91463e-06,
+      "load_n": 0.0558256
+    }
+  },
+  "wheelspin_speed_error_against_0.05ms_after_1s_mps": {
+    "0.1ms": 0.0001353,
+    "0.2ms": 0.0003985,
+    "0.5ms": 0.001139,
+    "1ms": 0.002269,
+    "2.5ms": 0.005428
+  },
+  "phase_2_1_suite_with_load_transfer": {
+    "threshold_braking_bias_0.62_m": 21.9812,
+    "locked_braking_m": 25.4167,
+    "locked_deceleration_mps2": 7.66885,
+    "tire_law_at_state_loads_mps2": 7.66885,
+    "wheelspin_mps2": 3.9495,
+    "rear_peak_at_loads_mps2": 5.29177,
+    "energy_lost_j": 115816,
+    "brake_and_slip_work_j": 115777,
+    "lap_s": 33.81
+  },
+  "cost_measurement_only": {
+    "prediction_ms": [
+      2.9,
+      3.2
+    ],
+    "blocked_decision_ms": [
+      18.0,
+      19.0
+    ]
+  },
+  "blend_artefact_found": {
+    "loads_from_cg_acceleration_right_wheel_n": 8581,
+    "loads_from_tire_forces_max_front_axle_change_n": 839.5
+  },
+  "recording_schema_6": {
+    "fixture_samples": 2201,
+    "rear_locked_samples": 327,
+    "front_axle_gain_n": 508.983,
+    "plant_reproduction_m": 9.7697e-10,
+    "read_as_schema_5_plant_reproduction_m": 9.04056e-06,
+    "refused": [
+      "kinematic-wheel-load",
+      "negative-wheel-load",
+      "wheel-loads-not-weight",
+      "load-transfer-in-schema-5",
+      "missing-roll-balance",
+      "wheels-mass"
+    ]
+  },
+  "headless_runs": {
+    "loads-flat-lap": {
+      "args": "--plant four-wheel --cg-height 0 --laps 1",
+      "lap_s": 33.805,
+      "identical_to": "wheels-lap except metadata identity, two vehicle keys and four load columns"
+    },
+    "loads-lap": {
+      "args": "--plant four-wheel --laps 1",
+      "lap_s": 33.81,
+      "front_axle_gain_n": 577.845,
+      "locked": 0,
+      "invalid": "0 of 6763"
+    },
+    "loads-bias-front-0.9": {
+      "locked": 0,
+      "invalid": "19 of 4001"
+    },
+    "loads-bias-front-0.6": {
+      "locked": 0,
+      "invalid": "0 of 4001"
+    },
+    "loads-bias-front-0.5": {
+      "locked": 0,
+      "invalid": "0 of 4001"
+    },
+    "loads-bias-front-0.1": {
+      "first_rear_lock_s": 7.99,
+      "max_rear_sideslip_rad": 1.139,
+      "locked": 362,
+      "invalid": "1062 of 4001"
+    },
+    "loads-bias-front-0": {
+      "first_rear_lock_s": 7.855,
+      "max_rear_sideslip_rad": 1.341,
+      "locked": 404,
+      "invalid": "911 of 4001"
+    },
+    "loads-tall-roll-front": {
+      "args": "--cg-height 0.75 --roll-balance-front 1 --laps 1",
+      "lap_s": 33.805,
+      "lifted": 2155,
+      "invalid": "3219 of 6762"
+    },
+    "unchanged_plants": [
+      "loads-scenario-avoid = wheels-scenario-avoid",
+      "loads-pursuit-default = wheels-pursuit-default",
+      "loads-map-soft = wheels-map-soft"
+    ],
+    "plant_reproduction_m": [
+      9.619e-10,
+      9.945e-10
+    ]
+  },
+  "all_recordings": {
+    "loaded": 68,
+    "rejected": 0,
+    "by_schema": {
+      "1": 18,
+      "2": 8,
+      "3": 7,
+      "4": 20,
+      "5": 4,
+      "6": 11
+    },
+    "plant_reproduction_m": [
+      9.979e-11,
+      9.989e-10
+    ]
+  },
+  "captures_inspected": [
+    "docs/assets/four-wheel-loads.png"
+  ]
+}

@@ -1,0 +1,225 @@
+{
+  "verified_on": "2026-09-16",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0015-aerodynamics-and-viscous-coupling.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 2.3",
+    "TrackWayFastPlan 2.1 viscous differential (deferred by decision 0012)"
+  ],
+  "source_fingerprint": "dea39e16c36b432f0c94c318280d5bc14e5fc5f2eceac7423f0da840949f1495",
+  "headless_ctest": {
+    "passed": 11,
+    "total": 11,
+    "test_seconds": 91.48
+  },
+  "desktop_ctest": {
+    "passed": 12,
+    "total": 12,
+    "test_seconds": 92.41,
+    "qml_checks": 303,
+    "previous_qml_checks": 301,
+    "qml_warnings": []
+  },
+  "suites": {
+    "fd_aerodynamics_groups": 7,
+    "fd_wheel_model_groups": 12,
+    "fd_load_transfer_groups": 10,
+    "fd_recording_playback_groups": 11
+  },
+  "model": {
+    "air_density_kgpm3": 1.225,
+    "drag": "0.5 * rho * drag_area_m2 * |v| * v against the centre of gravity's body-frame velocity, through the centre of gravity",
+    "downforce": "0.5 * rho * downforce_area_m2 * v_x^2, aero_balance_front of it on the front axle",
+    "viscous_coupling": "k * (w_left - w_right) from the faster to the slower wheel of each driven axle, solved implicitly by alternating the two wheel updates",
+    "defaults": {
+      "drag_area_m2": 0.6,
+      "downforce_area_m2": 0,
+      "aero_balance_front": 0.5,
+      "viscous_coupling_nms": 0
+    },
+    "valid_range": {
+      "drag_area_m2": "0..10",
+      "downforce_area_m2": "0..10",
+      "aero_balance_front": "0..1",
+      "viscous_coupling_nms": "0..200"
+    }
+  },
+  "coasting_at_29.8231_mps": {
+    "measured_mps2": 0.391182,
+    "drag_over_equivalent_mass_mps2": 0.39119
+  },
+  "top_speed": [
+    {
+      "drag_area_m2": 0.6,
+      "after_90_s_mps": 64.6309,
+      "power_equals_drag_power_mps": 64.8009,
+      "still_gaining_mps_per_s": 0.000809195
+    },
+    {
+      "drag_area_m2": 1.2,
+      "after_90_s_mps": 51.2705,
+      "power_equals_drag_power_mps": 51.4325,
+      "still_gaining_mps_per_s": 4.8264e-06
+    }
+  ],
+  "largest_steady_turn_mps2": {
+    "speeds_mps": [
+      10,
+      20,
+      30
+    ],
+    "no_downforce": [
+      9.23818,
+      9.17718,
+      8.86445
+    ],
+    "downforce_area_3_m2": [
+      9.39796,
+      9.95174,
+      10.7727
+    ]
+  },
+  "beyond_tire_reference_load": {
+    "speed_mps": 85,
+    "downforce_area_m2": 4,
+    "heaviest_wheel_n": 6516.32,
+    "peak_lateral_friction": 0.830638,
+    "upper_reference_friction": 0.85,
+    "speed_after_1_s_coasting_mps": 80.0111
+  },
+  "viscous_coupling_corner_exit_rwd_10_mps_steer_0.12": {
+    "0.45g_open": {
+      "speed_gain_mps": 2.01371,
+      "largest_rear_spread_radps": 69.4858,
+      "inner_rear_slip_ratio": 2.06312,
+      "rear_sideslip_rad": -0.150625
+    },
+    "0.45g_coupling_40": {
+      "speed_gain_mps": 2.24813,
+      "largest_rear_spread_radps": 2.74567,
+      "inner_rear_slip_ratio": 0.329925,
+      "rear_sideslip_rad": -0.130003
+    },
+    "0.6g_open": {
+      "speed_gain_mps": 1.50441,
+      "largest_rear_spread_radps": 131.016,
+      "inner_rear_slip_ratio": 4.19292,
+      "rear_sideslip_rad": -0.368184
+    },
+    "0.6g_coupling_40": {
+      "speed_gain_mps": 0.963987,
+      "largest_rear_spread_radps": 2.53573,
+      "inner_rear_slip_ratio": 2.24256,
+      "rear_sideslip_rad": -0.571711
+    }
+  },
+  "phase_2_1_oracles_with_drag": {
+    "threshold_braking_m": 21.7602,
+    "locked_braking_m": 25.1123,
+    "locked_deceleration_mps2": 7.78221,
+    "tire_law_and_drag_mps2": 7.78166,
+    "power_limited_mps2": 1.11433,
+    "power_less_drag_mps2": 1.12187,
+    "energy_lost_j": 117044,
+    "brake_slip_drag_work_j": 117004,
+    "lap_s": 34.045
+  },
+  "cost_measurement_only": {
+    "prediction_ms": [
+      2.83,
+      3.08
+    ],
+    "blocked_decision_ms": [
+      18.31,
+      18.5
+    ]
+  },
+  "recording_schema_7": {
+    "fixture_samples": 2201,
+    "rear_locked_samples": 297,
+    "plant_reproduction_m": 9.72648e-10,
+    "read_as_schema_5_plant_reproduction_m": 9.90984e-06,
+    "refused": [
+      "wheels-schema-6 (loads carry downforce)",
+      "aerodynamics-in-schema-6",
+      "missing-drag-area",
+      "downforce-edited"
+    ]
+  },
+  "headless_runs": {
+    "aero-still-air-lap": {
+      "args": "--plant four-wheel --drag-area 0 --laps 1",
+      "lap_s": 33.81,
+      "max_error_m": 0.353,
+      "max_grip_use": 0.844,
+      "max_sideslip_rad": 0.043,
+      "invalid": "0 of 6763"
+    },
+    "aero-lap": {
+      "args": "--plant four-wheel --laps 1",
+      "lap_s": 34.045,
+      "max_error_m": 0.344,
+      "max_grip_use": 0.826,
+      "max_sideslip_rad": 0.041,
+      "invalid": "0 of 6810"
+    },
+    "aero-winged-lap": {
+      "args": "--plant four-wheel --downforce-area 3 --aero-balance-front 0.45 --laps 1",
+      "lap_s": 34.045,
+      "max_error_m": 0.331,
+      "max_grip_use": 0.794,
+      "max_sideslip_rad": 0.037,
+      "invalid": "0 of 6810"
+    },
+    "aero-rwd-open-lap": {
+      "args": "--plant four-wheel --drive-front-fraction 0 --laps 1",
+      "lap_s": 34.25,
+      "max_error_m": 0.365,
+      "max_grip_use": 1.0,
+      "max_sideslip_rad": 0.069,
+      "invalid": "926 of 6851",
+      "max_rear_spread_radps": 94.19
+    },
+    "aero-rwd-coupled-lap": {
+      "args": "--plant four-wheel --drive-front-fraction 0 --viscous-coupling 40 --laps 1",
+      "lap_s": 34.215,
+      "max_error_m": 0.728,
+      "max_grip_use": 1.0,
+      "max_sideslip_rad": 0.107,
+      "invalid": "771 of 6844",
+      "max_rear_spread_radps": 2.54
+    },
+    "unchanged": [
+      "aero-still-air-lap = loads-lap except metadata identity and four vehicle keys",
+      "aero-scenario-avoid = loads-scenario-avoid",
+      "aero-pursuit-default = loads-pursuit-default",
+      "aero-map-soft = loads-map-soft"
+    ],
+    "plant_reproduction_m": [
+      9.844e-10,
+      9.981e-10
+    ]
+  },
+  "all_recordings": {
+    "loaded": 76,
+    "rejected": 0,
+    "by_schema": {
+      "1": 18,
+      "2": 8,
+      "3": 7,
+      "4": 20,
+      "5": 4,
+      "6": 11,
+      "7": 8
+    },
+    "plant_reproduction_m": [
+      9.979e-11,
+      9.989e-10
+    ]
+  },
+  "captures_inspected": [
+    "docs/assets/four-wheel-aero.png"
+  ]
+}

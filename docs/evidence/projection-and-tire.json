@@ -1,0 +1,75 @@
+{
+  "verified_on": "2026-09-14",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "plan_phases": ["TrackWayFastPlan 0.1 fast projection", "TrackWayFastPlan 1.1 tire module", "TrackWayFastPlan 0.2/0.4 seam design as decision 0005 (not built)"],
+  "scope": "Exact pruned nearest-point projection with a new track invariant, and a standalone steady-state tire force model. No plant, controller or recording behaviour changed.",
+  "source_fingerprint": "e5dab3e98d39aa51f8c78ae43df4d76f5260c6f8f0826147bec967cdf41d3f1c",
+  "desktop_ctest": {
+    "passed": 7,
+    "total": 7,
+    "seconds": 25.84,
+    "previous_seconds_recorded": 87.18,
+    "suites": ["fd_core_behavior", "fd_tire_model", "fd_local_trajectory", "fd_local_planning", "fd_recording_playback", "fd_recording_contract", "fd_desktop_controls"],
+    "qml_checks": 174,
+    "qml_warnings": []
+  },
+  "headless_ctest": {
+    "passed": 6,
+    "total": 6,
+    "seconds": 17.99,
+    "fd_core_behavior_seconds_before_same_host": 24.09,
+    "fd_core_behavior_seconds_after": 12.90,
+    "five_suite_seconds_before_same_host": 32.20,
+    "fd_core_behavior_timeout_seconds": {"before": 180, "after": 90}
+  },
+  "micro_benchmark": {
+    "note": "Scratch Release benchmark outside the repository, 851-sample preset, 2000 random states within 4 m of the centerline, same host before and after. Measurement only.",
+    "project_us": {"before": 4.27, "after": 0.59},
+    "compute_control_us": {"before": 6.73, "after": 3.01},
+    "validate_track_us": {"before": 6.03, "after": 7.77, "intermediate_rejected": "20.0 when the chord tolerance was computed for every segment"},
+    "three_second_prediction_ms": {"before": 1.43, "after": 0.48},
+    "decision_with_one_blockage_ms": {"before": 7.26, "after": 2.87}
+  },
+  "planner_suite_cost_print": {"clear_ms": {"before": 0.89, "after": 0.43}, "blocked_ms": {"before": 4.75, "after": 2.36}},
+  "projection_equivalence": {
+    "test": "pruned_projection_matches_exhaustive_scan",
+    "comparison": "index, fraction, s_m, signed_error_m, distance_m, point.x, point.y compared with == against the previous exhaustive scan kept verbatim in the test",
+    "tracks": ["preset", "square fixture", "four irregular closed tracks with a hairpin and random arc surplus"],
+    "positions_per_track": "4000 each on-centerline, near and far random; every sample exactly and one ulp off; extreme magnitudes 1e6, 1e150, 1e200, 1e300; square centre tie",
+    "rejection_test": "arc_shorter_than_chord_is_rejected"
+  },
+  "byte_identical_reruns": {
+    "compared_files": ["telemetry.csv", "events.csv", "track.csv", "plan.csv", "plan-rev-*.csv", "summary.json"],
+    "differences_only_in": "metadata.json run_identifier and source_fingerprint",
+    "pairs": {
+      "out/runs/scenario-baseline": "out/runs/phase0-final-scenario-baseline",
+      "out/runs/scenario-avoid": "out/runs/phase0-final-scenario-avoid",
+      "out/runs/scenario-stop": "out/runs/phase0-final-scenario-stop",
+      "out/runs/verified-transient": "out/runs/phase0-final-verified-transient"
+    },
+    "note": "Made with the final source above. An earlier identical comparison, out/runs/phase0-projection-*, was made before tire.cpp and the validation fast path. scenario-stop exits 2 like its original because it stops without completing a lap."
+  },
+  "preserved_recordings_check": {
+    "command": "fd_headless --check-recording",
+    "checked": 18,
+    "rejected": 0,
+    "preserved": ["replay-demo", "rolling-grip-20260914", "rolling-grip-final-20260914", "scenario-avoid", "scenario-baseline", "scenario-stop", "schema-check", "verified-high", "verified-low", "verified-transient"],
+    "new_this_session": ["phase0-projection-* (4)", "phase0-final-* (4)"]
+  },
+  "tire_model": {
+    "decision": "docs/decisions/0006-tire-force-model.md",
+    "suite": "fd_tire_model",
+    "groups": 10,
+    "default_sliding_fraction": 0.75,
+    "shape_Q_for_default": 1.46010691232523,
+    "small_slip_slope_over_peak_secant": 2.705,
+    "mutation_check": "replacing S = tan(pi/(2Q)) with fastest-lap's S = pi/(2*atan(Q)) failed 5 of the then 9 groups",
+    "fastest_lap_equivalent_sliding_fraction": 0.156,
+    "connected_to_plant": false
+  },
+  "plan_correction": {
+    "item": "TrackWayFastPlan Phase 2.1 wheel stiffness estimate used mu*Fz/kappa_max; the tire's small-slip slope is 2.705 times that",
+    "consequence": "wheel time constant about 1.1 ms at 20 m/s (plan: 3 ms); explicit 1 ms step unstable below about 8.8 m/s (plan: about 7 m/s); implicit wheel integration remains required",
+    "plan_file_changed": false
+  }
+}

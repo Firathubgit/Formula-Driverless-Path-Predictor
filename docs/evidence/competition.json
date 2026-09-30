@@ -1,0 +1,318 @@
+{
+  "verified_on": "2026-09-26",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "source_fingerprint": "acf7dab6372560aa09d627d0aa7aac92e7a97fc7520b01fac4d06f543ed28245",
+  "headless_ctest": "`scripts/build.ps1`: 28 of 28 CTest suites pass in 688.3 s; no compiler warning.",
+  "desktop_ctest": "`scripts/build.ps1 -Desktop`: 30 of 30 in 723.9 s, the QML controls suite running 615 checks in 115.8 s with no QML warning; no compiler warning.",
+  "qml_controls": "615 checks passed, 0 QML warnings",
+  "recordings": "With this build 397 of the 429 recordings in `out/runs` pass `--check-recording`. Refused: `mpcc-dynamic-laps-mpcc` and `p75c-FSG24-known`, cut off while written; `p62x-dynamic-1789837332`, written before schema 13's dynamic car metadata settled; 28 `p75-`, `p75f-` and `p75g-` layout runs recorded before the cone memory entered the metadata (the final `p75h-*` runs pass); and `p8-profile-electric-race-car`, which names TUM's car with the tire decision 0034 corrected.",
+  "decisions": [
+    "docs/decisions/0032-judging-and-formula-student-courses.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 7.5 (judging after PacSim's competition logic, recorded as schema 17; PacSim's Formula Student layouts driven from where they lie)"
+  ],
+  "method": "Every PacSim Formula Student layout as an autocross with configs/formula-student.cfg and --perception 5: on the known track (known), on cones from the ideal state (ideal) and on cones from --sensors 5 (measured). Lap times are the judge's, from the start line; penalties 2 s a cone, 10 s off course.",
+  "summary": "All 39 runs finish and every recording validates, each judged again. Known track: 10 of 13 clean, 5 cones down, never off course. Ideal state on cones: 8 clean, 12 cones, 3 excursions. Instruments on cones: 4 clean, 35 cones, 4 excursions.",
+  "layouts": {
+    "FSG19": {
+      "known": {
+        "lap_s": 28.97,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.407
+      },
+      "ideal": {
+        "lap_s": 31.23,
+        "cones_down": 4,
+        "off_course": 2,
+        "penalty_s": 28.0,
+        "max_tracking_error_m": 6.487
+      },
+      "measured": {
+        "lap_s": 32.075,
+        "cones_down": 1,
+        "off_course": 1,
+        "penalty_s": 12.0,
+        "max_tracking_error_m": 3.73
+      }
+    },
+    "FSG21": {
+      "known": {
+        "lap_s": 21.75,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.338
+      },
+      "ideal": {
+        "lap_s": 22.31,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.417
+      },
+      "measured": {
+        "lap_s": 22.24,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.689
+      }
+    },
+    "FSG23": {
+      "known": {
+        "lap_s": 33.135,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.427
+      },
+      "ideal": {
+        "lap_s": 34.955,
+        "cones_down": 1,
+        "off_course": 0,
+        "penalty_s": 2.0,
+        "max_tracking_error_m": 0.559
+      },
+      "measured": {
+        "lap_s": 34.485,
+        "cones_down": 4,
+        "off_course": 0,
+        "penalty_s": 8.0,
+        "max_tracking_error_m": 0.728
+      }
+    },
+    "FSG24": {
+      "known": {
+        "lap_s": 38.665,
+        "cones_down": 3,
+        "off_course": 0,
+        "penalty_s": 6.0,
+        "max_tracking_error_m": 0.61
+      },
+      "ideal": {
+        "lap_s": 39.18,
+        "cones_down": 3,
+        "off_course": 1,
+        "penalty_s": 16.0,
+        "max_tracking_error_m": 2.638
+      },
+      "measured": {
+        "lap_s": 38.45,
+        "cones_down": 5,
+        "off_course": 1,
+        "penalty_s": 20.0,
+        "max_tracking_error_m": 3.639
+      }
+    },
+    "FSE22": {
+      "known": {
+        "lap_s": 19.33,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.498
+      },
+      "ideal": {
+        "lap_s": 19.205,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.491
+      },
+      "measured": {
+        "lap_s": 19.055,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.783
+      }
+    },
+    "FSE23": {
+      "known": {
+        "lap_s": 25.04,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.443
+      },
+      "ideal": {
+        "lap_s": 27.06,
+        "cones_down": 3,
+        "off_course": 0,
+        "penalty_s": 6.0,
+        "max_tracking_error_m": 1.091
+      },
+      "measured": {
+        "lap_s": 27.215,
+        "cones_down": 4,
+        "off_course": 0,
+        "penalty_s": 8.0,
+        "max_tracking_error_m": 1.493
+      }
+    },
+    "FSE24": {
+      "known": {
+        "lap_s": 29.345,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.73
+      },
+      "ideal": {
+        "lap_s": 29.59,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.649
+      },
+      "measured": {
+        "lap_s": 29.325,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.738
+      }
+    },
+    "FSS19": {
+      "known": {
+        "lap_s": 26.025,
+        "cones_down": 1,
+        "off_course": 0,
+        "penalty_s": 2.0,
+        "max_tracking_error_m": 0.628
+      },
+      "ideal": {
+        "lap_s": 26.155,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.462
+      },
+      "measured": {
+        "lap_s": 26.265,
+        "cones_down": 1,
+        "off_course": 0,
+        "penalty_s": 2.0,
+        "max_tracking_error_m": 0.744
+      }
+    },
+    "FSS22_V1": {
+      "known": {
+        "lap_s": 19.605,
+        "cones_down": 1,
+        "off_course": 0,
+        "penalty_s": 2.0,
+        "max_tracking_error_m": 0.448
+      },
+      "ideal": {
+        "lap_s": 28.93,
+        "cones_down": 1,
+        "off_course": 0,
+        "penalty_s": 2.0,
+        "max_tracking_error_m": 1.455
+      },
+      "measured": {
+        "lap_s": 29.48,
+        "cones_down": 6,
+        "off_course": 0,
+        "penalty_s": 12.0,
+        "max_tracking_error_m": 2.076
+      }
+    },
+    "FSS22_V2": {
+      "known": {
+        "lap_s": 14.79,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.508
+      },
+      "ideal": {
+        "lap_s": 15.815,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.391
+      },
+      "measured": {
+        "lap_s": 15.06,
+        "cones_down": 8,
+        "off_course": 0,
+        "penalty_s": 16.0,
+        "max_tracking_error_m": 2.287
+      }
+    },
+    "FSCZ24": {
+      "known": {
+        "lap_s": 27.89,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.331
+      },
+      "ideal": {
+        "lap_s": 29.1,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.282
+      },
+      "measured": {
+        "lap_s": 30.145,
+        "cones_down": 4,
+        "off_course": 1,
+        "penalty_s": 18.0,
+        "max_tracking_error_m": 2.338
+      }
+    },
+    "FSI24": {
+      "known": {
+        "lap_s": 35.86,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.384
+      },
+      "ideal": {
+        "lap_s": 39.565,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.298
+      },
+      "measured": {
+        "lap_s": 41.11,
+        "cones_down": 2,
+        "off_course": 1,
+        "penalty_s": 14.0,
+        "max_tracking_error_m": 7.085
+      }
+    },
+    "FSO20": {
+      "known": {
+        "lap_s": 36.9,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.364
+      },
+      "ideal": {
+        "lap_s": 40.315,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.285
+      },
+      "measured": {
+        "lap_s": 40.545,
+        "cones_down": 0,
+        "off_course": 0,
+        "penalty_s": 0.0,
+        "max_tracking_error_m": 0.523
+      }
+    }
+  }
+}

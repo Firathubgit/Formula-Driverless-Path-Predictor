@@ -1,0 +1,348 @@
+{
+  "verified_on": "2026-09-16",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0016-honest-setup-controls.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 2.4",
+    "TrackWayFastPlan Phase 2 Visible list: brake-bias and weight controls"
+  ],
+  "source_fingerprint": "8e17d67b8e65efeb5f923adde63b05ba465bd322275a14811be571611a0062c9",
+  "headless_ctest": {
+    "passed": 12,
+    "total": 12,
+    "test_seconds": 135.74
+  },
+  "desktop_ctest": {
+    "passed": 13,
+    "total": 13,
+    "test_seconds": 162.53,
+    "qml_checks": 331,
+    "previous_qml_checks": 303,
+    "qml_warnings": []
+  },
+  "suites": {
+    "fd_setup_effects_groups": 11
+  },
+  "setup_controls": [
+    {
+      "key": "mass_kg",
+      "offered": [
+        600,
+        1400
+      ],
+      "step": 10,
+      "default": 800,
+      "note": "yaw inertia scales with mass"
+    },
+    {
+      "key": "cg_height_m",
+      "offered": [
+        0,
+        0.6
+      ],
+      "step": 0.01,
+      "default": 0.35
+    },
+    {
+      "key": "brake_bias_front",
+      "offered": [
+        0.2,
+        0.8
+      ],
+      "step": 0.01,
+      "default": 0.5
+    },
+    {
+      "key": "drag_area_m2",
+      "offered": [
+        0,
+        1.5
+      ],
+      "step": 0.05,
+      "default": 0.6
+    },
+    {
+      "key": "downforce_area_m2",
+      "offered": [
+        0,
+        4
+      ],
+      "step": 0.1,
+      "default": 0
+    },
+    {
+      "key": "max_drive_power_w",
+      "offered": [
+        30000,
+        120000
+      ],
+      "step": 5000,
+      "default": 100000
+    },
+    {
+      "key": "viscous_coupling_nms",
+      "offered": [
+        0,
+        100
+      ],
+      "step": 5,
+      "default": 0
+    }
+  ],
+  "config_split": "no field moved; Config keeps planning, control, timing, road grip, wheelbase and steering limits; configuration schema stays 1 (deviation recorded in decision 0016)",
+  "fixed_scenario": "first 12 s of the preset circuit from rest, unchanged planner and Pure Pursuit",
+  "scenario_effects": {
+    "mass_kg": {
+      "values": [
+        600,
+        1400
+      ],
+      "largest_grip_use": [
+        0.805376,
+        0.867804
+      ]
+    },
+    "cg_height_m": {
+      "values": [
+        0.1,
+        0.6
+      ],
+      "largest_front_axle_load_n": [
+        4087.47,
+        4890.67
+      ],
+      "deepest_rear_braking_slip": [
+        -0.0244473,
+        -0.228952
+      ]
+    },
+    "brake_bias_front": {
+      "values": [
+        0.2,
+        0.8
+      ],
+      "rear_locked_samples": [
+        102,
+        0
+      ],
+      "deepest_front_braking_slip": [
+        -0.00737723,
+        -0.0593409
+      ],
+      "deepest_rear_braking_slip": [
+        -1,
+        -0.00980038
+      ]
+    },
+    "drag_area_m2": {
+      "values": [
+        0,
+        1.5
+      ],
+      "distance_m": [
+        167.483,
+        165.48
+      ]
+    },
+    "downforce_area_m2": {
+      "values": [
+        0,
+        4
+      ],
+      "largest_grip_use": [
+        0.826076,
+        0.787712
+      ]
+    },
+    "max_drive_power_w": {
+      "values": [
+        40000,
+        100000
+      ],
+      "time_to_15_mps_s": [
+        3.29,
+        2.91
+      ]
+    },
+    "viscous_coupling_nms": {
+      "values": [
+        0,
+        80
+      ],
+      "largest_driven_wheel_spread_radps": [
+        3.19055,
+        2.13612
+      ],
+      "largest_understeer_angle_rad": [
+        0.0101856,
+        0.034057
+      ]
+    },
+    "roll_balance_front (headless)": {
+      "values": [
+        0.2,
+        0.8
+      ],
+      "largest_grip_use": [
+        0.937362,
+        0.789657
+      ]
+    },
+    "aero_balance_front (headless, 4 m2)": {
+      "values": [
+        0.2,
+        0.8
+      ],
+      "largest_front_axle_load_n": [
+        4661.44,
+        5230.22
+      ]
+    },
+    "drive_front_fraction (headless)": {
+      "values": [
+        0,
+        1
+      ],
+      "time_to_15_mps_s": [
+        2.915,
+        4.34
+      ]
+    }
+  },
+  "cost_measurement_only": {
+    "coupling_0": {
+      "prediction_ms": [
+        2.815,
+        4.166
+      ],
+      "blocked_decision_ms": [
+        17.52,
+        27.55
+      ]
+    },
+    "coupling_80": {
+      "prediction_ms": [
+        6.354,
+        7.66
+      ],
+      "blocked_decision_ms": [
+        47.94,
+        50.14
+      ]
+    },
+    "coupled_12_s_scenario_wall_s_before_secant": 5.3
+  },
+  "headless_runs": {
+    "setup-default-lap": {
+      "args": "--plant four-wheel --laps 1",
+      "lap_s": 34.045,
+      "max_error_m": 0.344,
+      "max_grip_use": 0.826,
+      "max_sideslip_rad": 0.041,
+      "rear_locked": 0,
+      "invalid": "0 of 6810",
+      "identical_to": "aero-lap"
+    },
+    "setup-mass-600-lap": {
+      "args": "--mass 600",
+      "lap_s": 34.13,
+      "max_error_m": 0.335,
+      "max_grip_use": 0.805,
+      "max_sideslip_rad": 0.04,
+      "rear_locked": 0,
+      "invalid": "0 of 6827",
+      "yaw_inertia_kgm2": 1014
+    },
+    "setup-mass-1400-lap": {
+      "args": "--mass 1400",
+      "lap_s": 34.19,
+      "max_error_m": 0.372,
+      "max_grip_use": 0.868,
+      "max_sideslip_rad": 0.044,
+      "rear_locked": 0,
+      "invalid": "0 of 6839",
+      "yaw_inertia_kgm2": 2366
+    },
+    "setup-power-40-lap": {
+      "args": "--max-power-kw 40",
+      "lap_s": 34.84,
+      "max_error_m": 0.342,
+      "max_grip_use": 0.826,
+      "max_sideslip_rad": 0.041,
+      "rear_locked": 0,
+      "invalid": "0 of 6969"
+    },
+    "setup-bias-0.2": {
+      "args": "--brake-bias-front 0.2 --laps 0 --duration 20",
+      "lap_s": null,
+      "max_error_m": 0.355,
+      "max_grip_use": 1.0,
+      "max_sideslip_rad": 0.147,
+      "rear_locked": 102,
+      "invalid": "387 of 4001"
+    },
+    "setup-cg-0.6-lap": {
+      "args": "--cg-height 0.6",
+      "lap_s": 34.045,
+      "max_error_m": 0.347,
+      "max_grip_use": 1.0,
+      "max_sideslip_rad": 0.041,
+      "rear_locked": 0,
+      "invalid": "38 of 6810"
+    },
+    "setup-drag-1.5-lap": {
+      "args": "--drag-area 1.5",
+      "lap_s": 34.34,
+      "max_error_m": 0.336,
+      "max_grip_use": 0.808,
+      "max_sideslip_rad": 0.04,
+      "rear_locked": 0,
+      "invalid": "0 of 6869"
+    },
+    "setup-downforce-4-lap": {
+      "args": "--downforce-area 4",
+      "lap_s": 34.025,
+      "max_error_m": 0.329,
+      "max_grip_use": 0.788,
+      "max_sideslip_rad": 0.037,
+      "rear_locked": 0,
+      "invalid": "0 of 6806"
+    },
+    "setup-coupling-80-lap": {
+      "args": "--viscous-coupling 80",
+      "lap_s": 34.175,
+      "max_error_m": 0.515,
+      "max_grip_use": 0.922,
+      "max_sideslip_rad": 0.033,
+      "rear_locked": 0,
+      "invalid": "0 of 6836"
+    }
+  },
+  "plant_reproduction_m": [
+    9.642e-10,
+    9.955e-10
+  ],
+  "all_recordings": {
+    "loaded": 85,
+    "rejected": 0,
+    "by_schema": {
+      "1": 18,
+      "2": 8,
+      "3": 7,
+      "4": 20,
+      "5": 4,
+      "6": 11,
+      "7": 17
+    },
+    "plant_reproduction_m": [
+      9.979e-11,
+      9.989e-10
+    ]
+  },
+  "captures_inspected": [
+    "docs/assets/car-setup.png",
+    "docs/assets/car-setup-rear-lock.png"
+  ]
+}

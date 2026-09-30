@@ -1,0 +1,1487 @@
+My recommendation: use Codex locally as the main implementation agent, and Claude Code for a second review at milestone boundaries. That is a workflow recommendation, not a claim that one model wins every coding task.
+
+Both tools can inspect a local repository, edit files, and run development commands. The important requirement here is access to your actual C++ compiler, Qt installation, Blender, graphics hardware, and simulation environment. Use a local coding session for the main build. Codex CLI documentation, Claude Code documentation.
+
+Keep the project instructions shared: a concise AGENTS.md, with CLAUDE.md importing it using @AGENTS.md. Both agents can then work from the same engineering decisions. Codex project instructions, Claude Code project memory.
+
+Use the long prompt below once to establish the project. Have the agent save it as the project brief, extract the durable rules into AGENTS.md, and implement the first milestone. Later sessions should read those files and work on a specific milestone. Keep one agent responsible for edits at a time.
+
+This incorporates your original vision and our reconciliation. Your original twelve skill names and the inaccessible screenshots still need inspection; the prompt explicitly preserves that uncertainty.
+
+START OF MASTER PROJECT PROMPT
+
+You are my lead software engineer, simulation engineer, and product implementation partner for a new project:
+
+Formula-Driverless-Path-Predictor
+
+The product definition is:
+
+Make autonomous racing decisions visible.
+
+Your responsibility is to turn the following vision into a coherent, attractive, technically defensible project that I can build, understand, demonstrate, maintain, and potentially contribute parts of to a Formula Student team.
+
+Read the entire brief before choosing the first implementation task. Preserve the long-term intention, but execute through small, working milestones.
+
+This is an implementation kickoff. Research should resolve concrete uncertainties that affect the build. Establish the project and begin implementing it; do not finish with only another proposed architecture.
+
+1. Understand who is building this
+
+My name is Firat Kaya. I am a 21-year-old Computer Engineering student at Högskolan Väst, in my third year, based in the Gothenburg region.
+
+My experience includes:
+
+Extensive Unity development and experience with interactive 3D.
+Unity/VR development work at Terrahutton.
+Blender scenes, car models, camera animation, and visual presentation.
+C#, C++, Python, JavaScript/TypeScript, and other programming coursework.
+Embedded systems, sensors, control engineering, Linux, and distributed systems coursework.
+An existing Android Automotive infotainment project.
+Interest in automotive software, autonomous systems, Swedish automotive companies, and Formula Student.
+
+I am comfortable learning difficult technical material, but do not assume I already know professional vehicle dynamics, estimation, optimal control, or robotics middleware.
+
+Explain significant engineering choices well enough that I can defend them in an interview. Tie explanations to the actual implementation.
+
+I balance university, work, and other commitments. Estimate tasks in focused hours and describe uncertainty. Avoid calendar promises that assume uninterrupted full-time work.
+
+My main laptop has an RTX 5070 with 8 GB VRAM and 32 GB RAM, running Windows. Inspect the actual development environment before assuming what is installed or supported.
+
+2. Understand the portfolio context
+
+My existing project is:
+
+Android Automotive AI Copilot Infotainment
+
+My portfolio is:
+
+Firat’s portfolio
+
+Inspect the existing repository when its conventions or assets would materially help. Distinguish implemented features from aspirations in its documentation.
+
+Formula-Driverless-Path-Predictor should become a separate project with its own purpose. Reuse suitable assets and lessons where rights and interfaces permit, but do not automatically modify the infotainment application or tightly couple the two repositories.
+
+This project should extend my portfolio from automotive interface development toward planning, control, simulation, and engineering analysis.
+
+The visual presentation matters enormously. I want someone scrolling LinkedIn to stop because the project looks exceptional. When an engineer examines it, the behavior and evidence should support that first impression.
+
+Do not optimize for a long list of fashionable technologies. Every major tool should have an identifiable job.
+
+3. Preserve the original product vision
+
+Imagine opening a polished automotive application.
+
+A beautifully rendered car sits in a clean studio environment. The background and lighting have a strong visual identity. Selecting another vehicle triggers a smooth camera and vehicle transition inspired by the Mustang’s animated drive-mode presentation.
+
+Initially, there are two vehicles. Eventually, there may be two to five, including Formula-style cars and normal road cars.
+
+After selection, I choose a track and press Start.
+
+The application transitions into a live, dark driving visualization:
+
+Near-black background.
+Dark road or track surface.
+Clear, restrained track boundaries.
+A recognizable car model.
+A camera looking downward at approximately 45 degrees.
+Speed prominently displayed in the top-left corner.
+A trajectory ahead of the car.
+Green, yellow, and red trajectory segments.
+Minimal controls for the parameters that currently matter.
+Smooth, deliberate motion and typography.
+
+The car drives around the track using implemented planning and control algorithms.
+
+When I change an implemented setting, the software changes its behavior for an explainable reason. The visualization and recorded telemetry make that reason visible.
+
+Eventually, I should be able to draw a track, configure vehicle dynamics, introduce sensor imperfections, compare controllers, and reuse the same planning and control core behind a real hardware adapter.
+
+Preserve this ambition without placing every future capability in the first release.
+
+4. Define success clearly
+
+A successful first release lets someone:
+
+Select between two car appearances.
+Start a run on one preset track.
+Watch the vehicle follow the track under closed-loop control.
+Understand the trajectory colors.
+Change grip and observe a meaningful change in the planned speed and braking location.
+Inspect or replay the recorded decision.
+Answer: “Why did the car brake there?”
+
+The implementation should demonstrate both presentation quality and engineering judgment.
+
+A video of a car following an animation spline is insufficient.
+
+A functioning controller hidden behind an unfinished interface is also insufficient for the intended public release.
+
+The first internal milestone can use simple assets. The first public release needs both a coherent visual presentation and working behavior.
+
+5. Freeze the first public release
+
+The first public release contains:
+
+Two selectable visual vehicle models.
+One documented simulation vehicle profile, unless a second distinct profile is genuinely implemented and tested.
+One preset closed track.
+A small deterministic simulation harness.
+A kinematic bicycle baseline.
+Pure Pursuit steering.
+A longitudinal speed controller.
+Curvature-derived speed limits.
+Acceleration and braking constraints applied along the path.
+One grip control.
+Live trajectory visualization.
+Actual vehicle state and controller telemetry.
+Run recording and playback.
+A thin ROS 2 integration sufficient to demonstrate recording and replay with rosbag2.
+A polished approximately 15-second demonstration.
+Clear build instructions and limitations.
+
+Two different car appearances do not require two invented sets of vehicle dynamics. Make that distinction visible in configuration and documentation.
+
+Do not call the first controller minimum-lap-time racing optimization. It is a baseline path-following and speed-planning system.
+
+6. Keep these on the roadmap
+
+The following are later milestones:
+
+Freehand track drawing.
+Track control-point editing.
+Optimized racing lines.
+Dynamic bicycle models.
+Meaningful mass and inertia changes.
+Actuator delay experiments.
+Local friction maps.
+Unknown-track mapping.
+Camera or LiDAR perception.
+Sensor fusion.
+MPC.
+More cars and track presets.
+Gazebo or another external simulator adapter.
+Hardware-in-the-loop.
+Physical vehicle integration.
+
+Create extension points where they are justified, but do not build empty implementations for all these systems.
+
+No reinforcement learning, end-to-end driving network, cloud backend, account system, or LLM runtime dependency is required for the initial product.
+
+7. Design the main user flow
+
+The intended flow is:
+
+Showroom → Track setup → Ready → Running → Paused or Finished → Replay
+
+Showroom:
+
+Select the vehicle appearance.
+Play an intentional camera transition.
+Show a concise name and relevant profile information.
+Provide a clear action to continue.
+
+Track setup:
+
+Display the preset track.
+Show its scale and driving direction.
+Select the implemented physics profile.
+Set the initial grip.
+Indicate whether the run uses a known map and idealized state information.
+
+Ready:
+
+Confirm that assets, track geometry, and required runtime components are ready.
+Show the car at the start position.
+Enable Start.
+
+Running:
+
+Show the live vehicle and trajectory.
+Display speed and a small amount of useful status.
+Allow supported changes.
+Provide Pause, Reset, and Stop.
+
+Replay:
+
+Scrub the recorded run.
+Inspect the active trajectory and relevant constraints.
+Show parameter changes at their actual timestamps.
+
+Keep developer diagnostics available without making the main screen look like a robotics debugging dashboard.
+
+8. Establish the visual language
+
+Use the Tesla FSD dark visualization as a close composition and readability reference:
+
+Black or almost-black environment.
+Clearly separated road surface.
+Restrained scene detail.
+Vehicle-centered composition.
+Readable forward geometry.
+Prominent speed.
+Minimal interface clutter.
+
+Use my supplied screenshots as the primary visual references once you can inspect them. Do not claim to have inspected unavailable images.
+
+Translate those references into explicit design decisions:
+
+Camera position and pitch.
+Perspective or orthographic projection.
+Field of view.
+Vehicle location within the viewport.
+Road and background colors.
+Typography scale.
+Line thickness.
+Motion timing.
+Panel placement.
+Focus and selection behavior.
+
+Define what “45 degrees downward” means in the chosen camera convention. A true overhead view is approximately 90 degrees downward and should be a separate optional view.
+
+Use original project branding. Match the intended visual experience without implying that Tesla, Ford, Formula 1, or a Formula Student team endorses the project.
+
+The visual design should feel deliberate at 1920 × 1080 and remain usable when resized.
+
+9. Make the trajectory colors unambiguous
+
+Use exactly one primary meaning for trajectory color:
+
+Green: planned acceleration.
+Yellow: planned approximately constant speed.
+Red: planned braking.
+
+Derive the classification from planned longitudinal acceleration, using a documented deadband around zero.
+
+Do not color the same line by confidence in one mode and speed in another without an explicit mode change and legend.
+
+Keep these concepts separate:
+
+Planned trajectory.
+Actual vehicle trail.
+Predicted vehicle rollout, if implemented.
+Uncertainty.
+Track boundaries.
+Reference path.
+
+A faint trail can represent where the car actually drove. The primary colored line should represent the active plan.
+
+If the car deviates from the plan, show the deviation honestly. Do not move the displayed car onto the planned line to make tracking look perfect.
+
+10. Build the showroom as an animation graph
+
+The showroom may use Blender-rendered video clips.
+
+The driving scene must be rendered live because the track, state, and settings can change.
+
+For the showroom, design a small animation graph with:
+
+An idle state for each car.
+Defined entry and exit states.
+Legal transition points.
+A common transition pose or studio state where useful.
+A clear policy for rapid repeated selections.
+
+Avoid rendering every possible pairwise transition unless it is visually necessary.
+
+For five vehicles, direct transitions between every ordered pair would require twenty transition clips. A shared transition state can reduce the amount of bespoke rendering, provided the result still looks good.
+
+Match more than the first and last image:
+
+Camera transform.
+Lens.
+Car pose.
+Lighting.
+Background.
+Exposure.
+Motion direction.
+Motion speed near the boundary.
+
+Matching endpoint frames alone does not guarantee smooth playback.
+
+Preload the next clip, manage decoding state, and test the actual media player. Avoid black frames, visible jumps, and long unresponsive input queues.
+
+If a user selects several cars quickly, prefer a documented policy such as completing the current transition and then moving to the latest requested destination.
+
+11. Make Blender production reproducible
+
+Use Blender Python scripts for repeatable scene setup and export.
+
+Blender MCP can assist with authoring if available, but it is optional tooling. The runtime application must not require an AI agent or Blender MCP to drive the car.
+
+Keep the terms distinct:
+
+MCP: Model Context Protocol for connecting agent tools.
+MPC: Model Predictive Control for control optimization.
+
+The asset pipeline should define:
+
+Asset identifiers.
+Source files.
+Source URLs and creators.
+License and attribution.
+Dimensions and scale.
+Axis conventions.
+Origin and pivot placement.
+Wheel locations.
+Materials.
+Texture budgets.
+Render presets.
+Camera rigs.
+Output resolution and frame rate.
+Export destinations.
+Clip transition metadata.
+
+Render image sequences before final video encoding so interrupted work can resume without rerendering everything.
+
+Provide a low-cost preview preset before producing final-quality clips.
+
+Do not begin with hundreds of gigabytes of final renders. Verify the two-car transition at preview quality first.
+
+Keep large generated frames and private source assets outside normal Git history.
+
+12. Choose car assets deliberately
+
+The eventual visual collection should include Formula-style cars and normal road cars.
+
+Start with two assets that can legally be used for the intended public demonstration and distribution.
+
+For each candidate, record:
+
+Download location.
+Creator.
+License.
+Whether modification is permitted.
+Whether redistribution is permitted.
+Whether the asset can be bundled in the public repository or release.
+Required attribution.
+Approximate geometry and texture cost.
+Whether it imports correctly.
+
+Do not confuse “free to download” with “free to redistribute.”
+
+Use a simple procedural Formula-style car or clearly licensed placeholder if a suitable hero model is not immediately available. Keep the asset interface stable so the visual model can be replaced later.
+
+Kenney’s Car Kit is one development asset source to evaluate.
+
+Keep visual geometry and physical geometry related but explicit. A large road-car mesh should not silently imply a different wheelbase, footprint, or mass from the active simulation profile.
+
+13. Use this preferred technical direction
+
+Start from the following decisions unless inspection reveals a concrete incompatibility:
+
+Concern	Preferred direction
+Portable algorithms	C++20
+Build system	CMake with usable presets
+Numerical experiments	Python
+Desktop interface	Qt Quick/QML
+Live driving scene	Qt Quick 3D, subject to the licensing decision
+Showroom playback	Qt Multimedia
+Asset authoring	Blender and Blender Python
+Robotics integration	ROS 2 through adapters
+Initial plant	Small headless simulation harness
+Logged engineering inspection	Rerun candidate
+ROS-specific inspection	RViz2 when useful
+Recording	rosbag2 with a supported storage configuration
+Later optimization	Evaluate CasADi and acados
+Later external simulation	Evaluate PacSim and Gazebo integration
+
+This is a preferred direction, not permission to ignore evidence.
+
+Do not switch the core to Rust merely to add another impressive language. C++ is the current choice because of the intended robotics integration path and my existing experience.
+
+Do not replace the main application with an HTML dashboard merely because it is easier to generate. A web page can later present the project, but the current product direction is a native automotive visualization application.
+
+14. Resolve Qt licensing before distribution
+
+Qt Quick 3D is offered under GPLv3 or a commercial license. Do not assume that every Qt module follows the same licensing options. Qt Quick 3D licensing.
+
+Write a short dependency and licensing decision before preparing a public distributable.
+
+Distinguish:
+
+Licenses on my original code.
+Licenses on linked dependencies.
+Conditions on distributing the combined application.
+Asset licenses.
+
+A framework-independent core can have its own appropriate license, but separating folders does not automatically eliminate obligations on a linked application.
+
+For the prototype, record a proposed licensing route and continue reversible development. If the intended distribution model conflicts with the renderer, present one concrete alternative with its integration cost before changing direction.
+
+Do not silently declare the entire product MIT or Apache while introducing dependencies that require a different distribution arrangement.
+
+15. Inspect the actual environment first
+
+Identify:
+
+Operating system and version.
+Shell.
+Compiler.
+CMake.
+Build tool.
+Python.
+Qt modules.
+Blender.
+GPU access.
+Existing ROS installation.
+Disk space.
+Current repository state.
+
+Use Ubuntu 24.04 with ROS 2 Jazzy and Gazebo Harmonic as the conservative compatibility baseline from the prior research, then verify it against current documentation and any actual team requirements. Do not describe it as necessarily the newest supported combination. Gazebo and ROS compatibility.
+
+On Windows, consider WSL2 for the Linux robotics toolchain, but verify graphics, video playback, networking, and device access before promising the entire application will work there.
+
+Choose one reference development environment for the first milestone. Record which other environments are untested.
+
+Do not accidentally require a complicated Windows-to-WSL network bridge just to run the first local lap if a simpler arrangement works.
+
+If tools are unavailable, complete the useful work that is possible and report the exact remaining command or verification step. Never report a successful build, render, or test that did not execute.
+
+16. Keep the core independent
+
+The algorithm library must not depend on:
+
+Qt UI types.
+QML.
+Blender.
+A particular simulator.
+ROS message definitions.
+A particular hardware driver.
+
+The core should consume ordinary, explicit data structures and produce ordinary outputs.
+
+Place integration code at the boundaries.
+
+Use a straightforward design:
+
+Geometry and track representation.
+Vehicle and scenario configuration.
+Planning.
+Control.
+Validity and health checks.
+Simulation adapter.
+ROS adapter.
+Presentation adapter.
+Recording and playback adapter.
+
+Do not create a microservice architecture for a small desktop simulator.
+
+Start with a small number of components and clear ownership. Add process boundaries when required by integration, isolation, or measurement.
+
+There must be one authoritative vehicle plant for a run. Qt, Gazebo, and the custom simulator must not independently advance competing versions of the same car.
+
+17. Define the data contracts early
+
+At minimum, establish the following concepts:
+
+Contract	Required meaning
+VehicleState	Pose, speed, steering state, timestamp, frame, source and validity
+TrackCorridor	Geometry, boundaries, direction, scale and revision
+ReferencePath	Ordered geometric samples and curvature
+Trajectory	Geometry plus speed, acceleration and time information
+ActuationCommand	Requested steering and longitudinal action with validity duration
+AppliedActuation	Action actually delivered after limits or delay
+PlannerDiagnostics	Active constraints and reasons for the plan
+RunMetadata	Versions, configuration, seed and scenario identity
+ConfigChange	Requested change, accepted result, revision and application time
+SensorObservation	Measurement data, timing, frame, uncertainty and validity
+
+Specify which fields exist in the first milestone and which are later extensions.
+
+Do not fill unavailable fields with believable-looking invented values.
+
+Use structured reasons for planning decisions rather than constructing explanations independently in the interface.
+
+A trajectory should be traceable to the state, track revision, and configuration revision that produced it.
+
+18. Define units, frames, and vehicle reference points
+
+Use SI units internally:
+
+Metres.
+Seconds.
+Radians.
+Metres per second.
+Metres per second squared.
+Kilograms where the model actually uses mass.
+
+Convert speed to km/h for display.
+
+Choose and document:
+
+World-frame axes.
+Vehicle-frame axes.
+Heading convention.
+Positive steering direction.
+Track direction.
+The position represented by VehicleState.
+Transformations into the renderer’s coordinate system.
+
+For a simple bicycle model, using the rear-axle center as the reference point is reasonable. If that is chosen, keep planning, control, and rendering offsets consistent.
+
+Do not accidentally mix steering-wheel angle with front-road-wheel angle.
+
+Do not confuse degrees with radians.
+
+Use explicit names such as front_wheel_angle_rad, speed_mps, and wheelbase_m where that prevents mistakes.
+
+Check coordinate transformations with simple, inspectable cases before loading complex car assets.
+
+19. Make timing an architectural decision
+
+The simulation must advance using a defined clock and fixed integration step.
+
+Initial targets may be:
+
+Plant integration: 200 Hz.
+Control: 50 Hz.
+Visualization: approximately 60 FPS.
+
+These are starting targets to validate, not measured capabilities.
+
+Drive controller scheduling from simulation time. The interface can render interpolated snapshots independently.
+
+A slow rendering frame must not change simulated vehicle dynamics.
+
+Define the order within a simulation tick, including:
+
+Applying scheduled configuration changes.
+Delivering due observations.
+Running scheduled planning or control.
+Applying actuator limits or delay.
+Integrating the plant.
+Recording state and diagnostics.
+
+Use timestamps with explicit clock semantics.
+
+Separate simulation time from wall-clock timing and hardware watchdog timing.
+
+Handle pause, reset, and replay seek deliberately. Reset stale controller state and pending events where required.
+
+For deterministic regression, control random seeds and event ordering. Do not promise bit-for-bit identical output across every CPU, compiler, and dependency version.
+
+20. Implement a modest, honest vehicle baseline
+
+The first plant may use a planar kinematic bicycle model.
+
+For a rear-axle reference point, the familiar baseline is:
+
+Position rate from speed and heading.
+Heading rate from speed, wheelbase, and front-wheel steering.
+Speed rate from the implemented longitudinal acceleration.
+
+Document assumptions:
+
+Flat surface.
+Forward driving initially.
+Low enough lateral demands for the model’s intended use.
+No detailed tire-slip dynamics.
+No suspension.
+No aerodynamic model.
+No validated Formula 1 vehicle parameters.
+
+Respect steering-angle and steering-rate limits if configured.
+
+Separate requested commands from applied commands.
+
+Do not update vehicle position directly from a spline parameter or instantly set actual speed to the planned speed. The controller must act through the plant.
+
+The plant and controller must remain distinct even if they are initially compiled into the same executable.
+
+21. Handle mass honestly
+
+A kinematic bicycle model does not use vehicle mass.
+
+In the idealized friction-limited cornering relation:
+
+$$ v_{\max} \leq \sqrt{\mu gR} $$
+
+mass cancels.
+
+Therefore:
+
+Do not ship an active mass slider that has no effect.
+Do not artificially multiply steering behavior by mass.
+Do not imply that storing mass_kg makes the simulation mass-sensitive.
+
+A future dynamic model can make mass, yaw inertia, force limits, and load effects meaningful.
+
+Until then, either hide the mass control or clearly show that the current model does not use it.
+
+Distinguish vehicle mass from optimization cost weights. They are different concepts and should have different names, units, and interface placement.
+
+For every exposed setting, be able to identify the equation, algorithm, or runtime behavior it changes.
+
+22. Implement the first path and speed planner
+
+Begin with a preset track containing:
+
+A straight long enough to accelerate.
+At least one clear braking zone.
+A tighter corner.
+A wider corner.
+Enough width and clearance for the chosen footprint.
+
+Choose geometry and speed caps so grip actually influences the result. A grip slider will be visually uninteresting if another lower speed cap dominates everywhere.
+
+Build the baseline in this order:
+
+Load and validate track geometry.
+Produce an ordered reference path.
+Compute heading and curvature.
+Derive lateral-acceleration-based speed limits.
+Apply configured speed caps.
+Propagate braking constraints backward.
+Propagate acceleration constraints forward.
+Handle the closed-loop boundary consistently.
+Produce the active speed plan and diagnostics.
+Follow it using the controller.
+
+Use documented numerical tolerances near zero curvature.
+
+For a simple constant acceleration bound, consecutive samples can be constrained using:
+
+$$ v_{i+1}^{2} \leq v_i^{2} + 2a_{\text{accel}}\Delta s $$
+
+and a backward braking relation:
+
+$$ v_i^{2} \leq v_{i+1}^{2} + 2a_{\text{brake}}\Delta s $$
+
+For a closed track, one forward/backward sweep may not be sufficient at the start-finish boundary. Check convergence or use a suitable closed-track treatment.
+
+Handle the standing start separately from the periodic speed profile.
+
+Do not confuse a geometric path with a time-parameterized trajectory.
+
+23. Make grip the first major demonstration
+
+The first prominent experiment is grip.
+
+The user should be able to compare a higher-grip and lower-grip scenario and see:
+
+Different corner speed limits.
+Different speed profiles.
+A changed planned braking location.
+Different realized motion through the controller.
+A recorded reason for the difference.
+
+Distinguish three quantities conceptually:
+
+Grip used by the planner.
+Grip represented by the environment or plant.
+Grip estimated from observations.
+
+For the first release, the scenario may deliberately supply the same known grip to the planner and the relevant simulation constraints. Label this as a known-parameter experiment.
+
+Do not claim that a slider demonstrates friction estimation.
+
+Later, allow planner assumptions and actual environment grip to differ. That becomes an uncertainty and robustness experiment.
+
+A simple kinematic plant cannot accurately simulate loss of lateral tire grip. If it exceeds its model validity region, report that condition. Do not silently produce convincing-looking drifting behavior.
+
+Also consider combined acceleration and cornering demands. Do not claim a feasible plan if it independently uses maximum lateral grip and maximum braking at the same instant.
+
+Use a documented conservative simplification initially, then implement a more complete combined-force treatment when the model supports it.
+
+24. Treat live parameter changes as events
+
+A grip change during a run cannot retroactively make the car slower.
+
+When a parameter changes:
+
+Validate the new value.
+Apply it at a defined simulation boundary.
+Increment the configuration revision.
+Record the change.
+Replan from the current state.
+Preserve physically meaningful state continuity.
+
+If the car is already too fast for the new constraint, report the transient infeasibility and apply the implemented response.
+
+For the first polished comparison, use identical starting conditions for two runs or change the parameter before reaching the braking zone.
+
+Do not choose a demonstration that hides an invalid transient.
+
+Classify settings by application policy:
+
+Setting	Initial policy
+Vehicle appearance	Showroom or paused change
+Track geometry	Pause and reset
+Wheelbase or footprint	Pause and reset
+Mass in a future dynamic model	Pause and reset initially
+Target speed cap	Bounded live change
+Grip	Logged live change with replanning
+Camera angle	Immediate presentation change
+Sensor topology	Restart affected components initially
+Selected controller	Pause and reset initially
+
+An invalid change should leave the previous valid configuration active and produce a clear explanation.
+
+25. Implement Pure Pursuit as a baseline
+
+Use Pure Pursuit with a documented reference point and lookahead policy.
+
+Handle:
+
+Lookahead selection.
+Track wraparound.
+Near-zero speed.
+Steering saturation.
+Steering-rate limits.
+Target points near or behind the vehicle.
+Resetting controller state.
+Excessive tracking error.
+
+A speed-dependent lookahead can be introduced if useful, but explain its effect.
+
+Use a separate longitudinal controller to track the planned speed.
+
+Record:
+
+Target speed.
+Actual speed.
+Speed error.
+Requested acceleration.
+Applied acceleration.
+Requested steering.
+Applied steering.
+Cross-track error.
+Heading error.
+
+Do not describe Pure Pursuit as MPC or as globally optimal control.
+
+Keep the baseline available when more advanced controllers are added so improvements can be measured against it.
+
+26. Make “Why did it brake?” a real feature
+
+The planner should produce machine-readable diagnostics.
+
+Possible reason identifiers include:
+
+Upcoming curvature limit.
+Configured speed cap.
+Braking reachability constraint.
+Reduced grip assumption.
+Actuator limitation.
+Stale input.
+Invalid or infeasible trajectory.
+Requested stop.
+
+Implement only the reasons supported by actual logic.
+
+When inspecting a braking decision, the user should be able to see:
+
+The relevant corner or path location.
+The speed limit there.
+The current speed.
+The assumed grip.
+The applicable braking bound.
+The active configuration revision.
+The planning timestamp.
+The command and actual response.
+
+Build the visible explanation from these diagnostics.
+
+An explanation such as “Braking for the upcoming corner under the current grip limit” should be backed by actual values in the recording.
+
+An LLM is unnecessary for generating this explanation.
+
+27. Plan the track editor without making it the first task
+
+The later track editor should let me draw a rough circuit and refine it.
+
+The geometry pipeline should:
+
+Establish metres-per-screen-unit.
+Remove repeated or nearly identical points.
+Resample irregular strokes.
+Fit a suitable closed curve.
+Construct track boundaries.
+Check self-intersections.
+Check boundary validity.
+Check width and vehicle clearance.
+Check curvature and steering feasibility.
+Preview any changes before accepting them.
+
+A smooth spline is not automatically a drivable track.
+
+For the first editor version:
+
+Support one closed, non-self-crossing circuit.
+Reject ambiguous crossings.
+Allow dragging control points.
+Show where the geometry is invalid.
+Preserve the original input so changes can be understood.
+Provide undo.
+
+Do not introduce machine learning solely to make a drawing smooth.
+
+Track width, vehicle footprint, and safety margin must all participate in validation.
+
+Imported tracks should have an explicit schema and units.
+
+28. Preserve the difference between known and unknown tracks
+
+Known-track mode:
+
+The planner can access the selected track.
+State may come directly from the simulation adapter.
+This is appropriate for developing planning, control, and visualization.
+
+Unknown-track mode:
+
+Observations must support perception, localization, and mapping.
+The planner receives only the information available through that pipeline.
+The complete simulator map cannot leak into the autonomy stack.
+
+The 2026 driverless specification states that officials do not provide map data. Treat that as a relevant reference for competition-style operation, and verify the rules for the specific event and year before making compliance claims. Formula Student Driverless Specification 2026.
+
+Design interfaces so unknown-track functionality can be added without rewriting the presentation layer or the entire planner.
+
+Do not promise that unknown-track autonomy itself is merely a configuration toggle. The toggle only becomes meaningful after the required components exist.
+
+Ground truth may remain available to evaluation tools, but it must be distinguishable from the information used by the controller.
+
+29. Define sensor modularity precisely
+
+“Plug-and-play sensors” means explicit compatibility contracts, not arbitrary interchangeable data.
+
+For each sensor or observation source, define:
+
+Identifier.
+Sensor type or observation type.
+Measurement timestamp.
+Arrival timestamp.
+Coordinate frame.
+Calibration.
+Units.
+Nominal rate.
+Range and field of view where relevant.
+Noise model.
+Bias model.
+Latency.
+Jitter.
+Dropout behavior.
+Validity indicators.
+Uncertainty representation.
+Required downstream capabilities.
+
+Start with observation-level simulation, such as noisy cone detections, if that is sufficient for the next experiment.
+
+Label those observations as simulated detections. They are not camera images and do not evaluate an image detector.
+
+Later, raw image or point-cloud simulation can supply a perception module through separate adapters.
+
+Do not implement sensor fusion as unexplained percentages such as “70% camera and 30% LiDAR.”
+
+Time alignment, frames, association, uncertainty, and observability need explicit treatment.
+
+The initial release may use idealized state information. That is acceptable if clearly identified.
+
+30. Separate simulation, replay, emulation, and virtualization
+
+Use these terms accurately:
+
+Mode	What it establishes
+Closed-loop simulation	A model responds to commands from the algorithm
+Recorded-data replay	Components process previously recorded inputs or outputs
+Software-in-the-loop	Software under test runs against a simulated environment
+Processor-in-the-loop	Target-processor execution participates in the test
+Hardware-in-the-loop	Real hardware interacts with simulated components
+Emulation	A specified hardware or execution interface is reproduced
+Virtualization	An operating environment is isolated or hosted
+
+Do not call a container a realistic vehicle model.
+
+Do not call playback of a video closed-loop simulation.
+
+Do not call a shared C++ library hardware emulation.
+
+The uploaded Symphony and OMNeT++ papers motivated concern about timing, fidelity, and reuse. Inspect them if available and extract applicable lessons. Do not treat wireless-sensor-network results as direct validation of vehicle dynamics.
+
+Recorded camera frames describe what was seen along the recorded motion. They do not show what a different driving policy would have seen after taking another route.
+
+Use replay for regression, diagnosis, and suitable component evaluation.
+
+Use a responsive environment for closed-loop policy evaluation.
+
+31. Define the actual portability goal
+
+The portability goal is:
+
+The same planning and control source code can run behind simulation and hardware adapters.
+
+That means:
+
+Shared algorithm implementation.
+Explicit inputs and outputs.
+Consistent units and frames.
+Target-specific compilation where necessary.
+Hardware-specific communication outside the core.
+Calibration outside hardcoded algorithm logic.
+Explicit timing and resource assumptions.
+
+It does not mean:
+
+Identical binaries on every processor.
+Identical behavior without calibration.
+Perfect simulation fidelity.
+Guaranteed physical safety.
+Elimination of real-world testing.
+
+Hardware integration is a future controlled engineering activity, not an initial public-road deployment feature.
+
+Leave the boundary suitable for a bench setup, scaled vehicle, or team-approved platform later.
+
+32. Build recording and playback as part of the product
+
+Record enough information to understand a run:
+
+Run identifier.
+Software revision.
+Dirty working-tree status when relevant.
+Dependency or build identity.
+Track identifier and revision.
+Vehicle profile.
+Random seed.
+Resolved initial configuration.
+Timestamped configuration changes.
+Vehicle state.
+Active trajectory.
+Controller commands.
+Applied actuation.
+Relevant observations.
+Planner diagnostics.
+Faults and validity status.
+
+Implement rosbag2 recording and playback through a thin ROS adapter for the first public release.
+
+Keep the core buildable without ROS.
+
+For early internal milestones, a simple inspectable log can accelerate development, but do not describe that as completed rosbag integration.
+
+Use Rerun as the preferred candidate for logged engineering inspection. It supports spatial and time-based data exploration; verify the specific integration needed by this project. Rerun documentation.
+
+The earlier claim that LiU uses a Rerun blueprint came from a screenshot I supplied. Confirm that reference before presenting their current workflow as verified.
+
+Distinguish:
+
+Playback of recorded outputs.
+Re-running a component against recorded inputs.
+Running a new closed-loop simulation.
+
+Seeking backward should not leave future trajectories or stale entities visible.
+
+33. Make configuration understandable
+
+Use a small, versioned configuration scheme.
+
+Separate concerns where useful:
+
+Vehicle physics.
+Vehicle appearance.
+Track.
+Scenario.
+Controller.
+Sensors.
+Rendering.
+Recording.
+
+Keep the resolved effective configuration accessible.
+
+A conceptual starting configuration could look like this:
+
+schema_version: 1
+
+project:
+  name: Formula-Driverless-Path-Predictor
+
+execution:
+  mode: simulation
+  seed: 42
+  fixed_step_s: 0.005
+  controller_rate_hz: 50
+
+vehicle:
+  appearance_id: formula_demo
+  physics_profile_id: kinematic_baseline
+
+track:
+  id: technical_loop
+  knowledge_mode: known_map
+
+planning:
+  path_method: reference_centerline
+  speed_method: curvature_with_accel_brake_limits
+
+control:
+  lateral_method: pure_pursuit
+  longitudinal_method: speed_feedback
+
+scenario:
+  planner_grip_mu: 0.9
+  grip_knowledge: supplied_by_scenario
+
+visualization:
+  theme: dark
+  camera_pitch_down_deg: 45
+  speed_unit: kmh
+  trajectory_color_by: longitudinal_acceleration
+
+recording:
+  enabled: true
+  include_config_changes: true
+
+This is an illustrative project-owned schema, not a claim that these fields already exist in ROS, PacSim, or another library.
+
+Implement only fields supported by code. Reject unsupported modes with a clear message.
+
+A physics profile should indicate its model and capability limitations. Do not store an editable boolean that falsely “enables” mass sensitivity; derive such capability information from the selected implementation.
+
+Validate ranges, finite numbers, units, references, and incompatible combinations before starting a run.
+
+34. Use open source as engineering reference material
+
+Investigate relevant projects to answer concrete questions:
+
+PacSim: vehicle and sensor simulation, timing imperfections, detected cones, grip variation.
+EUFS: Formula Student interfaces and simulator conventions.
+FSDS: driverless simulation architecture and integration patterns.
+F1TENTH: small autonomous racing baselines and educational workflows.
+TUM trajectory optimization: differences between shortest paths, minimum curvature, and minimum-time approaches.
+Autoware: separation of autonomous-driving responsibilities.
+openpilot: selected logging, replay, and interface lessons where relevant.
+acados: embedded-oriented optimal control when MPC becomes justified.
+
+PacSim is a particularly relevant reference, but verify its current build requirements and compatibility rather than assuming it works unchanged with the selected ROS distribution. PacSim repository.
+
+When evaluating a dependency, report:
+
+The exact problem it solves.
+Whether to use it directly, adapt it, or study it.
+License.
+Version or commit.
+Supported environment.
+Expected integration work.
+What it would replace.
+
+Do not install every simulator.
+
+Do not copy code without preserving applicable licenses and attribution.
+
+35. Keep OEM inspiration proportional to the project
+
+Research Tesla, Waymo, Volvo, and Zenseact to understand design approaches and evaluation practices, not to imitate an entire proprietary stack.
+
+Separate:
+
+Visual inspiration.
+Sensor selection.
+Perception representation.
+Planning.
+Control.
+Simulation and validation.
+
+A dark, Tesla-like visualization does not require Tesla’s perception architecture.
+
+A Formula Student cone-track application does not automatically require a Waymo-like sensor suite.
+
+A vector world representation does not prove that a system uses one particular sensor modality.
+
+For every proposed sensor, identify the observable quantity it supplies, the required operating conditions, and the integration cost.
+
+Use dated primary sources. Treat manufacturer descriptions as descriptions of what they disclose, not complete access to their internal architecture.
+
+Do not introduce an end-to-end neural driving stack just because an OEM discusses one.
+
+36. Introduce datasets when a component needs them
+
+The first known-track planning and control release does not require a large perception dataset.
+
+When cone perception becomes a real task, evaluate FSOCO. Its public dataset is available without a contribution requirement and includes Formula Student cone annotations. FSOCO.
+
+For later road-scene, localization, or sensor-fusion exploration, evaluate the Zenseact Open Dataset. It contains multiple types of driving data, but its relevance must be established for the component being built. Zenseact Open Dataset.
+
+Before downloading or training:
+
+Define the task.
+Confirm labels and calibration.
+Inspect a small sample.
+Check license and download size.
+Estimate memory and storage.
+Define the evaluation split.
+Define the success metric.
+
+Avoid train/test leakage from adjacent frames of the same drive.
+
+Prefer splits by recording session, location, or another defensible grouping.
+
+Do not claim that a detector evaluated on a dataset has been validated as an autonomous driving system.
+
+37. Preserve the LiU Formula Student opportunity without assuming acceptance
+
+I am interested in contributing to LiU Formula Student, but I study at Högskolan Väst.
+
+The 2026 competition rules allow a team to include members from more than one university. This does not establish LiU’s own recruitment policy. Formula Student Rules 2026, A4.1.3.
+
+LiU’s April 2026 newsletter describes a driverless group, a Gazebo-based simulator, and a future ER27 ambition. Treat those statements as dated public evidence, not proof of their current internal interfaces or unmet needs. LiU driverless newsletter.
+
+Potential contributions from this project include:
+
+Trajectory visualization.
+Replay inspection.
+Explaining braking decisions.
+Scenario configuration.
+Grip experiments.
+Sensor timing and fault analysis.
+An adapter for their existing data.
+
+Do not presume they want an entirely new simulator.
+
+Maintain a concise integration note listing questions such as:
+
+Do they accept students from another university?
+What attendance is expected?
+Which ROS and simulator versions are used?
+Which messages and frames are established?
+What visualization or evaluation gap actually matters?
+Which small contribution would be useful?
+
+Prepare concrete demonstration material before proposing an integration.
+
+Do not send outreach messages without my explicit instruction.
+
+The project must remain worthwhile even if the LiU path does not proceed.
+
+38. Treat the twelve skills as focused responsibilities
+
+The following twelve areas are a recommended capability map. They are not a verified transcription of my original twelve selected skills:
+
+Area	Responsibility
+Architecture and interfaces	Boundaries, contracts, decisions
+C++ and build systems	Implementation, compilation, dependency management
+ROS 2 integration	Messages, launch, time, recording
+Vehicle dynamics	Model assumptions and physical interpretation
+Track geometry	Curves, boundaries, curvature and validation
+Trajectory planning	Paths, speed profiles and feasibility
+Control and optimization	Tracking, constraints and later MPC
+Estimation and fusion	State, uncertainty and observation integration
+Perception and datasets	Detection and defensible evaluation
+Simulation and experiments	Scheduling, replay and scenario comparison
+Qt and visualization	Live interface, rendering and interaction
+Blender and asset production	Models, camera rigs and rendered transitions
+
+Initially emphasize architecture, C++, vehicle modeling, track geometry, Qt, and Blender.
+
+Introduce the remaining areas as their milestones become active.
+
+Do not create twelve redundant instruction files that each attempt to control the entire project.
+
+A skill should define:
+
+When it applies.
+What inputs it needs.
+What output it produces.
+Its verification requirements.
+The common errors it should catch.
+
+Keep one shared project authority. Specialized skills should elaborate it rather than contradict it.
+
+Do not make a large agent swarm a prerequisite for building the first lap.
+
+39. Establish a small repository structure
+
+Use a structure similar to the following, adapting it to actual needs:
+
+Location	Purpose
+core/	Portable geometry, planning and control
+adapters/simulation/	Plant and simulation runtime
+adapters/ros2/	ROS integration
+apps/desktop/	Qt application
+tools/blender/	Asset and render scripts
+tools/analysis/	Experiment inspection utilities
+configs/	Versioned configuration
+tracks/	Small track definitions
+assets/manifest/	Asset provenance and references
+tests/	Behavioral and numerical checks
+docs/	Brief, decisions, setup and limitations
+
+Create directories when they contain useful work. Avoid an enormous empty skeleton.
+
+Provide:
+
+A root CMake entry point.
+Build presets.
+A headless executable.
+A desktop executable.
+A small set of meaningful tests.
+A reproducible example configuration.
+A clear asset-loading fallback.
+
+Keep the core dependency set small.
+
+Use one consistent dependency strategy per ecosystem. Avoid mixing several C++ package managers without a specific need.
+
+40. Persist context without creating a documentation project
+
+Create or maintain:
+
+docs/PROJECT_BRIEF.md: the durable product vision.
+AGENTS.md: concise working rules, build commands, and core invariants.
+CLAUDE.md: imports shared instructions and adds only necessary Claude-specific guidance.
+docs/ARCHITECTURE.md: current implemented architecture and planned boundaries.
+docs/STATUS.md: current milestone, evidence, blockers, and next action.
+docs/decisions/: short records for consequential choices.
+README.md: what works and how to run it.
+
+Do not copy the entire master brief into every automatically loaded instruction file.
+
+Distinguish implemented, tested, proposed, and deferred features.
+
+Update documentation when behavior changes, but keep the main effort on working software.
+
+41. Verify behavior with meaningful tests
+
+The first meaningful checks should include:
+
+A straight-line case.
+A constant-radius turn.
+Steering saturation.
+Speed-controller response.
+A complete lap of the preset track.
+Closed-track speed-profile continuity.
+Braking before the tighter corner.
+Higher-grip versus lower-grip planning.
+Invalid configuration rejection.
+Repeatability within documented tolerances.
+Recording and playback consistency.
+
+For later features, add:
+
+Delayed actuation.
+Observation dropout.
+Stale state.
+Invalid track geometry.
+Infeasible trajectory response.
+Parameter changes during motion.
+Model mismatch.
+
+Tests should target failure modes and expected physical or numerical behavior.
+
+Do not write tests that merely restate a constant or mirror the implementation.
+
+Do not weaken a failed test to produce a green result without explaining why the expected behavior was wrong.
+
+For the grip comparison, verify the selected scenario mathematically and empirically. Lower grip does not guarantee every metric changes monotonically under every combination of caps and controller behavior.
+
+42. Verify the actual presentation
+
+Visual verification should inspect the running application.
+
+Check:
+
+The camera matches the intended composition.
+The road remains visible against the background.
+The car faces the correct direction.
+Scale and wheelbase alignment are plausible.
+Trajectory colors reflect the plan.
+Speed displays the actual vehicle state.
+UI controls change the intended configuration.
+Text remains legible at the target resolution.
+Window resizing does not break layout.
+Car transitions do not flash black.
+Rapid selection behaves predictably.
+Asset loading failures have a useful fallback.
+Replay does not display stale future data.
+
+Do not substitute a concept image for evidence that the application renders correctly.
+
+If a screenshot or video is generated from a mockup, label it as a mockup.
+
+Measure performance on the actual machine before describing it as smooth at a particular frame rate.
+
+43. Keep the demonstration short and causally clear
+
+The approximately 15-second public demonstration should tell one story.
+
+A suggested sequence:
+
+Opening: polished car selection and transition.
+Next: enter the track and begin driving.
+Middle: show the active speed plan and upcoming braking zone.
+Change: alter grip or compare a second run.
+End: show the changed braking location and a concise explanation.
+
+The exact timing can change after the app works.
+
+Do not use editing to imply that unsupported features exist.
+
+Prepare a longer engineering capture separately if needed, showing actual controls, recording, and diagnostics.
+
+The README should let an interested engineer reproduce the scenario behind the short video.
+
+44. Progress through these milestones
+
+Milestone 0: Environment and contracts
+
+Inspect the repository and tools.
+Select the reference environment.
+Record the core decisions.
+Establish units, frames, timing, and configuration.
+Compile a small C++ executable.
+Establish a minimal Qt scene if the environment supports it.
+
+Milestone 1: First autonomous lap
+
+Load one preset track.
+Implement the baseline plant.
+Implement Pure Pursuit and speed control.
+Generate curvature and braking-aware speed planning.
+Complete a headless lap.
+Drive the live scene from actual simulation state.
+
+Milestone 2: Explainable grip experiment
+
+Implement the grip setting.
+Validate a clear comparison scenario.
+Add trajectory colors.
+Add planner diagnostics.
+Record configuration changes and behavior.
+
+Milestone 3: Replay and public presentation
+
+Add the thin ROS recording integration.
+Implement useful playback.
+Add the second car appearance.
+Produce the two-car showroom transition.
+Polish the interface.
+Capture the demonstration.
+Finish reproducible setup instructions.
+
+Milestone 4 and later
+
+Track drawing.
+Actuator delay.
+External simulator adapter.
+Dynamic vehicle model.
+Optimized racing line.
+Sensors and estimation.
+Unknown-track operation.
+MPC.
+Controlled hardware integration.
+
+Preserve this ordering unless a concrete dependency or integration finding justifies a change.
+
+45. Understand the later optimization direction
+
+When baseline tracking and speed planning work, introduce more advanced methods in measured steps.
+
+Distinguish:
+
+Shortest path.
+Minimum-curvature path.
+Minimum-time trajectory.
+Online local planning.
+Tracking control.
+Predicted motion under a control sequence.
+
+These are different optimization problems.
+
+A minimum-curvature path is not automatically the minimum-time racing line.
+
+A minimum-time result is optimal only with respect to its stated model, constraints, discretization, and solver outcome.
+
+When evaluating MPC:
+
+Specify the model.
+Specify states and controls.
+Specify the horizon.
+Specify constraints.
+Explain cost weights.
+Measure solve time.
+Define timeout behavior.
+Define fallback control.
+Compare performance against the baseline.
+
+Evaluate CasADi and acados when this milestone is reached. acados is designed for optimal-control applications, but suitability and timing must be measured in this implementation. acados documentation.
+
+Do not add an optimizer merely to place “MPC” in the README.
+
+46. Work autonomously within the active milestone
+
+Make routine reversible engineering decisions and continue.
+
+Do not repeatedly ask whether to create the obvious next file, add a necessary local test, or complete an already selected implementation step.
+
+Ask only when an unresolved decision materially changes:
+
+Product direction.
+Cost.
+Public distribution.
+External communication.
+Destructive repository actions.
+Physical hardware operation.
+
+When blocked, explain the specific blocker and complete independent useful work.
+
+Do not claim that “future-proof” means predicting every extension. Here it means explicit interfaces, reproducible configuration, clear model assumptions, and the ability to replace a component without rewriting unrelated parts.
+
+Keep progress updates brief and evidence-based.
+
+47. Use a second coding agent for concrete review
+
+If I use both Codex and Claude Code, they must read the same project instructions.
+
+One agent owns implementation of the active change.
+
+A second agent can review a concrete diff or milestone for:
+
+Frame and unit errors.
+Physics claims unsupported by the model.
+Timing problems.
+Ground-truth leakage.
+Unused controls.
+Configuration inconsistencies.
+Unnecessary dependencies.
+Missing behavioral evidence.
+Visual requirements that were overlooked.
+
+Do not let competing agents independently rewrite the architecture.
+
+A review must identify specific code, behavior, or evidence. General reassurance is not useful.
+
+48. Begin the project now
+
+Your first response should briefly state:
+
+What product you understand I want.
+The active first milestone.
+The most consequential assumptions.
+What you can inspect and execute in the current environment.
+
+Then do the work.
+
+Inspect the repository and available references. If the repository is empty, establish the minimum working project.
+
+Save the durable brief and concise agent instructions.
+
+Resolve immediate build and renderer constraints.
+
+Implement the earliest useful vertical slice:
+
+A C++ simulation advances a vehicle on a defined track, and the interface displays that actual state.
+
+Use a simple vehicle mesh if needed to reach this slice quickly.
+
+Then progress toward the first autonomous lap, the grip experiment, and the polished presentation.
+
+At the end of each substantial session, report:
+
+What changed.
+What now runs.
+What was actually verified.
+Which assumptions or limitations remain.
+The next concrete task.
+
+Do not finish by merely offering to start.
+
+END OF MASTER PROJECT PROMPT

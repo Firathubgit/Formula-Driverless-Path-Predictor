@@ -1,0 +1,37 @@
+{
+  "date": "2026-09-14",
+  "milestone": "Actual-state rolling prediction of the existing feedback policy",
+  "source_fingerprint": "efb6745bf4d94114eae5ac1479b6c4616b1ab27a4757b9e9f32bfd8b50854ec7",
+  "model": "Known-track ideal-state kinematic bicycle; Pure Pursuit and bounded speed feedback",
+  "prediction_horizon_s": 3.0,
+  "default_control_period_s": 0.02,
+  "default_plant_step_s": 0.005,
+  "desktop_ctest": {"passed": 5, "total": 5, "elapsed_s": 52.23},
+  "headless_ctest": {"passed": 4, "total": 4, "elapsed_s": 25.23},
+  "ui": {"passed": true, "checks": 138, "qml_warnings": 0, "logical_size": [1100, 700]},
+  "trajectory_behavior_groups": 8,
+  "two_forecasts_elapsed_ms": 1.8313,
+  "timing_scope": "Two 3-second forecasts at 20 m/s on the reference Windows host; no real-time guarantee",
+  "recording": {
+    "directory": "out/runs/rolling-grip-final-20260914",
+    "schema": 1,
+    "duration_s": 12,
+    "samples": 2401,
+    "event": {"time_s": 6, "grip_mu_before": 1, "grip_mu_after": 0.45},
+    "telemetry_identical_to_verified_transient_prefix": true,
+    "invalid_samples": 1020,
+    "max_combined_grip_utilization": 1.23772533187,
+    "planner_reproduction_error_mps": 4.191e-10
+  },
+  "inspected_captures": [
+    "out/preview/rolling-prediction.png",
+    "build/desktop/ui-evidence/compact-prediction-corner.png",
+    "build/desktop/ui-evidence/compact-replay.png"
+  ],
+  "limitations": [
+    "Forecast predicts the baseline policy; future points do not optimize its first action",
+    "Known track provides guidance beyond the visible horizon; no perception or obstacle avoidance",
+    "No mass sensitivity, tire slip, wheel locking, ABS or minimum-time racing optimization",
+    "Schema 1 does not record rolling predictions; replay explicitly hides them"
+  ]
+}

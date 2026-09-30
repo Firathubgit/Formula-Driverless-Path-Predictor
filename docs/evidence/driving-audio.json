@@ -1,0 +1,38 @@
+{
+  "decision": "0044",
+  "date": "2026-09-28",
+  "build": "Release fd_race_audio_tests and fd_desktop passed",
+  "audio_checks": 28,
+  "ctest": {
+    "suites": ["fd_race_audio", "fd_assistance_presets", "fd_desktop_controls"],
+    "passed": true,
+    "seconds": 182.53,
+    "ui_seconds": 182.09,
+    "ui_checks": 787,
+    "qml_warnings": []
+  },
+  "actual_default_output": {
+    "processed_us": 4080000,
+    "error": 0,
+    "buffer_bytes": 19200,
+    "passed": true,
+    "format_selection": "device-preferred PCM fallback after 16-bit was unsupported"
+  },
+  "offline_demo": {
+    "path": "out/audio/formula-preview.wav",
+    "seconds": 18,
+    "sample_rate": 48000,
+    "channels": 1,
+    "master_volume_percent": 100,
+    "peak": 0.436750,
+    "rms": 0.150962,
+    "mean": -0.000120471
+  },
+  "inspected_capture": "build/desktop/ui-evidence/compact-kart-sound.png",
+  "test_storage_isolated": true,
+  "vehicle_physics_changed": false,
+  "physical_controller_exercised": false,
+  "subjective_listening_evaluation": false,
+  "device_hotplug_exercised": false,
+  "full_regression_rerun": false
+}

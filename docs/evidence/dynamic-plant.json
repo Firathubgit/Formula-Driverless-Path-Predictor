@@ -1,0 +1,81 @@
+{
+  "verified_on": "2026-09-15",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "plan_phases": [
+    "TrackWayFastPlan 0.2/0.4 vehicle seam",
+    "TrackWayFastPlan 1.2 dynamic single-track plant"
+  ],
+  "decisions": [
+    "docs/decisions/0005-vehicle-model-seam.md",
+    "docs/decisions/0008-dynamic-single-track-plant.md"
+  ],
+  "source_fingerprint": "eb315c26ee178531eb3643eb015935c98ab8cef19d29a9d26f93e7883dccdfa2",
+  "headless_ctest": {
+    "passed": 7,
+    "total": 7,
+    "seconds": 34.32
+  },
+  "desktop_ctest": {
+    "passed": 8,
+    "total": 8,
+    "seconds": 73.25,
+    "note": "host under load during this run",
+    "qml_checks": 193,
+    "qml_warnings": []
+  },
+  "vehicle_suite": {
+    "groups": 13,
+    "seconds_alone": 11.9,
+    "kinematic_adapter": "20000 random steps and demands bit-identical to integrate_bicycle and the previous formulas",
+    "straight_line": "9.000 m/s after 2 s at 2 m/s^2 from 5 m/s",
+    "walking_speed": "equal to the kinematic bicycle within 1e-6 m below 1 m/s",
+    "understeer_gradient": "steady yaw rate within 2% of v*d/(L+K*v^2), K from cornering stiffness measured on the tire law, for soft-front and soft-rear cars at 12 m/s",
+    "saturation": "lateral acceleration capped at peak friction; kinematic formula claims more than twice as much",
+    "rear_wheel_drive_corner_exit": {
+      "requested_mps2": 5.39366,
+      "rear_sideslip_rwd_rad": -1.39474,
+      "rear_sideslip_shared_rad": -0.0529181
+    }
+  },
+  "closed_loop_lap": {
+    "kinematic": {
+      "lap_s": 33.52,
+      "max_tracking_error_m": 0.266731,
+      "wall_s": 0.71
+    },
+    "dynamic": {
+      "lap_s": 33.795,
+      "max_tracking_error_m": 0.349921,
+      "max_rear_sideslip_rad": 0.0422616,
+      "max_axle_grip_use": 0.749833,
+      "ticks_past_slip_peak": 0,
+      "wall_s": 8.99
+    },
+    "note": "same preset, default configuration and unchanged controller; wall times are measurements only"
+  },
+  "first_dynamic_lap_finding": {
+    "drive_layout": "rear-wheel drive",
+    "event": "spin on corner exit at 12.16 s: requested 5.39 m/s^2 exceeds the rear axle's roughly 4.8 m/s^2 without load transfer; rear sideslip 0.05 to 0.84 rad within a second",
+    "resolution": "default drive_front_fraction 0.5 (load-proportional); rear-wheel drive kept and tested"
+  },
+  "kinematic_byte_identity": {
+    "compared_against": "out/runs/schema2-* from the previous build",
+    "runs": [
+      "out/runs/seam-scenario-baseline",
+      "out/runs/seam-scenario-avoid",
+      "out/runs/seam-scenario-stop",
+      "out/runs/seam-verified-transient"
+    ],
+    "files_compared": 33,
+    "differences": "none except metadata run_identifier and source_fingerprint"
+  },
+  "recordings_checked": {
+    "count": 26,
+    "rejected": 0
+  },
+  "kinematic_planning_cost_ms": {
+    "clear": 0.38879,
+    "blocked": 2.05441
+  },
+  "recording_refusal": "RecordingWriter refuses a dynamic-plant simulation and names schema 3"
+}

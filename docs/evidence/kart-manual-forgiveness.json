@@ -1,0 +1,25 @@
+{
+  "decision": "0042",
+  "date": "2026-09-28",
+  "build": "Release fd_human_driving_tests and fd_desktop passed",
+  "human_driving_groups": 13,
+  "human_driving_seconds": 1.11,
+  "ui": {
+    "checks": 763,
+    "failure": "",
+    "method": "Actual QML controls, bindings and QQuickWindow captures",
+    "passed": true,
+    "qml_warnings": []
+  },
+  "ui_seconds": 185.56,
+  "inspected_capture": "build/desktop/ui-evidence/compact-kart-manual-assistance.png",
+  "verified_manual_combination": {
+    "grip": 100,
+    "speed": 70,
+    "acceleration": 100,
+    "steering": 20,
+    "braking": 10
+  },
+  "full_regression_rerun": false,
+  "physical_controller_exercised": false
+}

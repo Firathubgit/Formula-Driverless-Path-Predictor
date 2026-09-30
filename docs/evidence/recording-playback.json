@@ -1,0 +1,100 @@
+{
+  "verified_on": "2026-09-13",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "scope": "Validated recording ingestion and seekable playback; ROS/rosbag2 and the Blender showroom remain future work",
+  "source_fingerprint": "b698fb7f8a30805b0f3652d90d9ad46bdb967a020f7967f71dbfecaac700d10f",
+  "desktop_ctest": {
+    "passed": 4,
+    "total": 4,
+    "suites": ["fd_core_behavior", "fd_recording_playback", "fd_recording_contract", "fd_desktop_controls"]
+  },
+  "headless_ctest": {
+    "passed": 3,
+    "total": 3
+  },
+  "qt_free_headless": {
+    "method": "Fresh out-of-tree configure in build/qtfree-check, then dumpbin /dependents",
+    "ctest_passed": 3,
+    "ctest_total": 3,
+    "linked_dlls": [
+      "MSVCP140.dll", "VCRUNTIME140.dll", "VCRUNTIME140_1.dll",
+      "api-ms-win-crt-runtime-l1-1-0.dll", "api-ms-win-crt-heap-l1-1-0.dll",
+      "api-ms-win-crt-convert-l1-1-0.dll", "api-ms-win-crt-stdio-l1-1-0.dll",
+      "api-ms-win-crt-filesystem-l1-1-0.dll", "api-ms-win-crt-math-l1-1-0.dll",
+      "api-ms-win-crt-string-l1-1-0.dll", "api-ms-win-crt-locale-l1-1-0.dll",
+      "KERNEL32.dll"
+    ],
+    "qt_dlls_present": false
+  },
+  "writer_format_unchanged": {
+    "method": "Byte comparison of an 8 s run with --grip-event 6:0.45 written by the previous executable and by the rewritten shared writer",
+    "identical_except": ["run_identifier", "source_fingerprint"]
+  },
+  "recording_playback_tests": {
+    "groups": 5,
+    "fixture": "one lap, two accepted grip changes (1.0 -> 0.8 at 4 s, -> 0.6 at 20 s), three plan revisions",
+    "round_trip": "every reloaded sample matches the live simulation's time, x, y, speed and revision",
+    "backward_seek": "revision 3 at the end; seeking between events restores revision 2 and mu 0.8; seeking before the first event restores revision 1 and mu 1.0 with its higher first-corner plan speed",
+    "event_boundary": "the sample at the event time keeps the old revision; the next tick's sample carries the new one",
+    "rejected_variants": 14,
+    "rejected_examples": [
+      "plan-rev-2.csv generated_time_s does not match the parameter event that produced it",
+      "events.csv line 3 old_value does not continue the configuration chain",
+      "telemetry.csv line 803 revision disagrees with events.csv timing",
+      "telemetry.csv line 7 time_s must increase strictly",
+      "telemetry.csv header does not match the schema 1 contract",
+      "summary.samples disagrees with telemetry.csv",
+      "initial_config has unknown key mass_kg",
+      "plan-rev-2.csv line 4 geometry does not match track.csv",
+      "plan.csv must be identical to plan-rev-1.csv",
+      "plan-rev-2.csv is missing",
+      "a plan revision exists without a recorded parameter event"
+    ],
+    "edited_plan_speed": "loads, then planner reproduction reports a difference above 1 m/s"
+  },
+  "qml_controls": {
+    "checks": 78,
+    "failure": "",
+    "method": "Actual QML controls, bindings and QQuickWindow captures",
+    "passed": true,
+    "qml_warnings": [],
+    "replay_checks": [
+      "invalid directory refused and the status names the recording contract",
+      "seek to 8 s applies the recorded change; readout shows the recorded mu 0.45",
+      "seek back to 3 s restores revision 1, mu 1.00 and the higher first-corner plan speed",
+      "Play advances the playhead while the live plant stays at simulation time 0 and revision 1",
+      "dragging the playhead seeks to the recorded sample",
+      "Exit replay restores the live simulation with its time, revision and grip untouched"
+    ]
+  },
+  "replay_demo_run": {
+    "directory": "out/runs/replay-demo",
+    "laps": 2,
+    "elapsed_simulation_s": 81.265,
+    "samples": 16254,
+    "plan_revisions": 2,
+    "parameter_events": 1,
+    "grip_event": {"time_s": 12, "from": 1.0, "to": 0.55},
+    "lap_crossing_times_s": [40.14, 81.265],
+    "max_cross_track_error_m": 0.266731158981,
+    "max_combined_grip_utilization": 0.689690741382,
+    "invalid_samples": 154
+  },
+  "check_recording": {
+    "accepted": ["out/runs/verified-high", "out/runs/verified-low", "out/runs/verified-transient", "out/runs/schema-check", "out/runs/replay-demo"],
+    "max_planner_reproduction_difference_mps": 4.191e-10,
+    "rejected": {"artifacts/runs/grip-change": "metadata lacks \"run_identifier\"; predates the schema"}
+  },
+  "app_captures": ["docs/assets/braking.png", "docs/assets/replay.png"],
+  "limitations": [
+    "playback reads this project's schema 1 only; not rosbag2",
+    "recorded-input replay cannot evaluate a different closed-loop policy",
+    "whole recording is loaded into memory; no streaming reader",
+    "replay speed fixed at 1.0 with no frame-step control",
+    "known track and ideal state",
+    "kinematic tire-slip omission",
+    "rear-axle margin is not swept-body collision",
+    "Linux and remote CI unexecuted",
+    "no measured render FPS"
+  ]
+}

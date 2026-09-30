@@ -1,0 +1,272 @@
+{
+  "decision": "0038",
+  "subject": "tracks/gokartcentralen-goteborg.csv traced from Gokartcentralen Göteborg's published track poster (the user's image, 1500 x 2000 px, not in the repository) by tools/tracks/trace_poster.py from tools/tracks/gokartcentralen-goteborg.points.json",
+  "method": "Each round three independent agents judged the trace against the poster through a different lens, from the overlay, a side-by-side, a difference map, the summary and zooms they rendered themselves, scoring 1-10; 9 is a pass and every judge had to pass. Below a pass a fixer agent checked each issue on the poster, edited the control points and traced again.",
+  "passed": true,
+  "final_version": "v2",
+  "scores": {
+    "v1": [
+      8,
+      8,
+      8
+    ],
+    "v2": [
+      9,
+      9,
+      9
+    ]
+  },
+  "rounds": [
+    {
+      "version": "v1",
+      "judges": [
+        {
+          "lens": "path and topology",
+          "score": 8,
+          "verdict_summary": "The path and topology are correct everywhere. The start ring at (757,1618) sits on the chequered line and is centred in the diagonal (59 px from each edge). The white tick points down-left toward T1. The line then runs in the poster's order:\n- T1 around island 1.\n- T2 through the border pinch (x 284 against a band middle of about 282).\n- T3, the long right, onto the top straight (y 337 against a band of 280-397).\n- T4 around the tip of island 4 and back left along its underside.\n- T5 left over the top of finger 5-6.\n- T6 around that finger's tip at (365,1083).\n- T7 over the top of island 7 (y 662 against a band middle of 665).\n- T8 down and bending right past label 8.\n- T9 left around the tip of the FAN ZONE island.\n- Up the left leg of island 10, T10 over its top (y 903 against a band middle of 904), down its right side and onto the diagonal.\n\nThere is no shortcut across any island. The line does not go into the pit lane: the corridor passes the pit-entry mouth at (960-1040,255-320) and the pit merge at (1110-1130,1040-1110). The line does not cross itself and closes at the start. The closest approach between two parts of the centreline is 6.98 m, so corridors never overlap.\n\nI profiled the poster along the normals at about 35 samples. The centreline is within about 13 px of the middle of the drawn band everywhere except one place. At the bottom of T9 it runs 25-29 px (about 1.4 m) outside the middle of the band between the island and the velodrome's lip, from about (473,1525) to (654,1515). This happens because the velodrome's outer wall face was counted as asphalt: that is the flat grey strip (grey level 61-98) outside the black lip line, about 60 px thick at the bottom-left. One noticeable local deviation at one turn gives a score of 8.\n\nA note that needs no change: the left leg of T10 (x 767-851, y 1000-1300) is drawn only about 4.2 m wide. The centreline is centred there within 3 px, so the 6 m corridor overhangs both sides by about 0.8 m. That comes from how the poster is drawn, not from a path error.",
+          "issues": [
+            {
+              "turn": "T9",
+              "image_xy": [
+                515,
+                1550
+              ],
+              "severity": "major",
+              "problem": "The bottom of the velodrome turn sits 25-29 px (about 1.3 m) too far out. Between the FAN ZONE island's rim and the velodrome's black lip, the band is 6.1-7.0 m wide, which is where a 6 m track would run. Band middles against the centreline: the lip at (486,1541) is at +43 px and the island rim at -100 px, so the middle is 29 px inward. At (522,1559) the lip is at +37 and the rim at -93, so the middle is 28 px inward. At (581,1551) the middle is 24 px inward, at (619,1534) 19 px and at (654,1515) 16 px. The snap treated the grey outer wall face below the lip (at x 385-560, y 1597-1660) as asphalt. As a result the corridor's outer edge runs 15-25 px past the lip, over the wall face, at (480-620,1590-1620). About 30-39 px of flat asphalt next to the island is left uncovered at (490-600,1465-1500). The bulge also makes the bottom corner tight: the radius is about 3.6 m at s 312-313 against a 3 m half-width, which puts a sharp V (cusp) in the inner corridor edge at (533,1499). The left side of T9, at (435,1391) and (441,1451), is centred to within 3 px and is correct.",
+              "suggested_fix": "Move the T9 bottom control points toward the island. Move (520,1560) about 28 px up to (527,1532). Move (611,1537) about 19 px up-left to (604,1520). Move (684,1492) about 12 px up-left to (677,1481). Move (456,1500) about 11 px right to (466,1495). The bottom then follows an arc of about 100-110 px radius around (525,1420), concentric with the island tip, which also removes the inner-edge cusp. The better fix is to remove the velodrome's outer wall face from the drawn-asphalt mask and re-snap: that face is the uniform grey band outside the black lip line, running from about (385,1450) around to (780,1500). The snap then centres between the island rim and the lip."
+            },
+            {
+              "turn": "T6",
+              "image_xy": [
+                281,
+                1037
+              ],
+              "severity": "minor",
+              "problem": "In the left (downhill) channel just before T6, the centreline bulges about 11-12 px to the left at (280-283,1003-1043). The band here runs from the arm of island 4 on the left (x 232) to the left edge of finger 5-6 (x 352), so its middle is x 292. The grey label-6 circle (x 334-390, y 1003-1058) lies over the finger and the asphalt, and was read as the island edge. As a result the outer corridor edge runs about 10 px onto the white island arm at (222-232,990-1110). The inner edge clips the finger tip by about 5 px at (350-365,1075-1085).",
+              "suggested_fix": "Move the control point near (283,1030) right by about 10 px, to x 292. Alternatively, treat the label circles as asphalt (mask them out) when snapping."
+            },
+            {
+              "turn": "T6",
+              "image_xy": [
+                362,
+                1146
+              ],
+              "severity": "minor",
+              "problem": "Around the finger tip at (365,1083), the bottom of the hairpin sits 12-13 px inside the middle of the drawn bowl. The bowl's outer edge is at y 1243 at x 395, and at (327,1128) the band runs from -57 to +82 px along the normal. The corridor's outer edge stops about 35 px short of the bowl's outer edge at (300-500,1208-1243). The right (uphill) leg at (440,1130) is centred to within 1 px.",
+              "suggested_fix": "Move the bottom control point (362,1143) about 12 px down, to (362,1155). Nudge the point near (327,1128) about 10 px down-left, to (321,1137). Keep (430,1140) and (463,1072) where they are."
+            }
+          ]
+        },
+        {
+          "lens": "racing context and recognisability",
+          "score": 8,
+          "verdict_summary": "A driver who knows Gokartcentralen would recognise this as their track. It runs clockwise: the signed area is -1860 m² in the y-up frame and +1860 m² by pixel-frame shoelace, so the turn sense is right. The start ring is at (757,1617), in the middle of the chequered line, and travel heads down-left toward T1, away from grid boxes 1-10. Every corner has the right hand and character. T1 is a right hairpin (min radius 5.6 m) and T2 a kink. T3 is a long right (7.8 m) and the top straight sits at y≈337. T4 is a wide right hairpin round the bulb, T5 a left (5.5 m) and T6 a left hairpin round the tip of island 6 (3.2 m). T7 is a right hairpin (4.4 m) and T8 a right bend. T9 is a left hairpin round the FAN ZONE island and T10 a right hairpin (5.0 m), and the diagonal leads back to the line. The pit lane is excluded at both ends: the entry funnel at (1000-1040,260-300) and the exit merge at (1110-1130,1040-1120) stay uncovered. Adjacent corridors never overlap; the smallest gap is about 1 m. Scale is consistent with the published figures: at 0.0492 m/px the plain straights measure 5.9-6.3 m (top straight, left straight, T10 descent) and the median drawn width is 6.5 m. The diagonal is 5.4-5.6 m and the T9-T10 climb is 4.0-4.9 m, so the 6 m corridor spills evenly onto white there. Across the drawn band the centreline stays within about 11 px of the middle everywhere except T9. I extracted the poster's 12 px racing-line stroke and checked it against the corridor. Its centre stays inside, or no more than 6 px outside, at T1 (5 px), T2, T3, T4 (6 px), T5, T7 and T10 (4 px). The one real deviation is the bottom of T9. The velodrome is drawn in 3D: a light banked surface, a dark rim line at about y 1590-1597, then the grey outer side wall of the bowl down to y≈1658. Measured along the normals, the surface from the island to the rim is 6.0-6.5 m wide, which matches the published 6 m. The tracer counted the side wall as asphalt, giving 9.7 m. As a result the centreline at samples 310-320 lies 17-31 px (up to 1.5 m) outside the middle of that surface. The corridor overhangs the side wall, and the poster's racing line through the T9 exit apex, (520-560, 1475-1497), falls up to about 13 px outside the corridor. It also adds a false tight point to the centreline (3.6 m radius at (521,1559)) where the drawn track has a smooth arc round the island. That is one noticeable local deviation, so the score is 8.",
+          "issues": [
+            {
+              "turn": "T9",
+              "image_xy": [
+                540,
+                1558
+              ],
+              "severity": "major",
+              "problem": "At the bottom of the T9 velodrome the centreline runs 17-31 px (0.8-1.5 m) outside the middle of the driving surface, at samples 310-320 between (473,1525) and (654,1515); the worst is 30-31 px at (503,1553) to (542,1560). The drawn bowl has a banked surface from the island edge (y≈1460-1466 at x 520-580) to a dark rim line (y≈1590-1597 at x 520-580). Below the rim, down to the white border at y≈1658, is the grey outer side wall of the raised velodrome, not driving surface. The asphalt mask (asphalt_boxes [388,482,1300,1560] plus the grey) counted that wall, giving 9.7 m where the surface is 6.0-6.5 m, and the snap pushed control points 72 and 73 outward. Consequences: the corridor's outer 25-30 px lies on the drawn side wall at (450-650, 1590-1620). A 30-35 px strip under the island is uncovered, and the poster's racing-line apex at (520-560, 1475-1497) is up to 13 px outside the corridor. The centreline also gains a false tight point (3.6 m radius at (521,1559)) instead of an arc concentric with the island's tip.",
+              "suggested_fix": "Move the T9 bottom toward the island and fix those points (magenta) so the snap cannot push them out. Control point 71 goes from snapped (455,1500) to (463,1487), about 12 px. Control point 72 goes from snapped (519,1560) (raw (525,1545)) to (521,1528), about 30 px up. Control point 73 goes from snapped (610,1535) (raw (615,1548)) to (609,1514), about 21 px up-left. Nudge control point 74, snapped (684,1490), about 8 px up-left to (679,1483). The centreline should then pass near (493,1509), (542,1530), (573,1526) and (645,1501), with the inner corridor edge 3-8 px off the island and the outer edge at the rim. Alternatively, mark the grey below the dark rim line (from about (400,1490) through (520,1597) and (620,1575) to (700,1540), out to the white border) as non-asphalt so the snap centres between the island and the rim."
+            },
+            {
+              "turn": "T4",
+              "image_xy": [
+                925,
+                605
+              ],
+              "severity": "minor",
+              "problem": "Through the T4 bulb the corridor is centred in the 10 m drawn teardrop: at x=925 the band runs y 573-779 and the corridor 612-734. Under the tip of island 4 (island edge at y≈572), the corridor's inner edge sits 40 px off the island. The poster's racing line at (900-960, 588-612) runs on that inner edge, its stroke centre up to about 6 px outside. The turn is recognisable, but the drawn line has almost no margin.",
+              "suggested_fix": "Optional: nudge control points 38 and 39, snapped (961,665) and (893,670), 10-12 px toward island 4 (up, to about (958,654) and (893,659)). The racing line under the island then sits about 5 px inside the corridor while the outer bulb stays partly uncovered, as the brief expects."
+            }
+          ]
+        },
+        {
+          "lens": "geometry and proportions",
+          "score": 8,
+          "verdict_summary": "The route, direction and proportions are right. The lap runs clockwise from the chequered line at (757,1617), heading down-left to T1. All ten turns are in place, the lap goes round the correct side of every island, and it stays out of the pit lane. The footprint is 45.0 x 75.1 m at 0.0492 m/px. The drawn band width about the centreline is a median of 6.5 m (p10 5.4, p90 7.9), which fits the published 6 m, so the scale holds together. Overlap: IoU 0.853, 97.4% of the corridor lies on drawn asphalt, and 87.3% of the drawn asphalt is covered.\n\nI checked every turn with rays cast along the centreline normals on the poster pixels. Every straight and most turns (T1, T2, T3, T4 bulb, T5, T7, T8, T10) are within about 8 px of the middle of the drawn band:\n- Top straight: y 336-338 against a band middle of 337.5.\n- Left straight: x 133-139 against 137.5.\n- Diagonal, T5-T6, T6-T7, T7-T8 and T10 legs: all centred.\n- T9-T10 leg: drawn only about 4.1 m wide, but the corridor spills over both sides equally, which is fine.\n- The large one-sided excesses in summary.json at s=142-144 and s=367-370 come from the pit entry and pit exit merges, not from centreline errors.\n\nTwo turns are visibly off, both on one side only:\n1. T9 bottom: the corridor sits up to 29 px too far out, running onto the dark wall face of the banking below the black rim.\n2. T6 hairpin: the bottom is squashed 12-16 px toward the tongue tip.\n\nThere is also a smaller issue of about 10 px on the T6 entry, caused by the \"6\" label hiding the tongue. That is one or two noticeable local deviations, so this scores 8, not a pass.",
+          "issues": [
+            {
+              "turn": "T9",
+              "image_xy": [
+                520,
+                1555
+              ],
+              "severity": "major",
+              "problem": "At the bottom of the velodrome the centreline sits up to about 29 px (1.4 m) too far out, over s=308-322, from (453,1490) through (503,1553), (542,1560), (581,1551) and (619,1534) to (688,1492). The normal rays give the island edge at y 1462 and the banking's black rim at y 1596-1600 for x 520-540, so the band middle is about y 1530, but the centreline is at 1553-1560. The corridor's outer edge (y ~1620) lies about 20-25 px beyond the rim, on the darker grey band that runs down to y ~1660. That band widens from 4 px on the left side (x 376-380 at y 1411) to about 60 px at the bottom, which makes it the drawn vertical face of the raised banking, not track surface. On the left side (s=304-306) the centreline is centred between the rim and the island, which shows the snap used the rim there but the face at the bottom. As a result the corridor's inner edge forms a cusp at (530,1500), about 38 px off the island, and the centreline's tightest radius there is 80 px (4.0 m). Offsets (px, outward): s308 10.5, s310 24.5, s312 28.5, s314 29, s316 24.5, s318 19, s320 15, s322 9.5.",
+              "suggested_fix": "Move the T9 bottom control points toward the island and fix them (magenta), or leave the dark wall-face band below the black rim out of the asphalt mask so snapping uses the rim: cp72 (525,1545) -> (518,1522), up 23 px; cp73 (615,1548) -> (610,1522), up 26 px; cp71 (455,1500) -> (466,1492), 12 px up-right; cp74 (700,1512) -> (692,1500), 12 px up-left. Target centreline: (493,1511), (516,1527), (540,1531), (573,1528), (610,1517), (646,1502), which keeps it about 100-108 px from the centre of the island lobe (~(535,1420)) and removes the inner-edge cusp."
+            },
+            {
+              "turn": "T6",
+              "image_xy": [
+                370,
+                1147
+              ],
+              "severity": "major",
+              "problem": "The T6 hairpin is squashed: its bottom is too shallow and too close to the tongue tip. The tongue tip is at (366,1085) and the drawn outer edge is at y 1243 (x 365-400), so the band middle is about y 1164, but the centreline bottoms out at y 1145-1148 for x 345-404. The rays at s=226-230 give the centreline 11.5-15.5 px too close to the tongue: (327,1128) -13, (345,1138) -11.5, (364,1145) -15.5, (384,1148) -13, (404,1148) -11.5. The corridor's inner edge touches the tongue tip, while a 35 px blue fringe runs along the outer edge (corridor outer edge y ~1209 against drawn 1243). The sides of the U are right (x ~285 and ~463), so the hairpin reads flatter than the drawn near-semicircle; its tightest radius is 71 px (3.5 m). In summary.json, cp52 was snapped -9.2 toward the tongue.",
+              "suggested_fix": "Fix cp52 (T6) at about (365,1162) instead of the snapped (364,1145), i.e. about 17 px down, and move cp53 (420,1130) to about (428,1142), 12 px down-right. Optionally add a fixed point at (320,1139) between cp51 and cp52. Target centreline: (320,1139), (340,1149), (360,1160), (383,1161), (406,1159), (446,1136)."
+            },
+            {
+              "turn": "T6 entry (T5-T6 leg)",
+              "image_xy": [
+                281,
+                1043
+              ],
+              "severity": "minor",
+              "problem": "Just before T6, from (281,1003) to (282,1063) (s=219-222), the centreline drifts about 9-10 px west (outward) of the middle between the white strip (x 231-233) and the tongue's left edge (x 350). The \"6\" label circle (x 334-390, y 1012-1068) covers the tongue and the snap took its edge (x 336) as the boundary. Upstream at y 942 the leg is centred at x 291.",
+              "suggested_fix": "Move the centreline about 9 px east there: add a fixed point at (291,1040), or treat the '6' label as a non-boundary in the snap. Resulting centreline: (291,1024) and (291,1062)."
+            }
+          ]
+        }
+      ],
+      "fix": {
+        "points_file": "C:\\Users\\Firat\\AppData\\Local\\Temp\\claude\\C--Users-Firat-Documents-Formula-Driverless-Path-Predictor\\2c08fdfa-7c7f-43b5-b35a-2ec139173c5b\\scratchpad\\gokart\\points-v2.json",
+        "version_dir": "C:\\Users\\Firat\\AppData\\Local\\Temp\\claude\\C--Users-Firat-Documents-Formula-Driverless-Path-Predictor\\2c08fdfa-7c7f-43b5-b35a-2ec139173c5b\\scratchpad\\gokart\\v2",
+        "changes": [
+          "T9 bottom (major; all three judges flagged it, and I confirmed it on the poster). At x=530 the island rim ends at y 1465, the velodrome's black lip is at y 1594-1600, and the flat grey wall face (lum 61, sat 0) runs from 1602 to 1658. v1 counted that face as asphalt, which put the centreline 13-30 px outside the band middle over s308-322. I moved v1 cp71-74 onto the measured middles between the rim and the lip and fixed them, because the snap takes the grey wall face as asphalt: cp71 (455,1500)->(463,1495), cp72 (525,1545)->(527,1530), cp73 (615,1548)->(608,1518), cp74 (700,1512)->(680,1482). Result: with the lip as the outer edge, the centreline is within about 3 px of the middle from s303 to s326. The corridor's outer edge now sits on the lip instead of the wall face, and its inner edge follows the island. The 3.2-3.4 m kink is gone; the tightest T9 radius is now 4.4 m at the top-left and 5.1-5.7 m along the bottom, so there is no inner-edge cusp. The poster's racing line through the T9 exit apex, up to 15.8 px outside in v1, now lies inside the corridor.",
+          "T6 entry, T5-T6 leg (minor; confirmed). The grey '6' label disc (x 335-390) covers the finger's left edge (x 350). As a result the v1 spline bulged to x 280-283 at y 1003-1063, 8-11 px left of the middle at x 291.5. I added a fixed point at (291.5,1025); it is fixed because the snap would read the label disc as the edge. The leg now runs at x 288-291 from y 940 to 1080, within 3 px of the true middle.",
+          "T6 hairpin (major/minor; confirmed). Measured radially from the finger tip centre (367,1070), the bottom of v1 sat 10-16 px too close to the tip, at s225-230. I added a fixed point at (319,1138), the radial middle at 125 degrees. I moved v1 cp52 (360,1152) to (367,1165), fixed: the radial middle there is y 1162, and I placed it 3 px lower to offset the smoothing pull. I moved v1 cp53 from raw (420,1130) to (437,1140), fixed: that is the middle at 45 degrees, and in one trial the snap left this point unsnapped at (420,1130) because its normal crossed the finger tip. I moved the raw start of v1 cp54 to (465,1076), still snapped. I added a snapped point at (465,1030) on the exit leg to keep it centred. Result: s222-236 lie between -4.7 and +1.1 px of the radial middle, the right leg is within about 4 px from y 1100 to 800, and the tightest T6 radius went from 2.95 m in v1 to 3.43 m, so there is no inner-edge cusp.",
+          "T4 (minor, from the racing judge; confirmed). The poster's racing line under the tip of island 4, at (920-960,590-607), had its centre up to 7.5 px outside the corridor's inner edge. I moved v1 cp38 (961,666 snapped) to (958,655) and cp39 (894,672 snapped) to (893,660), both fixed, because the snap would re-centre them in the 10 m bulb. The racing line now lies inside the corridor, with at most 0.1 px outside. The corridor is still on drawn asphalt, with about 1.4 m of the bulb uncovered next to the island and 2.9 m on the outer side, as the brief allows for the outer bulb.",
+          "Unchanged: the start point (765,1625), with sample 0 at (757.6,1616.5) on the chequered line; smoothing 6.0; asphalt_boxes; pit_walls. The lap now has 96 control points (v1: 93). It is still clockwise, length_px 8085.8, 0.04947 m/px, footprint 45.3 x 75.3 m, median drawn width 6.51 m.",
+          "Side effects I checked, because the global smoothing spline redistributes its residual: T1 moved 3-5 px and is now better centred (within 3 px of the middle; the racing-line excess fell from 6.5 to 4.5 px). The top of T3 moved 3-5 px and stays within 2.5 px. T10 moved 3-4 px and stays within 4.8 px. Across the lap, the mean centring error (drawn band under 7.5 m, velodrome and pit mouths excluded) went from 1.65 to 1.63 px. The worst sample is 7.8 px at s221, and that figure is an artefact of the '6' label: measured to the finger edge the point is centred. I zoomed overlay.png and differences.png at T1, T4, T6, T9 and T10, and looked at the whole overlay and differences, to confirm this."
+        ],
+        "overlap": {
+          "iou": 0.8486084816864163,
+          "corridor_on_drawn_asphalt": 0.9774588226589443,
+          "drawn_asphalt_covered": 0.8655470290565251
+        },
+        "unresolved": [
+          "The overlap metrics still count the velodrome's grey outer wall face below the black lip, running from about (378,1400) to (790,1490), as drawn asphalt, because I did not change the mask. The corridor now correctly stays off that face, so the face shows as uncovered blue in differences.png. That lowers drawn_asphalt_covered and IoU slightly against v1 (0.873 -> 0.866 and 0.853 -> 0.849), even though the placement is better. Adding a 'walls' polyline along the lip would take the face out of the mask, but the task allowed only control-point edits, so I left the mask alone.",
+          "The existing asphalt box [388,482,1300,1560] starts 8 px right of the velodrome's lip. The light banking at x 380-388, y 1380-1440, therefore still counts as barrier: it shows as a thin red strip in differences.png, and the snap/width measurement there reads the band as 5.2 m. Measured to the true lip at x 376, the centreline there (x 434-436) is centred. The box also clears a patch of white at (388-400,1300-1320). The judges did not raise either point, and I did not change the box.",
+          "The corridor overhangs the island's white rim by at most 4-5 px, left of the '9' label at (495-525,1400-1462). The drawn band between the rim and the lip is only 5.8 m there, so a centred 6 m corridor must overhang both sides slightly.",
+          "No change needed (the judges noted these too): the T10 left leg (about 4.2 m drawn) and the start diagonal (5.4-5.6 m drawn) are narrower than 6 m on the poster, so the centred 6 m corridor spills evenly onto the white there. The large one-sided width readings at the pit entry (s143-146) and pit exit (s367-370) come from the pit mouths, not from centreline errors. At T1 the poster's racing-line core still reaches up to 4.5 px outside the corridor, and at T10 up to 4.3 px. The racing judge accepted about 6 px, and the band there is centred."
+        ]
+      },
+      "trace": {
+        "length_px": 8122.3533345591,
+        "metres_per_px": 0.0492468110563566,
+        "control_points": 93,
+        "signed_area_m2": -1860.478266310966,
+        "direction": "clockwise",
+        "width_m": {
+          "median": 6.500579059439071,
+          "p10": 5.441772621727404,
+          "p90": 7.869640406805786,
+          "missing": 2
+        },
+        "footprint_m": [
+          45.04603070354969,
+          75.08312983827115
+        ],
+        "overlap": {
+          "corridor_on_drawn_asphalt": 0.9741318393918104,
+          "drawn_asphalt_covered": 0.8731034909507183,
+          "iou": 0.8533189968747943,
+          "drawn_asphalt_px": 1098927
+        }
+      }
+    },
+    {
+      "version": "v2",
+      "judges": [
+        {
+          "lens": "path and topology",
+          "score": 9,
+          "verdict_summary": "PASS for path and topology. The lap follows the poster everywhere, in the right order. I checked every turn on zoomed overlays, sampled the poster's pixels along rows and columns, and ran geometry checks on v2/centreline-px.csv. Where the drawn band is 5.5 to 7.5 m wide, the centreline sits within about 5 px of the band's middle. The only visible deviation is at the T4 bulb, about 14 px.\n\nWalk of the lap (poster px):\n- **Start:** the ring at (758,1616) is the midpoint of the chequered line. The tick points down-left, and the lap leaves heading down-left.\n- **T1:** red at x=159 at y=1737; the drawn band spans 94 to 235. At the bottom, red is at y=1855 against a middle of about 1853.\n- **T2:** the line bows right to x=285 at y=1445, around the outer border's bulge; the band spans 212 to 357.\n- **Left straight:** x=137; band 75 to 200.\n- **T3:** band 73 to 197 at y=555; red at 135.\n- **Top straight:** y=337 to 340; band 278 to 400.\n- **T4:** around the tip of island 4 at x=1045 to 1049; band 974 to 1116. The bulb bottom is at y=661. Back left along the underside of island 4 at y=497 to 499; band 437 to 560.\n- **T5:** left around the top of finger 5 at (336,561), then down at x=290 to 292; band 234 to 352.\n- **T6:** around the tip of finger 6. The loop bottom is at y=1163; the drawn band there spans 1082 to 1240.\n- **T7:** up at x=447 to 464, then over the top of island 7 at y=663; band 600 to 735.\n- **T8:** down at x=684 to 654; band 597 to 737 at y=1000. It bends right at (642,1199).\n- **T9:** around the FAN ZONE island on the velodrome. At y=1420, red is at x=437; the velodrome surface spans 378 to 494. At x=530, red is at y=1530; the surface spans 1466 to 1595. The shaded wall face at y=1604 to 1658 is correctly left outside the corridor.\n- **T9 exit to T10:** up at x=805 to 816. The drawn band here is only 768 to 852 (4.2 m), so the 6 m corridor overlaps white by about 17 px on each side. That is expected from the published width, and the line stays centred.\n- **T10:** over island 10 at y=905; band 828 to 984. Then down at x=1044 to 1048; band 979 to 1103.\n- **Diagonal to start:** the line runs between the two columns of grid boxes and back to the start.\n\nTopology checks:\n- **No shortcuts:** the line never crosses an island.\n- **Pit lane:** the corridor stays out of it. It touches only the white divider at the pit entry (1045,340) and pit exit (1105,1055), by under 10 px.\n- **Closure:** the loop is closed; the last segment is 20.2 px (1 m).\n- **Self-intersection:** there are no crossings.\n- **Direction:** total turning is +360°, clockwise in image space.\n- **Separation:** the closest approach between different parts of the lap is 7.23 m (T8 against the T10 approach), so no two corridors overlap.\n\nThe CSV's large left/right imbalances at s=145 (pit entry), s=229 (the probe ray passes the finger-6 tip), s=309 to 321 (the T9 wall face is counted as asphalt) and s=368 (pit-exit merge) are measurement artefacts, not path errors.",
+          "issues": [
+            {
+              "turn": "T4",
+              "image_xy": [
+                920,
+                662
+              ],
+              "severity": "minor",
+              "problem": "At the T4 bulb the drawn asphalt spans y 572 to 778 at x 900 to 920 (about 10 m). The centreline sits at y 661 to 662, about 13 to 14 px above the band's middle (675) and toward island 4. The corridor leaves about 28 px of drawn asphalt against the island and about 55 px in the outer bulb. This is within the 15 px tolerance and plausible for a 6 m track, but it is the largest offset on the lap.",
+              "suggested_fix": "Optional: move the two fixed (magenta) control points at (893,661) and (958,656) down by about 12 px, to (893,673) and (958,666). The centreline at x 900 to 920 then lands near y 675, the middle of the drawn bulb. Leave the T4 tip points at x 1043 to 1045 unchanged."
+            }
+          ]
+        },
+        {
+          "lens": "racing context and recognisability",
+          "score": 9,
+          "verdict_summary": "PASS. A driver who knows Gokartcentralen Göteborg would recognise this as their track. The direction is right: the signed area is -1885 m², so the lap runs clockwise as a right-hand circuit. Sample 0 is at (757.5,1616.5), on the diagonal chequered line, and the travel tick points down-left toward T1, with grid boxes 1..10 behind the line. The pit lane is excluded at both ends: the entry behind the SLOW! gate at (1030,285) and the exit merge at (1110-1150,1050-1110).\n\nAll ten corners have the right hand, size and position:\n- T1: a 155° right hairpin around island 1.\n- T2: a left kink around the notch at (200,1400).\n- T3: a long right onto the top straight, which runs at y≈337 and is centred in its 6.0-6.2 m band.\n- T4: a ~200° right hairpin around island 4. In the 10 m bulb the line is fixed up to 15 px toward the island, where the poster's racing line runs. The outer bulb below y≈720 is left uncovered, which is expected.\n- T5: a left.\n- T6: a left hairpin around the finger tip at (367,1083), radially centred.\n- T7: a right hairpin around finger 7.\n- T8: a right bend.\n- T9: a banked left hairpin that keeps the FAN ZONE island on the inside. Its corridor spans from the island rim to the velodrome's black lip, which measures exactly 6.0 m (for example 1470→1592 at x=527). This is the right reading of the drawing.\n- T10: a right hairpin around finger 10, then the diagonal back to the line.\n\nCentring: wherever the drawn band is about 6 m wide, the centreline is within 8 px (0.4 m) of the band's middle. The only exceptions are the intended T4 and T9 treatments. On the scale question, 400 m and 6 m agree with the drawing:\n- The median drawn width is 6.5 m, and the straights, where the drawing is most reliable, measure 5.9-6.3 m.\n- The T10 up leg (x≈805, y 1080-1320) is drawn only 4.2-4.7 m wide, and the start/T1 diagonal 5.4-5.7 m. There the centred 6 m corridor spills 10-18 px onto white on both sides. This comes from the poster's schematic drawing, not a tracing error.\n\nThe poster's racing line, measured on its stroke centre, stays inside the 6 m corridor everywhere except at two apexes where the drawn band is 7.3-7.9 m wide: T1 by 4.9 px and T10 by 5.1 px (about 0.25 m each). T2 is 1.7 px out. These are the only deviations from this lens, and they are why this is a 9 rather than a 10.",
+          "issues": [
+            {
+              "turn": "T1",
+              "image_xy": [
+                229,
+                1746
+              ],
+              "severity": "minor",
+              "problem": "At the T1 apex the poster's racing line runs up to 4.9 px (0.24 m) inside the corridor's inner edge, next to island 1, over samples 28-38 (about (256,1855) to (159,1737)). The drawn band there is 7.3-7.6 m wide. The corridor is centred in it, so the apex the poster teaches falls just outside the simulated track.",
+              "suggested_fix": "Move the T1 control points around (185,1810) and (159,1737), and the T1 point at (240,1860), about 6 px radially inward toward island 1 (east and north-east), then mark them fixed. With about 15 px of drawn slack on each side, the outer edge stays on the asphalt and the racing-line apex ends up inside."
+            },
+            {
+              "turn": "T10",
+              "image_xy": [
+                936,
+                971
+              ],
+              "severity": "minor",
+              "problem": "At the top of T10 the racing line's apex is up to 5.1 px (0.25 m) past the corridor's inner edge, next to the tip of finger 10, over samples 352-360 ((853,930) to (1001,931)). The drawn band there is 7.7-7.9 m wide and the corridor is centred in it.",
+              "suggested_fix": "Move the T10 top control points near (853,930), (927,904) and (1001,931) about 6 px down, toward the tip of finger 10 (radially inward), and mark them fixed. The outer edge then sits about 20 px inside the drawn outer boundary at y≈826, which is still on the asphalt."
+            },
+            {
+              "turn": "T2",
+              "image_xy": [
+                222,
+                1441
+              ],
+              "severity": "minor",
+              "problem": "At the T2 kink the racing line hugs the white notch and is 1.7 px outside the corridor's left (west) edge, over samples 48-52 ((259,1521) to (285,1445)). The drawn band there is 7.3-7.6 m and the corridor is centred in it. The effect is negligible.",
+              "suggested_fix": "Optionally shift the T2 apex control point near (284,1440) about 3 px west, toward the notch at (212,1420). Nothing else needs to change."
+            }
+          ]
+        },
+        {
+          "lens": "geometry and proportions",
+          "score": 9,
+          "verdict_summary": "Geometry and proportions lens, v2: PASS. Nothing in v2 needs to change. I zoomed every turn on the overlay and differences images. I also measured the centreline against the drawn band three ways: rays cast along the normals, horizontal and vertical scans across every straight leg, and brightness profiles across the T9 velodrome.\n\n**Straights.** On every straight the centreline sits within 4 px of the band's middle:\n- Left straight (x≈134-139, y 600-1100): 0.7-1.7 px off\n- Top straight (y≈337, x 400-800): at most 0.8 px off\n- T5-T6 leg (x≈291): at most 1.3 px off\n- T6-T7 leg: 1.6-3.6 px off\n- T7-T8 leg: 0.7-2.2 px off\n- T4-T5 return: 1.5-3.7 px off\n- T10 up-leg (x≈806): 0.6-5.1 px off. The band is only drawn 84-102 px (4.2-5 m) wide here, so the corridor runs onto white on both sides.\n- T10 down-leg (x≈1045): 0.6-2 px off, rising to 5.8 px at y 1100 because of the pit-exit mouth.\n- Start diagonal: at most 3 px off.\n\n**Turns.**\n- T1: apex at (300,1859) against a band middle of 1861.5; the outer part (x≈160) is centred.\n- T2: at y 1400/1450/1500 the centreline is at x 280/284/270, against middles of 282.5/282.5/267.5.\n- T3: centred, with equal blue fringes on both sides.\n- T4: the tip side is centred (x 1041 against a middle of 1042).\n- T5: about 6 px off.\n- T6: the bowl bottom is at y 1161, exactly the middle of 1083-1239.\n- T7: top at 663 against a middle of 662.\n- T8: at most 7 px off.\n- T10: top at 904.4 against a middle of 905.\n- T9: the profiles put the centreline midway between the edge of the FAN ZONE island and the dark outer rim of the velodrome (62-64 px to each at the bottom, 58/57 px on the left). The grey outer wall face below that rim is correctly left out.\n\n**Metrics.** The large offsets in the CSV at T9 (samples 309-321), at the pit entry (143-146), at the pit exit (367-370) and at the \"6\" label disc are artefacts of the asphalt mask, not errors in the line. Direction, start line, all ten turns, the correct side of every island and the exclusion of the pit lane all check out. The footprint is 45.3 x 75.3 m, which matches the poster's centreline extent of 920 x 1525 px. At the 400 m scale the drawn width has a median of 6.5 m (p10 5.5 m, p90 7.9 m), consistent with the published 6 m. Corridor on drawn asphalt is 0.977 and IoU is 0.849, both as expected for a band whose median width is 6.5 m.\n\n**Only deviation over 10 px.** At the bottom of the T4 bulb the line sits up to 15 px toward the island. This is inside a 10.3-11 m bulb, not a band of constant width, and it was placed there on purpose. It keeps the score at 9 rather than 10.",
+          "issues": [
+            {
+              "turn": "T4",
+              "image_xy": [
+                920,
+                662
+              ],
+              "severity": "minor",
+              "problem": "At the bottom of the T4 bulb the centreline sits 11-15 px toward island 4 instead of at the bulb's middle. At x=880, 920 and 960 the drawn band runs y 561-774, 573-780 and 554-776 (214, 208 and 223 px, about 10.3-11 m). Its middles are y 667.5, 676.5 and 665; the centreline is at 656.4, 661.8 and 655.9. The inner gap between corridor and island is about 28 px against about 59 px on the outside. The v2 build fixed these points on purpose so that the poster's apex line under the island tip stays inside the corridor. Because the drawn bulb is far wider than 6 m, this is acceptable. It is the only place in the lap more than 10 px off the drawn middle, and it makes the T4 hairpin bottom slightly tighter than the drawn shape.",
+              "suggested_fix": "Optional. For a corridor centred in the bulb, move the fixed points (958,655) to (958,667) and (893,660) to (893,672), about 12 px down. This leaves about 45 px of the drawn bulb outside the corridor's outer edge, but the racing line under island 4 at y≈600-610 then falls about 10 px outside the corridor's inner edge. Keeping v2 as it is also counts as correct."
+            }
+          ]
+        }
+      ],
+      "trace": {
+        "length_px": 8085.792906862729,
+        "metres_per_px": 0.04946948364958795,
+        "control_points": 96,
+        "signed_area_m2": -1885.1959348111432,
+        "direction": "clockwise",
+        "width_m": {
+          "median": 6.505237099920816,
+          "p10": 5.491112685104262,
+          "p90": 7.890382642109278,
+          "missing": 4
+        },
+        "footprint_m": [
+          45.33299038995383,
+          75.33866904642429
+        ],
+        "overlap": {
+          "corridor_on_drawn_asphalt": 0.9774588226589443,
+          "drawn_asphalt_covered": 0.8655470290565251,
+          "iou": 0.8486084816864163,
+          "drawn_asphalt_px": 1098927
+        }
+      }
+    }
+  ]
+}

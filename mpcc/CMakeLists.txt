@@ -1,0 +1,10 @@
+# Model predictive contouring control (decision 0024). Outside fd_core because it needs OSQP.
+add_library(fd_mpcc STATIC src/mpcc.cpp)
+target_include_directories(fd_mpcc PUBLIC include)
+target_link_libraries(fd_mpcc PUBLIC fd_core PRIVATE osqpstatic)
+target_compile_features(fd_mpcc PUBLIC cxx_std_20)
+if(MSVC)
+  target_compile_options(fd_mpcc PRIVATE /W4 /permissive- /utf-8)
+else()
+  target_compile_options(fd_mpcc PRIVATE -Wall -Wextra -Wpedantic)
+endif()

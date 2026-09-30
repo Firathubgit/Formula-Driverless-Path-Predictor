@@ -1,0 +1,124 @@
+{
+  "verified_on": "2026-09-17",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0022-lattice-planner.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 5.2",
+    "TrackWayFastPlan Phase 5 visible: each action's path in its own colour; the chosen action highlighted with its reason and cost breakdown (estimated times wait for 5.3)"
+  ],
+  "source_fingerprint": "b0c9087f3d373e774b5630a9919e4cc53ddf7ade737fa5eefca427d0a356a742",
+  "headless_ctest": {
+    "passed": 18,
+    "total": 18,
+    "test_seconds": 230.16,
+    "fd_lattice_planning_seconds": 2.06,
+    "fd_recording_playback_seconds": 42.88
+  },
+  "desktop_ctest": {"passed": 19, "total": 19, "test_seconds": 316.24, "fd_desktop_controls_seconds": 61.73, "fd_desktop_controls_timeout_s": 120, "fd_recording_playback_seconds": 49.25, "fd_recording_playback_timeout_s": "60 when run; raised to 120 afterwards"},
+  "suites": {
+    "fd_lattice_planning_groups": 11,
+    "fd_recording_playback_groups": 14,
+    "fd_lattice_groups": 10
+  },
+  "sources_studied": {
+    "race_stack_graph_ltpl": [
+      "graph_ltpl/Graph_LTPL.py (const_path_seg)",
+      "graph_ltpl/data_objects/GraphBase.py (virt_goal_node, virt_goal_node_cost)",
+      "params/ltpl_config_offline.ini (w_virt_goal=10000.0; TUM's default is 200)"
+    ],
+    "race_stack_behaviour": [
+      "state_machine/src/states.py (GlobalTracking, Trailing, Overtaking, FTGOnly)",
+      "controller/ftg README (follow the gap)"
+    ],
+    "licence": "graph_ltpl is LGPL-3.0; structure studied, nothing copied"
+  },
+  "method": {
+    "modes": "LocalPlannerMode::lattice (default) or five_offsets (decision 0004, kept for comparison)",
+    "straight": "no blockage, or reference line clear and |offset| <= 1 m: one prediction, identical to the five-offset planner",
+    "return": "reference line clear of every blockage but |offset| > 1 m, or failing only the model envelope: cheapest lattice path ending on the reference, if clear",
+    "pass": "reference line enters a blockage: cheapest path passing the nearest blockage on its left and on its right; the clear one of least cost",
+    "brake": "no pass clear: decision 0004's stopping cap, aiming at the centre of the widest gap across the corridor less the half width, or the reference without a gap",
+    "search": "from the node nearest the car's offset on the first layer >= 1 m ahead, over layers within 60 m or just past the blockage; dynamic programme over edges",
+    "path_geometry": "straight segments between nodes from the car's station and offset, pursued through ControlIntent::path; quintic edges supply only offline cost",
+    "admissible_segment": "inside the corridor less 0.9 m; clear of every blockage widened by 0.9 m, and before it by a pursuit distance; a pass keeps to its side of its blockage; tested every 0.5 m",
+    "cost": "sum of edges' offline cost + 50000 * share^2 * span per slope change + 10000 * |last node offset|; share = |delta slope| / span * v^2 / lateral budget, v the larger of the car's and the planned speed there; share > 1 not allowed, including the final turn parallel to the reference",
+    "lateral_budget": "envelope_fraction * min(left, right lateral limit) under the envelope plan, else lateral_grip_fraction * grip * g",
+    "commitment": "a new path for the previous choice's action keeps its points within a pursuit distance when still clear and continues from the node reached there",
+    "offline_cost_change": "reference_deviation_limit 10000 -> 40000 (saturates at 4 m); decision 0021's lattice counts are unchanged, its evidence costs used the old limit"
+  },
+  "tests": {
+    "fd_lattice_planning": [
+      "the pursuit target takes the path's offset at its station, including a 6 m/s ramp",
+      "a path crosses the seam",
+      "a clear reference line is followed with one prediction",
+      "a blocked reference is passed on the clear side; cost = edges + turns + goal, turns > 0",
+      "the cheaper side is passed when both are clear: bollard -0.5..1.5 m, right 1.19301e6 < left 2.30168e6",
+      "a blocked corridor brakes toward the widest gap: full width on the reference, a trailer to 2.0 m toward (2.9 + 4.1)/2 m left; reasons recordable",
+      "a new plan keeps the committed stretch: 2 points of the previous plan kept within 8.10 m",
+      "a car 2.5 m off the reference returns along the lattice to offset 0",
+      "a lattice for another track, and a null lattice with blockages, are refused",
+      "the car still avoids (passes at 3.00 m, within 0.267 m of the reference from 60 m past) and stops (61.77 m at 0.02 m/s)",
+      "the lattice uses less grip to pass: 0.577 against the five-offset planner's 0.780 on the same scenario"
+    ],
+    "planning_time_ms_per_blocked_decision": {
+      "note": "fd_lattice_planning alone on the reference host, kinematic car, right side blocked; measurement only, against a 20 ms control period",
+      "lattice": {"blocked_decisions": 238, "ms_each": 1.15},
+      "five_offsets": {"blocked_decisions": 299, "ms_each": 2.45},
+      "earlier_runs_of_the_same_test": {"lattice_ms": [1.29, 2.05], "five_offsets_ms": 2.48}
+    },
+    "fd_recording_playback": {
+      "lattice_scenario": {"decisions": 700, "passing": 147, "returning": 30, "braking": 384, "path_points": 1947},
+      "five_offset_scenario": "offsets only, no paths; its schema 9 downgrade loads; relabelled as lattice is refused",
+      "rejections": [
+        "unknown action", "offset under the lattice planner", "brake with a path", "hold without brake",
+        "a return relabelled as a pass without a blockage", "path cost without a path", "path not starting at the recorded state",
+        "a dropped path point", "stations not increasing", "an extra path point", "local planner in schema 9",
+        "paths.csv in schema 9", "missing paths.csv", "five offsets relabelled as lattice"
+      ]
+    },
+    "fd_recording_contract": [
+      "new runs are schema 10 and record the lattice planner",
+      "a clear run's decisions are straight with zero cost and paths.csv holds only its header",
+      "a lane blockage run records lattice paths and --check-recording reports passing decisions",
+      "--local-planner five-offsets records 'five offsets', no paths, and alternatives",
+      "an unknown planner and --local-planner with --write-lattice are refused before any output"
+    ]
+  },
+  "closed_loop_runs": {
+    "note": "fd_headless on Foundry Circuit, same start and configuration; the kinematic bicycle with grip fractions unless stated. Offsets are signed metres left of the reference while the rear axle is beside the blockage (first lap). One track and one geometry per scenario; not a general claim.",
+    "clear_lap": {
+      "directories": ["out/runs/planner-lattice-clear-lap", "out/runs/planner-five-offsets-clear-lap"],
+      "lap_s": 33.52, "max_cross_track_error_m": 0.267, "max_grip": 0.686,
+      "telemetry_sha256_equal": true,
+      "decisions_equal_but_action_name": true
+    },
+    "lane_blocked_62_68_m_from_-4.5_to_1.0_m": {
+      "lattice": {"directory": "out/runs/planner-lattice-avoid", "lap_s": 33.56, "offset_beside_m": [2.90, 3.00], "max_grip": 0.684, "max_grip_at_s_m": 496.6, "largest_offset_60_to_200_m_past_m": 0.267, "chosen": {"straight": 1440, "pass left": 147, "returning": 91}, "run_directory_mb": 23},
+      "five_offsets": {"directory": "out/runs/planner-five-offsets-avoid", "lap_s": 33.24, "offset_beside_m": [3.07, 3.08], "max_grip": 0.995, "max_grip_at_s_m": 161.2, "offset_at_141.8_m": 3.32, "largest_offset_60_to_200_m_past_m": 3.32, "run_directory_mb": 38}
+    },
+    "full_width_blocked_62_68_m": {
+      "lattice": {"directory": "out/runs/planner-lattice-stop", "final_station_m": 61.78, "final_speed_mps": 5.6e-9, "max_grip": 0.55, "chosen": {"straight": 99, "brake": 901}},
+      "five_offsets": {"directory": "out/runs/planner-five-offsets-stop", "final_station_m": 61.78, "final_speed_mps": 5.6e-9, "max_grip": 0.55},
+      "telemetry_sha256_equal": true
+    },
+    "bollard_62_68_m_from_-0.5_to_1.5_m": {
+      "lattice": {"directory": "out/runs/planner-lattice-bollard", "offset_beside_m": [-2.52, -2.40], "max_grip": 0.686, "max_grip_at_s_m": 213.4, "chosen": {"straight": 776, "pass right": 145, "returning": 79}},
+      "five_offsets": {"directory": "out/runs/planner-five-offsets-bollard", "offset_beside_m": [-1.64, -1.64], "max_grip": 0.953, "max_grip_at_s_m": 92.5}
+    },
+    "four_wheel_car_envelope_plan_lane_blocked": {
+      "clear_baseline": {"directory": "out/runs/planner-lattice-four-wheel-envelope-clear", "max_grip": 0.977, "max_grip_at_s_m": 137.8, "max_grip_20_to_130_m": 0.747},
+      "lattice": {"directory": "out/runs/planner-lattice-four-wheel-envelope-avoid", "offset_beside_m": [2.53, 2.78], "max_grip": 0.973, "max_grip_at_s_m": 137.6, "max_grip_20_to_130_m": 0.777, "largest_offset_60_to_200_m_past_m": 0.477, "invalid_samples": 0},
+      "five_offsets": {"directory": "out/runs/planner-five-offsets-four-wheel-envelope-avoid", "offset_beside_m": [3.12, 3.24], "max_grip": 1.000, "max_grip_at_s_m": 19.6, "max_grip_20_to_130_m": 0.987, "offset_at_140_m": 3.19, "decisions_with_alternatives": 925, "reference_rejected_for_tire_slip": 790, "invalid_samples": 0}
+    },
+    "dynamic_soft_front_map_lane_blocked": {
+      "clear_baseline": {"directory": "out/runs/planner-lattice-dynamic-map-clear", "max_grip": 0.747, "max_grip_at_s_m": 138.1, "max_grip_20_to_130_m": 0.560},
+      "lattice": {"directory": "out/runs/planner-lattice-dynamic-map-avoid", "offset_beside_m": [2.61, 2.85], "max_grip": 0.746, "max_grip_at_s_m": 138.1, "max_grip_20_to_130_m": 0.648},
+      "five_offsets": {"directory": "out/runs/planner-five-offsets-dynamic-map-avoid", "offset_beside_m": [2.17, 2.91], "max_grip": 0.946, "max_grip_at_s_m": 81.2}
+    },
+    "all_validate": "each of the 14 runs passes --check-recording"
+  },
+  "recordings": {"schema": 10, "all_out_runs_validate": {"directories": 149, "passed": 149, "note": "135 earlier recordings of schemas 1 to 9 and the 14 runs above, each with --check-recording"}, "paths_csv_bytes_lane_blocked_lap": 44402},
+  "qml_controls": {"checks": 427, "previous_checks": 404, "passed": true, "qml_warnings": [], "capture": "docs/assets/lattice-planner.png (compact-avoidance, 3.6 s, inspected)", "new_checks": ["lattice planner is the default; PASS LEFT title with crossing and rejected count; cost terms shown", "action legend shown; decision panel ends above the run metrics for the pass, the brake and the five-offset hold", "planner row beside the scenario controls, above the bottom bar; line row hidden while a blockage is stated", "five-offset planner starts a fresh run with the same scenario and holds with BLOCKED and no cost; lattice restored", "BRAKE title without cost for a full-width blockage", "replay: recorded pass left with cost, planner refused and named in the caption, legend beside the scrubber (shown to fail when overflowing)"]}
+}

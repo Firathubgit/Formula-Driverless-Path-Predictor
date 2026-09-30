@@ -1,0 +1,102 @@
+{
+  "verified_on": "2026-09-23",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0029-the-car-reads-itself-through-instruments.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 7.1 (sensor adapters: rate, dead-time queue and Gaussian noise for pose, speed, wheel speeds, IMU and steering, in adapters/sensors, seeds recorded)"
+  ],
+  "source_fingerprint": "40bab28c858e354f3b9aed81af362549d203f3facb54ca8fac24673d70039a69",
+  "headless_ctest": "`scripts/build.ps1`: 21 of 21 CTest suites pass in 400.3 s; no compiler warning.",
+  "desktop_ctest": "`scripts/build.ps1 -Desktop`: 23 of 23 in 576.0 s, the QML controls suite running 539 checks in 127.9 s with no QML warning; no compiler warning.",
+  "qml_controls": "539 checks passed, 0 QML warnings",
+  "recordings": "With this build 305 of the 307 recordings in `out/runs` pass `--check-recording` (schemas 1 to 14). The two refused are the same as before: `mpcc-dynamic-laps-mpcc`, cut off while it was written, and `p62x-dynamic-1789837332`, written before the dynamic car's schema 13 metadata was settled.",
+  "method": {
+    "source": "PacSim (MIT), already on this machine, read for structure only: include/sensorModels/sensorBase.hpp, include/VehicleModel/deadTime.hpp, config/sensors.yaml. Nothing copied, nothing downloaded.",
+    "channels": {
+      "pose": {
+        "rate_hz": 20,
+        "dead_time_s": 0.05,
+        "noise_m": 0.03,
+        "yaw_noise_rad": 0.02
+      },
+      "speed": {
+        "rate_hz": 20,
+        "dead_time_s": 0.05,
+        "noise_mps": 0.02
+      },
+      "wheel_speeds": {
+        "rate_hz": 200,
+        "dead_time_s": 0.005,
+        "noise_radps": 0.1
+      },
+      "imu": {
+        "rate_hz": 200,
+        "dead_time_s": 0.005,
+        "noise_mps2": 0.05,
+        "yaw_rate_noise_radps": 0.001
+      },
+      "steering": {
+        "rate_hz": 200,
+        "dead_time_s": 0.005,
+        "noise_rad": 1e-05
+      }
+    },
+    "sampling": "a channel samples when time >= its last sample + 1/rate, keeping its own cadence; its clock starts at the first observation",
+    "delivery": "each sample is queued and delivered once its dead time has passed; the newest arrived sample is what is read",
+    "error": "Gaussian, one draw per value, from a per-channel std::mt19937_64 stream derived from the seed and the channel",
+    "loop": "observed at every fixed tick with the plant's true state; nothing reads the measurements, the car drives on its true state",
+    "recording": "schema 14: metadata.sensors (channels, seed, fingerprint), measurements.csv one row per tick, telemetry.csv longitudinal_acceleration_mps2; the loader runs the instruments again from the seed over the recorded states and requires the same stream"
+  },
+  "measured": {
+    "noise_statistics_39997_samples": {
+      "position_error_mean_m": 4.3e-05,
+      "position_error_sigma_m": 0.0299,
+      "yaw_error_sigma_rad": 0.0199,
+      "speed_error_sigma_mps": 0.0199
+    },
+    "simulation_ten_seconds_dynamic_car": {
+      "speed_mps": 10.6,
+      "pose_age_worst_ms": 95,
+      "pose_age_mean_ms": 72.5,
+      "position_error_worst_m": 1.96,
+      "speed_error_worst_mps": 0.56,
+      "plant_identical_with_and_without_instruments": true
+    },
+    "recording_fixture_seed_2026": {
+      "ticks": 1601,
+      "pose_delivered_on": 1581,
+      "pose_age_worst_ms": 95,
+      "position_error_worst_m": 1.96,
+      "wheel_speed_error_worst_radps": 0.37
+    },
+    "lap_dynamic_car_seed_7": {
+      "run": "out/runs/p71-measured-lap",
+      "ticks": 6760,
+      "pose_delivered_on": 6740,
+      "pose_age_worst_ms": 95.0,
+      "pose_age_mean_ms": 72.5,
+      "position_error_worst_m": 1.974,
+      "speed_error_worst_mps": 0.609,
+      "yaw_rate_error_worst_radps": 0.007,
+      "same_lap_without_instruments": "out/runs/p71-true-lap: telemetry.csv and decisions.csv byte-identical, 33.795 s either way"
+    },
+    "refusals": [
+      "measurements.csv x_m nudged by 1 mm: is not what these instruments measure from the recorded seed and states",
+      "seed changed 2026 -> 2027: metadata.sensors.fingerprint does not identify the instruments recorded beside it",
+      "pose_sampled_at_s later than its tick: is later than the tick that read it",
+      "one row missing: one measurement per recorded tick",
+      "achieved acceleration +1: is not the speed this sample gained over the tick before it"
+    ],
+    "capture": {
+      "file": "docs/assets/sensors.png",
+      "run": "the four-wheel car, 4 s in, instruments fitted",
+      "pose_age_ms": 50,
+      "position_error_m": 0.96,
+      "speed_kmh": 68
+    }
+  },
+  "mutation_checks": "Five mutations were run and reverted. Delivering a sample before its dead time had passed failed a_sample_arrives_a_dead_time_later and instruments_read_a_run_without_changing_it; sampling at every observation instead of at the channel's rate failed a_channel_samples_at_its_own_rate; writing the true pose into measurements.csv failed measured_run_round_trips; dropping the loader's comparison of the recorded pose with the pose measured again failed rejects_measurement_violations. Giving the speed channel the pose channel's stream first passed every group, because the independence check watched only the steering; a check that no two channels' first errors are alike was added and fails that mutation.",
+  "desktop": "A SENSORS card beneath the tire card: True state or Measured while paused, and WHAT THE CAR MEASURES when fitted. It first sat in the left column, where the compact window check that a passing decision ends above the run metrics failed."
+}

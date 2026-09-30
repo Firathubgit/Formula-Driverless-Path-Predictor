@@ -1,0 +1,17 @@
+/build/
+/out/
+/tmp/
+/.tools/
+/.venv/
+/.uv-cache/
+/.aqt-cache/
+/recordings/
+/artifacts/runs/
+/artifacts/showroom/
+/artifacts/live-cars/
+/artifacts/audio/
+/renders/
+__pycache__/
+*.user
+CMakeUserPresets.json
+/aqtinstall.log

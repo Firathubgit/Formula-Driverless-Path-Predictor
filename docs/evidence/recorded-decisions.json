@@ -1,0 +1,144 @@
+{
+  "verified_on": "2026-09-15",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "plan_phase": "TrackWayFastPlan 0.3 recording schema 2",
+  "decision": "docs/decisions/0007-recorded-decisions.md",
+  "scope": "Record every control decision that governed recorded motion, with each evaluated line's reason and predicted points, and replay it as recorded. No plant, planner or controller behaviour changed.",
+  "source_fingerprint": "b208d5103158bf57d868cdcfa183d3139dbaf279b7413d31a287bcc7a8d4628c",
+  "headless_ctest": {
+    "passed": 6,
+    "total": 6,
+    "seconds": 30.78,
+    "fd_recording_playback_seconds": 15.51
+  },
+  "desktop_ctest": {
+    "passed": 7,
+    "total": 7,
+    "seconds": 37.19,
+    "fd_recording_playback_seconds": 12.52,
+    "qml_checks": 193,
+    "previous_qml_checks": 174,
+    "qml_warnings": []
+  },
+  "new_files": {
+    "decisions.csv": "one row per evaluated option per decision",
+    "trajectories.csv": "decision,option,point,time_s,x_m,y_m,speed_mps,acceleration_mps2"
+  },
+  "recording_tests": {
+    "groups": [
+      "round_trip",
+      "decision_in_force_follows_the_tick_rule",
+      "scenario_decisions_round_trip",
+      "schema_1_recordings_still_load",
+      "backward_seek_restores_revisions",
+      "advance_walks_recorded_samples",
+      "rejects_contract_violations",
+      "writer_guards"
+    ],
+    "oracle": "every recorded decision compared field by field and point by point with the live Simulation::decision() captured during recording",
+    "one_lap_fixture": {
+      "samples": 7689,
+      "decisions": 1923,
+      "trajectory_points": 290374,
+      "trajectories_csv_mb": 20.23,
+      "load_seconds": 0.63
+    },
+    "scenario_fixture": {
+      "duration_s": 14,
+      "decisions": 700,
+      "avoiding": 167,
+      "holding": 381
+    },
+    "new_tamper_cases": [
+      "decision-off-schedule",
+      "decision-dropped",
+      "decision-command",
+      "trajectory-start",
+      "trajectory-horizon",
+      "two-selected",
+      "unknown-blocker",
+      "orphan-option"
+    ],
+    "compatibility_cases": [
+      "schema 1 copy loads without decisions",
+      "schema 1 metadata beside decision files refused",
+      "schema 3 refused",
+      "schema 2 without decisions.csv refused"
+    ],
+    "writer_guards_added": [
+      "scenario changed after recording started",
+      "skipped decision"
+    ]
+  },
+  "recording_contract_script": "off-grid event at 0.006 s yields exactly three decisions (0, 0.01 replan, 0.02) and --check-recording reports 'Decisions: 3 recorded'",
+  "preserved_recordings": {
+    "checked": 18,
+    "rejected": 0,
+    "schema": 1,
+    "report": "Decisions: not recorded (schema 1)"
+  },
+  "byte_identical_reruns": {
+    "compared_files": [
+      "telemetry.csv",
+      "events.csv",
+      "track.csv",
+      "plan.csv",
+      "plan-rev-*.csv",
+      "summary.json"
+    ],
+    "differences_only_in": "metadata.json schema_version, run_identifier and source_fingerprint",
+    "runs": {
+      "out/runs/schema2-scenario-baseline": {
+        "original": "out/runs/scenario-baseline",
+        "decisions": 1676,
+        "with_alternatives": 0,
+        "holding": 0,
+        "points": 253076,
+        "directory_mb": 19.0
+      },
+      "out/runs/schema2-scenario-avoid": {
+        "original": "out/runs/scenario-avoid",
+        "decisions": 1662,
+        "with_alternatives": 408,
+        "holding": 0,
+        "points": 497394,
+        "directory_mb": 36.7
+      },
+      "out/runs/schema2-scenario-stop": {
+        "original": "out/runs/scenario-stop",
+        "decisions": 1500,
+        "with_alternatives": 1401,
+        "holding": 1401,
+        "points": 1284255,
+        "directory_mb": 84.2,
+        "exit_code": 2,
+        "exit_note": "no lap completed, as the original"
+      },
+      "out/runs/schema2-verified-transient": {
+        "original": "out/runs/verified-transient",
+        "decisions": 2229,
+        "with_alternatives": 0,
+        "holding": 0,
+        "points": 336579,
+        "directory_mb": 25.8
+      }
+    }
+  },
+  "inspected_capture": {
+    "file": "docs/assets/replay-decision.png",
+    "command": "scripts/run.ps1 --replay out/runs/schema2-scenario-avoid --at-time 3 --capture out/preview/replay-recorded-decision.png",
+    "shows": [
+      "AVOIDING",
+      "Steering left around cone-cluster",
+      "4 of 5 lines rejected, chose 3.1 m left",
+      "four rejected lines",
+      "recorded prediction ribbon",
+      "Recorded decision, as the car made it",
+      "RECORDED PREDICTION speed plot"
+    ]
+  },
+  "not_done": {
+    "reserved_plant_columns": "not reserved; the kinematic plant would write invented zeros. The dynamic plant adds them with schema 3.",
+    "size_reduction": "none; deduplication or fewer points only once size is a measured problem"
+  }
+}

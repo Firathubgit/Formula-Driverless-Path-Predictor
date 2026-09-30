@@ -1,0 +1,1412 @@
+{
+  "verified_on": "2026-09-17",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0020-minimum-curvature-racing-line.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 3.4",
+    "TrackWayFastPlan Phase 3 visible: centreline and racing line drawn together, estimated lap times"
+  ],
+  "source_fingerprint": "f8522944ead75781f1cdf3213d4139d85304155b3fa9ec2265593a3cd5610084",
+  "headless_ctest": {
+    "passed": 16,
+    "total": 16,
+    "test_seconds": 216.38
+  },
+  "desktop_ctest": {
+    "passed": 17,
+    "total": 17,
+    "test_seconds": 272.39,
+    "qml_checks": 398,
+    "qml_warnings": [],
+    "fd_desktop_controls_seconds": 52.31,
+    "fd_desktop_controls_timeout_s": 120,
+    "final_run_after_timeout_change": {
+      "passed": 17,
+      "total": 17,
+      "test_seconds": 278.22,
+      "qml_checks": 398,
+      "qml_warnings": [],
+      "fd_desktop_controls_seconds": 56.6,
+      "fd_recording_playback_seconds": 42.12
+    }
+  },
+  "suites": {
+    "fd_raceline_groups": 7,
+    "fd_envelope_speed_plan_groups": 11,
+    "fd_track_conditioning_groups": 12,
+    "fd_planner_groups": 10,
+    "fd_recording_checks": 13,
+    "fd_core_checks": 10
+  },
+  "solver": {
+    "name": "OSQP",
+    "version": "v1.0.0",
+    "linear_system": "qdldl v0.1.8 (vendored through FETCHCONTENT_SOURCE_DIR_QDLDL, no clone at configure time)",
+    "licence": "Apache-2.0 (OSQP and qdldl)",
+    "sources": {
+      "osqp": {
+        "url": "https://github.com/osqp/osqp/releases/download/v1.0.0/osqp-v1.0.0-src.tar.gz",
+        "sha256": "ec0bb8fd34625d0ea44274ab3e991aa56e3e360ba30935ae62476557b101c646"
+      },
+      "qdldl": {
+        "url": "https://github.com/osqp/qdldl/archive/refs/tags/v0.1.8.tar.gz",
+        "sha256": "ecf113fd6ad8714f16289eb4d5f4d8b27842b6775b978c39def5913f983f6daa"
+      }
+    },
+    "fetched_by": "scripts/bootstrap-osqp.ps1 into .tools/osqp (ignored by Git); download authorised by the user on 2026-09-17",
+    "build": "osqpstatic, C, MSVC; shared library, demo, unit tests, printing, profiling and interrupt off; fd_raceline links it privately",
+    "settings": {
+      "eps_abs": 1e-07,
+      "eps_rel": 1e-07,
+      "polishing": true,
+      "max_iter": 100000
+    }
+  },
+  "method": {
+    "variables": "alpha_i, the shift of sample i along the conditioned centreline's left normal (left positive, the project's convention; TUM's normals point right)",
+    "curvature": "kappa_i + (alpha_{i-1} - 2 alpha_i + alpha_{i+1}) / ds^2 + kappa_i^2 alpha_i, linearised about the current reference",
+    "objective": "sum of squared linearised curvature plus 1e-12 / ds^4 times the squared shifts, a regularisation that only makes the minimum unique where curvature is indifferent",
+    "bounds": "each shift within the corridor's edge at that sample less vehicle_half_width_m 0.9 and margin_m 0.6",
+    "steering": "each linearised curvature within 0.98 tan(max_steering_rad) / wheelbase_m; an infeasible problem is refused naming the limit",
+    "iteration": "the shifted points are conditioned again at the same spacing (smoothing 0.001 m rms, corridor checks off) and the problem re-linearised until the largest shift is below 0.02 m, at most 30 times",
+    "output": "a Track accepted by validate_track, with curvature and per-sample left_edge_m and right_edge_m: the corridor's edges at the sample's projection onto the centreline, less its signed offset",
+    "estimate": "fd::estimated_lap_time: each span at constant acceleration between planned speeds, the closing span included"
+  },
+  "tests": {
+    "circle_40_m_12_m_wide": {
+      "iterations": 2,
+      "radius_error_m": 0.00721028,
+      "curvature_error_1pm": 1.00553e-05
+    },
+    "foundry_line": {
+      "iterations": 6,
+      "last_shift_m": 0.0187947,
+      "solve_seconds_measurement_only": 1.18731,
+      "widest_offset_m": 3.50367,
+      "usable_m": 3.5,
+      "closest_edge_m": 1.49633,
+      "peak_curvature_1pm": 0.0294671,
+      "centreline_peak_curvature_1pm": 0.0601251,
+      "steering_limit_1pm": 0.23581,
+      "squared_curvature_1pm": 0.118308,
+      "centreline_squared_curvature_1pm": 0.218923
+    },
+    "estimated_lap_s": {
+      "envelope_plan": {
+        "smoothed_centreline": 29.3958,
+        "racing_line": 26.2042
+      },
+      "grip_fractions": {
+        "smoothed_centreline": 29.9569,
+        "racing_line": 26.8865
+      }
+    },
+    "stadium_straights": {
+      "iterations": 4,
+      "samples": 167,
+      "max_curvature_1pm": 6.12582e-07,
+      "max_distance_from_straight_m": 0.000100783
+    },
+    "steering_refusal": "No line within the corridor meets the steering limit of 0.0250837 1/m (radius 39.87 m)",
+    "closed_loop_second_lap_s": {
+      "centreline": 29.78,
+      "racing_line": 26.595,
+      "max_tracking_error_m": 0.451718,
+      "outside_corridor": 0,
+      "past_peak_first_50_m": 0,
+      "past_peak_after": 0
+    }
+  },
+  "controller_bound_amendment": {
+    "change": "with an envelope, driving is bounded by forward_limit(v, v^2 kappa_ref) at the nearest reference sample instead of forward_limit(v, 0); braking keeps braking_limit(v, 0)",
+    "found_by": "the racing line starts from rest on a bend: the straight-line bound spun the unloaded inside wheel for 226 samples in the first 50 m",
+    "unit_test": "at 12 m/s in the preset's 18 m corner, 8 m/s^2 lateral: driving bounded at 4.28175 m/s^2 against 7.72283 straight ahead",
+    "runs": [
+      {
+        "run": "raceline-envelope",
+        "before_bound_change": "line-envelope",
+        "lap_times_s": {
+          "before": [
+            28.015,
+            26.59
+          ],
+          "after": [
+            28.045,
+            26.595
+          ]
+        },
+        "invalid_samples": {
+          "before": 226,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 226,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": false
+      },
+      {
+        "run": "raceline-fractions",
+        "before_bound_change": "line-fractions",
+        "lap_times_s": {
+          "before": [
+            29.565,
+            30.015
+          ],
+          "after": [
+            29.565,
+            30.015
+          ]
+        },
+        "invalid_samples": {
+          "before": 3140,
+          "after": 3140
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {
+            "Tire slip past its peak; the car is sliding": 1544,
+            "Rear axle exceeds track margin": 1596
+          },
+          "after": {
+            "Tire slip past its peak; the car is sliding": 1544,
+            "Rear axle exceeds track margin": 1596
+          }
+        },
+        "telemetry_identical": true
+      },
+      {
+        "run": "raceline-kinematic",
+        "before_bound_change": "line-kinematic",
+        "lap_times_s": {
+          "before": [
+            28.795,
+            26.88
+          ],
+          "after": [
+            28.795,
+            26.88
+          ]
+        },
+        "invalid_samples": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": true
+      },
+      {
+        "run": "raceline-envelope-margin-0.3",
+        "before_bound_change": "line-envelope-margin-0.3",
+        "lap_times_s": {
+          "before": [
+            28.045,
+            26.61
+          ],
+          "after": [
+            28.07,
+            26.615
+          ]
+        },
+        "invalid_samples": {
+          "before": 473,
+          "after": 250
+        },
+        "invalid_in_first_50_m": {
+          "before": 224,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {
+            "Rear axle exceeds track margin": 249
+          },
+          "after": {
+            "Rear axle exceeds track margin": 250
+          }
+        },
+        "telemetry_identical": false
+      },
+      {
+        "run": "raceline-envelope-traced",
+        "before_bound_change": "line-envelope-traced",
+        "lap_times_s": {
+          "before": [
+            28.015,
+            26.59
+          ],
+          "after": [
+            28.04,
+            26.59
+          ]
+        },
+        "invalid_samples": {
+          "before": 229,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 229,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": false
+      },
+      {
+        "run": "raceline-envelope-cg-0.6",
+        "before_bound_change": "line-envelope-cg-0.6",
+        "lap_times_s": {
+          "before": [
+            28.56,
+            26.915
+          ],
+          "after": [
+            28.585,
+            26.92
+          ]
+        },
+        "invalid_samples": {
+          "before": 429,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 429,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": false
+      },
+      {
+        "run": "raceline-envelope-grip-0.7",
+        "before_bound_change": "line-envelope-grip-0.7",
+        "lap_times_s": {
+          "before": [
+            30.595,
+            28.755
+          ],
+          "after": [
+            30.63,
+            28.75
+          ]
+        },
+        "invalid_samples": {
+          "before": 775,
+          "after": 361
+        },
+        "invalid_in_first_50_m": {
+          "before": 366,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {
+            "Tire slip past its peak; the car is sliding": 409
+          },
+          "after": {
+            "Tire slip past its peak; the car is sliding": 361
+          }
+        },
+        "telemetry_identical": false
+      },
+      {
+        "run": "centreline-envelope",
+        "before_bound_change": "cond-envelope",
+        "lap_times_s": {
+          "before": [
+            31.105,
+            29.795
+          ],
+          "after": [
+            31.12,
+            29.79
+          ]
+        },
+        "invalid_samples": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": false
+      },
+      {
+        "run": "centreline-fractions",
+        "before_bound_change": "cond-fractions",
+        "lap_times_s": {
+          "before": [
+            32.31,
+            30.445
+          ],
+          "after": [
+            32.31,
+            30.445
+          ]
+        },
+        "invalid_samples": {
+          "before": 562,
+          "after": 562
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {
+            "Tire slip past its peak; the car is sliding": 562
+          },
+          "after": {
+            "Tire slip past its peak; the car is sliding": 562
+          }
+        },
+        "telemetry_identical": true
+      },
+      {
+        "run": "centreline-kinematic",
+        "before_bound_change": "cond-kinematic",
+        "lap_times_s": {
+          "before": [
+            31.74,
+            29.9
+          ],
+          "after": [
+            31.74,
+            29.9
+          ]
+        },
+        "invalid_samples": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": true
+      },
+      {
+        "run": "centreline-envelope-traced",
+        "before_bound_change": "traced-envelope",
+        "lap_times_s": {
+          "before": [
+            31.245,
+            29.94
+          ],
+          "after": [
+            31.265,
+            29.95
+          ]
+        },
+        "invalid_samples": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": false
+      },
+      {
+        "run": "centreline-envelope-cg-0.6",
+        "before_bound_change": "cond-envelope-cg-0.6",
+        "lap_times_s": {
+          "before": [
+            32.185,
+            30.755
+          ],
+          "after": [
+            32.205,
+            30.745
+          ]
+        },
+        "invalid_samples": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": false
+      },
+      {
+        "run": "centreline-envelope-grip-0.7",
+        "before_bound_change": "cond-envelope-grip-0.7",
+        "lap_times_s": {
+          "before": [
+            34.825,
+            33.24
+          ],
+          "after": [
+            34.845,
+            33.25
+          ]
+        },
+        "invalid_samples": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": false
+      },
+      {
+        "run": "centreline-envelope-whole",
+        "before_bound_change": "cond-envelope-whole",
+        "lap_times_s": {
+          "before": [
+            30.32,
+            28.94
+          ],
+          "after": [
+            30.38,
+            29.0
+          ]
+        },
+        "invalid_samples": {
+          "before": 4747,
+          "after": 4586
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {
+            "Tire slip past its peak; the car is sliding": 4747
+          },
+          "after": {
+            "Tire slip past its peak; the car is sliding": 4586
+          }
+        },
+        "telemetry_identical": false
+      },
+      {
+        "run": "preset-envelope",
+        "before_bound_change": "plan-envelope",
+        "lap_times_s": {
+          "before": [
+            31.95,
+            30.695
+          ],
+          "after": [
+            31.95,
+            30.695
+          ]
+        },
+        "invalid_samples": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": true
+      },
+      {
+        "run": "preset-envelope-whole",
+        "before_bound_change": "plan-envelope-whole",
+        "lap_times_s": {
+          "before": [
+            30.33,
+            29.025
+          ],
+          "after": [
+            30.33,
+            29.02
+          ]
+        },
+        "invalid_samples": {
+          "before": 1091,
+          "after": 1091
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {
+            "Tire slip past its peak; the car is sliding": 1091
+          },
+          "after": {
+            "Tire slip past its peak; the car is sliding": 1091
+          }
+        },
+        "telemetry_identical": false
+      },
+      {
+        "run": "preset-envelope-bias-0.62",
+        "before_bound_change": "plan-envelope-bias-0.62",
+        "lap_times_s": {
+          "before": [
+            31.83,
+            30.605
+          ],
+          "after": [
+            31.83,
+            30.605
+          ]
+        },
+        "invalid_samples": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": true
+      },
+      {
+        "run": "preset-envelope-cg-0.6",
+        "before_bound_change": "plan-envelope-cg-0.6",
+        "lap_times_s": {
+          "before": [
+            32.655,
+            31.26
+          ],
+          "after": [
+            32.655,
+            31.26
+          ]
+        },
+        "invalid_samples": {
+          "before": 97,
+          "after": 97
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {
+            "Tire slip past its peak; the car is sliding": 97
+          },
+          "after": {
+            "Tire slip past its peak; the car is sliding": 97
+          }
+        },
+        "telemetry_identical": true
+      },
+      {
+        "run": "preset-envelope-mass-1200",
+        "before_bound_change": "plan-envelope-mass-1200",
+        "lap_times_s": {
+          "before": [
+            32.55,
+            31.295
+          ],
+          "after": [
+            32.55,
+            31.295
+          ]
+        },
+        "invalid_samples": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": true
+      },
+      {
+        "run": "preset-envelope-downforce-3",
+        "before_bound_change": "plan-envelope-downforce-3",
+        "lap_times_s": {
+          "before": [
+            31.49,
+            30.245
+          ],
+          "after": [
+            31.49,
+            30.245
+          ]
+        },
+        "invalid_samples": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": true
+      },
+      {
+        "run": "preset-envelope-grip-0.7",
+        "before_bound_change": "plan-envelope-grip-0.7",
+        "lap_times_s": {
+          "before": [
+            36.175,
+            34.71
+          ],
+          "after": [
+            36.175,
+            34.71
+          ]
+        },
+        "invalid_samples": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {},
+          "after": {}
+        },
+        "telemetry_identical": true
+      },
+      {
+        "run": "preset-envelope-grip-drop",
+        "before_bound_change": "plan-envelope-grip-drop",
+        "lap_times_s": {
+          "before": [
+            33.94,
+            34.705
+          ],
+          "after": [
+            33.94,
+            34.705
+          ]
+        },
+        "invalid_samples": {
+          "before": 34,
+          "after": 34
+        },
+        "invalid_in_first_50_m": {
+          "before": 0,
+          "after": 0
+        },
+        "invalid_after_by_reason": {
+          "before": {
+            "Current speed exceeds revised plan; braking transient": 34
+          },
+          "after": {
+            "Current speed exceeds revised plan; braking transient": 34
+          }
+        },
+        "telemetry_identical": true
+      }
+    ]
+  },
+  "headless_runs": [
+    {
+      "run": "raceline-envelope",
+      "track": "foundry-centreline racing line",
+      "track_length_m": 503.388,
+      "samples": 839,
+      "largest_curvature_1pm": 0.0295,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        28.045,
+        26.595
+      ],
+      "plan_lap_estimate_s": 26.204,
+      "max_tracking_error_m": 0.452,
+      "max_grip_use": 0.995,
+      "max_rear_sideslip_rad": 0.094,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 10929,
+      "check_planner_reproduction_mps": 1.88e-10,
+      "check_plant_reproduction_m": 9.91e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --track out/tracks/foundry-centreline.csv --line racing --out out/runs/raceline-envelope"
+    },
+    {
+      "run": "raceline-fractions",
+      "track": "foundry-centreline racing line",
+      "track_length_m": 503.388,
+      "samples": 839,
+      "largest_curvature_1pm": 0.0295,
+      "speed_plan": "grip fractions",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        29.565,
+        30.015
+      ],
+      "plan_lap_estimate_s": 26.887,
+      "max_tracking_error_m": 18.93,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 1.416,
+      "invalid_samples": 3140,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {
+        "Tire slip past its peak; the car is sliding": 1544,
+        "Rear axle exceeds track margin": 1596
+      },
+      "total_samples": 11917,
+      "check_planner_reproduction_mps": 6.802e-11,
+      "check_plant_reproduction_m": 9.977e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --track out/tracks/foundry-centreline.csv --line racing --out out/runs/raceline-fractions"
+    },
+    {
+      "run": "raceline-kinematic",
+      "track": "foundry-centreline racing line",
+      "track_length_m": 503.388,
+      "samples": 839,
+      "largest_curvature_1pm": 0.0295,
+      "speed_plan": "grip fractions",
+      "model": "kinematic_bicycle",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        28.795,
+        26.88
+      ],
+      "plan_lap_estimate_s": 26.887,
+      "max_tracking_error_m": 0.082,
+      "max_grip_use": 0.854,
+      "max_rear_sideslip_rad": 0,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 11136,
+      "check_planner_reproduction_mps": 6.802e-11,
+      "check_plant_reproduction_m": 9.997e-10,
+      "command": "fd_headless --laps 2 --duration 180 --track out/tracks/foundry-centreline.csv --line racing --out out/runs/raceline-kinematic"
+    },
+    {
+      "run": "raceline-envelope-margin-0.3",
+      "track": "foundry-centreline racing line",
+      "track_length_m": 504.76,
+      "samples": 842,
+      "largest_curvature_1pm": 0.0282,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        28.07,
+        26.615
+      ],
+      "plan_lap_estimate_s": 26.229,
+      "max_tracking_error_m": 0.442,
+      "max_grip_use": 0.987,
+      "max_rear_sideslip_rad": 0.086,
+      "invalid_samples": 250,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {
+        "Rear axle exceeds track margin": 250
+      },
+      "total_samples": 10938,
+      "check_planner_reproduction_mps": 1.05e-10,
+      "check_plant_reproduction_m": 9.93e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --track out/tracks/foundry-centreline.csv --line racing --line-margin 0.3 --out out/runs/raceline-envelope-margin-0.3"
+    },
+    {
+      "run": "raceline-envelope-traced",
+      "track": "foundry-traced racing line",
+      "track_length_m": 503.301,
+      "samples": 838,
+      "largest_curvature_1pm": 0.0297,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        28.04,
+        26.59
+      ],
+      "plan_lap_estimate_s": 26.201,
+      "max_tracking_error_m": 0.451,
+      "max_grip_use": 0.995,
+      "max_rear_sideslip_rad": 0.094,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 10927,
+      "check_planner_reproduction_mps": 1.2e-10,
+      "check_plant_reproduction_m": 9.93e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --track out/tracks/foundry-traced.csv --line racing --out out/runs/raceline-envelope-traced"
+    },
+    {
+      "run": "raceline-envelope-cg-0.6",
+      "track": "foundry-centreline racing line",
+      "track_length_m": 503.388,
+      "samples": 839,
+      "largest_curvature_1pm": 0.0295,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        28.585,
+        26.92
+      ],
+      "plan_lap_estimate_s": 26.548,
+      "max_tracking_error_m": 0.409,
+      "max_grip_use": 0.99,
+      "max_rear_sideslip_rad": 0.075,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 11102,
+      "check_planner_reproduction_mps": 1.38e-10,
+      "check_plant_reproduction_m": 9.87e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --cg-height 0.6 --track out/tracks/foundry-centreline.csv --line racing --out out/runs/raceline-envelope-cg-0.6"
+    },
+    {
+      "run": "raceline-envelope-grip-0.7",
+      "track": "foundry-centreline racing line",
+      "track_length_m": 503.388,
+      "samples": 839,
+      "largest_curvature_1pm": 0.0295,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        30.63,
+        28.75
+      ],
+      "plan_lap_estimate_s": 28.327,
+      "max_tracking_error_m": 0.556,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.139,
+      "invalid_samples": 361,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {
+        "Tire slip past its peak; the car is sliding": 361
+      },
+      "total_samples": 11877,
+      "check_planner_reproduction_mps": 1.67e-10,
+      "check_plant_reproduction_m": 9.71e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --grip 0.7 --track out/tracks/foundry-centreline.csv --line racing --out out/runs/raceline-envelope-grip-0.7"
+    },
+    {
+      "run": "raceline-envelope-whole",
+      "track": "foundry-centreline racing line",
+      "track_length_m": 503.388,
+      "samples": 839,
+      "largest_curvature_1pm": 0.0295,
+      "speed_plan": "performance envelope at 1",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        27.395,
+        25.94
+      ],
+      "plan_lap_estimate_s": 25.416,
+      "max_tracking_error_m": 1.25,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.326,
+      "invalid_samples": 902,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {
+        "Tire slip past its peak; the car is sliding": 902
+      },
+      "total_samples": 10668,
+      "check_planner_reproduction_mps": 1.01e-10,
+      "check_plant_reproduction_m": 9.9e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --envelope-fraction 1 --track out/tracks/foundry-centreline.csv --line racing --out out/runs/raceline-envelope-whole"
+    },
+    {
+      "run": "centreline-envelope",
+      "track": "foundry-centreline",
+      "track_length_m": 506.865,
+      "samples": 845,
+      "largest_curvature_1pm": 0.0601,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        31.12,
+        29.79
+      ],
+      "plan_lap_estimate_s": 29.4,
+      "max_tracking_error_m": 0.354,
+      "max_grip_use": 0.947,
+      "max_rear_sideslip_rad": 0.063,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 12183,
+      "check_planner_reproduction_mps": 2.29e-10,
+      "check_plant_reproduction_m": 9.85e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --track out/tracks/foundry-centreline.csv --out out/runs/centreline-envelope"
+    },
+    {
+      "run": "centreline-fractions",
+      "track": "foundry-centreline",
+      "track_length_m": 506.865,
+      "samples": 845,
+      "largest_curvature_1pm": 0.0601,
+      "speed_plan": "grip fractions",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        32.31,
+        30.445
+      ],
+      "plan_lap_estimate_s": 29.963,
+      "max_tracking_error_m": 0.434,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.109,
+      "invalid_samples": 562,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {
+        "Tire slip past its peak; the car is sliding": 562
+      },
+      "total_samples": 12552,
+      "check_planner_reproduction_mps": 2.929e-10,
+      "check_plant_reproduction_m": 9.917e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --track out/tracks/foundry-centreline.csv --out out/runs/centreline-fractions"
+    },
+    {
+      "run": "centreline-kinematic",
+      "track": "foundry-centreline",
+      "track_length_m": 506.865,
+      "samples": 845,
+      "largest_curvature_1pm": 0.0601,
+      "speed_plan": "grip fractions",
+      "model": "kinematic_bicycle",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        31.74,
+        29.9
+      ],
+      "plan_lap_estimate_s": 29.963,
+      "max_tracking_error_m": 0.229,
+      "max_grip_use": 0.853,
+      "max_rear_sideslip_rad": 0,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 12329,
+      "check_planner_reproduction_mps": 2.929e-10,
+      "check_plant_reproduction_m": 9.961e-10,
+      "command": "fd_headless --laps 2 --duration 180 --track out/tracks/foundry-centreline.csv --out out/runs/centreline-kinematic"
+    },
+    {
+      "run": "centreline-envelope-traced",
+      "track": "foundry-traced",
+      "track_length_m": 507.07,
+      "samples": 845,
+      "largest_curvature_1pm": 0.0595,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        31.265,
+        29.95
+      ],
+      "plan_lap_estimate_s": 29.551,
+      "max_tracking_error_m": 0.397,
+      "max_grip_use": 0.949,
+      "max_rear_sideslip_rad": 0.065,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 12244,
+      "check_planner_reproduction_mps": 2.13e-10,
+      "check_plant_reproduction_m": 9.89e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --track out/tracks/foundry-traced.csv --out out/runs/centreline-envelope-traced"
+    },
+    {
+      "run": "centreline-envelope-cg-0.6",
+      "track": "foundry-centreline",
+      "track_length_m": 506.865,
+      "samples": 845,
+      "largest_curvature_1pm": 0.0601,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        32.205,
+        30.745
+      ],
+      "plan_lap_estimate_s": 30.388,
+      "max_tracking_error_m": 0.317,
+      "max_grip_use": 0.944,
+      "max_rear_sideslip_rad": 0.056,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 12591,
+      "check_planner_reproduction_mps": 1.97e-10,
+      "check_plant_reproduction_m": 9.82e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --cg-height 0.6 --track out/tracks/foundry-centreline.csv --out out/runs/centreline-envelope-cg-0.6"
+    },
+    {
+      "run": "centreline-envelope-grip-0.7",
+      "track": "foundry-centreline",
+      "track_length_m": 506.865,
+      "samples": 845,
+      "largest_curvature_1pm": 0.0601,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        34.845,
+        33.25
+      ],
+      "plan_lap_estimate_s": 32.811,
+      "max_tracking_error_m": 0.444,
+      "max_grip_use": 0.962,
+      "max_rear_sideslip_rad": 0.073,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 13620,
+      "check_planner_reproduction_mps": 2.2e-10,
+      "check_plant_reproduction_m": 9.89e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --grip 0.7 --track out/tracks/foundry-centreline.csv --out out/runs/centreline-envelope-grip-0.7"
+    },
+    {
+      "run": "centreline-envelope-whole",
+      "track": "foundry-centreline",
+      "track_length_m": 506.865,
+      "samples": 845,
+      "largest_curvature_1pm": 0.0601,
+      "speed_plan": "performance envelope at 1",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        30.38,
+        29.0
+      ],
+      "plan_lap_estimate_s": 27.619,
+      "max_tracking_error_m": 2.582,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.877,
+      "invalid_samples": 4586,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {
+        "Tire slip past its peak; the car is sliding": 4586
+      },
+      "total_samples": 11877,
+      "check_planner_reproduction_mps": 2.47e-10,
+      "check_plant_reproduction_m": 9.88e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --envelope-fraction 1 --track out/tracks/foundry-centreline.csv --out out/runs/centreline-envelope-whole"
+    },
+    {
+      "run": "preset-envelope",
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "samples": 851,
+      "largest_curvature_1pm": 0.0556,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        31.95,
+        30.695
+      ],
+      "plan_lap_estimate_s": 30.286,
+      "max_tracking_error_m": 0.514,
+      "max_grip_use": 0.977,
+      "max_rear_sideslip_rad": 0.057,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 12530,
+      "check_planner_reproduction_mps": 3.47e-10,
+      "check_plant_reproduction_m": 9.93e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --out out/runs/preset-envelope"
+    },
+    {
+      "run": "preset-envelope-whole",
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "samples": 851,
+      "largest_curvature_1pm": 0.0556,
+      "speed_plan": "performance envelope at 1",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        30.33,
+        29.02
+      ],
+      "plan_lap_estimate_s": 28.257,
+      "max_tracking_error_m": 1.305,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.097,
+      "invalid_samples": 1091,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {
+        "Tire slip past its peak; the car is sliding": 1091
+      },
+      "total_samples": 11871,
+      "check_planner_reproduction_mps": 3.42e-10,
+      "check_plant_reproduction_m": 9.88e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --envelope-fraction 1 --out out/runs/preset-envelope-whole"
+    },
+    {
+      "run": "preset-envelope-bias-0.62",
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "samples": 851,
+      "largest_curvature_1pm": 0.0556,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        31.83,
+        30.605
+      ],
+      "plan_lap_estimate_s": 30.176,
+      "max_tracking_error_m": 0.516,
+      "max_grip_use": 0.989,
+      "max_rear_sideslip_rad": 0.058,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 12488,
+      "check_planner_reproduction_mps": 3.75e-10,
+      "check_plant_reproduction_m": 9.94e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --brake-bias-front 0.62 --out out/runs/preset-envelope-bias-0.62"
+    },
+    {
+      "run": "preset-envelope-cg-0.6",
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "samples": 851,
+      "largest_curvature_1pm": 0.0556,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        32.655,
+        31.26
+      ],
+      "plan_lap_estimate_s": 30.861,
+      "max_tracking_error_m": 0.474,
+      "max_grip_use": 1.0,
+      "max_rear_sideslip_rad": 0.053,
+      "invalid_samples": 97,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {
+        "Tire slip past its peak; the car is sliding": 97
+      },
+      "total_samples": 12784,
+      "check_planner_reproduction_mps": 3.25e-10,
+      "check_plant_reproduction_m": 9.89e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --cg-height 0.6 --out out/runs/preset-envelope-cg-0.6"
+    },
+    {
+      "run": "preset-envelope-mass-1200",
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "samples": 851,
+      "largest_curvature_1pm": 0.0556,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        32.55,
+        31.295
+      ],
+      "plan_lap_estimate_s": 30.929,
+      "max_tracking_error_m": 0.515,
+      "max_grip_use": 0.967,
+      "max_rear_sideslip_rad": 0.058,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 12770,
+      "check_planner_reproduction_mps": 3.4e-10,
+      "check_plant_reproduction_m": 9.73e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --mass 1200 --out out/runs/preset-envelope-mass-1200"
+    },
+    {
+      "run": "preset-envelope-downforce-3",
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "samples": 851,
+      "largest_curvature_1pm": 0.0556,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        31.49,
+        30.245
+      ],
+      "plan_lap_estimate_s": 29.826,
+      "max_tracking_error_m": 0.528,
+      "max_grip_use": 0.972,
+      "max_rear_sideslip_rad": 0.058,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 12348,
+      "check_planner_reproduction_mps": 3.57e-10,
+      "check_plant_reproduction_m": 9.81e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --downforce-area 3 --out out/runs/preset-envelope-downforce-3"
+    },
+    {
+      "run": "preset-envelope-grip-0.7",
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "samples": 851,
+      "largest_curvature_1pm": 0.0556,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        36.175,
+        34.71
+      ],
+      "plan_lap_estimate_s": 34.267,
+      "max_tracking_error_m": 0.51,
+      "max_grip_use": 0.949,
+      "max_rear_sideslip_rad": 0.063,
+      "invalid_samples": 0,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {},
+      "total_samples": 14178,
+      "check_planner_reproduction_mps": 3.13e-10,
+      "check_plant_reproduction_m": 9.94e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --grip 0.7 --out out/runs/preset-envelope-grip-0.7"
+    },
+    {
+      "run": "preset-envelope-grip-drop",
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "samples": 851,
+      "largest_curvature_1pm": 0.0556,
+      "speed_plan": "performance envelope at 0.8",
+      "model": "four_wheel_car",
+      "source_fingerprint": "6bf390c302c746433b6eae7390b9a2eba9e1c6ea50200c1b4ac51adb07302833",
+      "lap_times_s": [
+        33.94,
+        34.705
+      ],
+      "plan_lap_estimate_s": 30.286,
+      "max_tracking_error_m": 0.525,
+      "max_grip_use": 0.993,
+      "max_rear_sideslip_rad": 0.065,
+      "invalid_samples": 34,
+      "invalid_in_first_50_m": 0,
+      "invalid_after_by_reason": {
+        "Current speed exceeds revised plan; braking transient": 34
+      },
+      "total_samples": 13730,
+      "check_planner_reproduction_mps": 3.47e-10,
+      "check_plant_reproduction_m": 9.93e-10,
+      "command": "fd_headless --laps 2 --duration 180 --plant four-wheel --speed-plan envelope --grip-event 20:0.7 --out out/runs/preset-envelope-grip-drop"
+    }
+  ],
+  "headless_run_checks": "every run above passes --check-recording with planner and plant reproduction; source fingerprint 6bf390c3... for the 23 runs, recorded before estimated_lap_time moved into fd_core and the desktop gained the line; the final build re-ran raceline-envelope as raceline-envelope-final",
+  "final_build_rerun": {
+    "run": "raceline-envelope-final",
+    "of": "raceline-envelope",
+    "files_byte_identical": {
+      "telemetry.csv": true,
+      "track.csv": true,
+      "plan-rev-1.csv": true,
+      "decisions.csv": true,
+      "trajectories.csv": true,
+      "events.csv": true
+    }
+  },
+  "recordings_load": {
+    "checked": 135,
+    "by_schema": {
+      "1": 18,
+      "2": 8,
+      "3": 7,
+      "4": 20,
+      "5": 4,
+      "6": 11,
+      "7": 17,
+      "8": 17,
+      "9": 33
+    }
+  },
+  "desktop": {
+    "controls": "LINE row: Centreline and Racing line, refused while running, in replay, before the solve and with stated blockages; hidden in replay and while blockages are stated",
+    "estimates": "Plan lap: racing line, the preset centreline the car drives otherwise, and the smoothed centreline the line was solved against, under the plan in force",
+    "drawing": "the road and kerbs between each track's own corridor edges; the line not driven as a ribbon (racing line #7fc4e8, centreline #9aa7ad) and on the circuit map; legend entry",
+    "captures": [
+      "build/desktop/ui-evidence/compact-racing-line.png",
+      "build/desktop/ui-evidence/compact-racing-line-overview.png",
+      "build/desktop/ui-evidence/compact-centreline-overview.png"
+    ],
+    "compact_layout_check": "the line summary ends above the run metrics at 1100 x 700"
+  },
+  "not_done": [
+    "No committed image asset of the racing line; the captures are build outputs.",
+    "Blockages on the racing line: stated regions are centreline coordinates, so both apps refuse the combination.",
+    "The grip fractions plan on the racing line spins the four-wheel car (3140 of 11917 samples invalid); only the envelope plan drives it cleanly.",
+    "At grip 0.7 the racing line still slides on corner entry (361 samples) where the conditioned centreline does not.",
+    "Replay shows a recorded racing line's corridor but not the centreline it was solved against; the recording does not carry it.",
+    "The line is minimum curvature, not minimum time; Phase 4 is the minimum-time reference.",
+    "fastest-lap and TUM cross-checks not run."
+  ],
+  "build_without_osqp": {
+    "binary_dir": "build/core-no-osqp",
+    "configure": "cmake -S . -B build/core-no-osqp -G \"Visual Studio 17 2022\" -A x64 -DBUILD_TESTING=ON -DFD_OSQP_SOURCE_DIR=C:/fd-no-osqp-here -DFD_QDLDL_SOURCE_DIR=C:/fd-no-osqp-here",
+    "configure_message": "OSQP sources not found in .tools/osqp: fd_raceline is skipped; run scripts/bootstrap-osqp.ps1 to build it",
+    "ctest": {
+      "passed": 15,
+      "total": 15,
+      "test_seconds": 189.17
+    },
+    "headless_line_racing": "fd_headless: This build has no racing line: run scripts/bootstrap-osqp.ps1, then build again; no run directory created",
+    "desktop": "not built without OSQP"
+  }
+}

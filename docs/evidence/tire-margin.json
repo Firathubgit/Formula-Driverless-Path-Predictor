@@ -1,0 +1,51 @@
+{
+  "verified_on": "2026-09-20",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0027-tire-margin-along-the-horizon.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 6.4 (visible: the ribbon, the solver's status and solve time, and the friction-ellipse margin per wheel along the horizon)"
+  ],
+  "source_fingerprint": "63e663bc93f8bc95fdbbbbbf243bf6158aede23992e725534f29c6bb3bd4291e",
+  "headless_ctest": "`scripts/build.ps1`: 20 of 20 CTest suites pass in 483.2 s.",
+  "desktop_ctest": "`scripts/build.ps1 -Desktop`: 21 of 21 in 669.6 s, the QML controls suite running 517 checks in 109.4 s with no QML warning; neither build reports a compiler warning.",
+  "qml_controls": "517 checks passed, 0 QML warnings",
+  "recordings": "With this build 303 of the 305 recordings in `out/runs` pass `--check-recording` (schemas 1 to 13). The two refused are the same as in the last two sessions: `mpcc-dynamic-laps-mpcc`, cut off while it was written, and the exploratory `p62x-dynamic-1789837332`, written before the dynamic car's schema 13 metadata was settled.",
+  "method": {
+    "measure": "plan_tire_use(): the plant driven along a plan by the plan's own commands (plant_response), and at each of the plan's points what demand() says each wheel uses of its own friction circle; the margin is one minus that use",
+    "cars": "the four-wheel car only; every other model has no four tires of its own and returns nothing",
+    "where": "the desktop's tire slip card, under the four wheel tiles: FRICTION LEFT AHEAD with the time it falls at, and a plot of each wheel's use across the three-second horizon",
+    "when": "only while a plan that states its commands drives, live or replayed; recomputed when a new decision's plan arrives, from the state it was made in, and at most a few times a second"
+  },
+  "measured": {
+    "braking_plan_at_2_s": {
+      "front_left": 0.378,
+      "front_right": 0.347,
+      "rear_left": 0.476,
+      "rear_right": 0.422,
+      "note": "half the brake torque at each axle while the load moves forward, so the rear tires use more of their circles"
+    },
+    "cornering_limit": {
+      "lowest": ">0.9",
+      "highest": "<1.02",
+      "spread": "<0.02"
+    },
+    "ramped_plan": {
+      "driving_at_1_s": {
+        "front_left": 0.311,
+        "rear_left": 0.267
+      },
+      "braking_at_2_75_s": {
+        "front_left": 0.488,
+        "rear_left": 0.677
+      }
+    },
+    "capture": {
+      "file": "docs/assets/tire-margin.png",
+      "run": "the four-wheel car under MPCC, 6 s in",
+      "friction_left": "7% at 3.0 s"
+    }
+  },
+  "mutation_checks": "Four mutations were run and reverted. Reading each tire at the state the plan was made in rather than along the plan, and reporting four wheels for a car that has none, each failed `each_tire_s_use_along_a_plan_is_the_plant_s_own`. Drawing the margin for a plan that states no commands failed the desktop's check that the policy has nothing to draw. The fourth, taking each point's command from the plan's first instead of the one the plant holds there, changed nothing: for the four-wheel car every wheel's use comes from the state it is in, and the acceleration `demand()` is asked for does not enter it. That lookup was removed rather than left as machinery no test could hold to account."
+}

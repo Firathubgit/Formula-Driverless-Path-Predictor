@@ -1,0 +1,10 @@
+# The minimum-curvature racing line (decision 0020). Outside fd_core because it needs OSQP.
+add_library(fd_raceline STATIC src/raceline.cpp)
+target_include_directories(fd_raceline PUBLIC include)
+target_link_libraries(fd_raceline PUBLIC fd_core PRIVATE osqpstatic)
+target_compile_features(fd_raceline PUBLIC cxx_std_20)
+if(MSVC)
+  target_compile_options(fd_raceline PRIVATE /W4 /permissive- /utf-8)
+else()
+  target_compile_options(fd_raceline PRIVATE -Wall -Wextra -Wpedantic)
+endif()

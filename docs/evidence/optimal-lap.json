@@ -1,0 +1,352 @@
+{
+  "verified_on": "2026-09-26",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "source_fingerprint": "acf7dab6372560aa09d627d0aa7aac92e7a97fc7520b01fac4d06f543ed28245",
+  "headless_ctest": "`scripts/build.ps1`: 28 of 28 CTest suites pass in 688.3 s; no compiler warning.",
+  "desktop_ctest": "`scripts/build.ps1 -Desktop`: 30 of 30 in 723.9 s, the QML controls suite running 615 checks in 115.8 s with no QML warning; no compiler warning.",
+  "qml_controls": "615 checks passed, 0 QML warnings",
+  "recordings": "With this build 397 of the 429 recordings in `out/runs` pass `--check-recording`. Refused: `mpcc-dynamic-laps-mpcc` and `p75c-FSG24-known`, cut off while written; `p62x-dynamic-1789837332`, written before schema 13's dynamic car metadata settled; 28 `p75-`, `p75f-` and `p75g-` layout runs recorded before the cone memory entered the metadata (the final `p75h-*` runs pass); and `p8-profile-electric-race-car`, which names TUM's car with the tire decision 0034 corrected.",
+  "decisions": [
+    "docs/decisions/0034-theoretical-best-lap.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 4.1 (offline minimum time with fastest-lap), 4.2 (cross-check with TUM's formulation), 4.3 and Phase 8 (ghost car, sector delta, setup sensitivities, tire energy in the desktop)"
+  ],
+  "tools": {
+    "fastest_lap": "0.5, prebuilt Windows release, archive sha256 81947ae517c7029278ed7cef0c06e74a2664cec3130a573d66647483bd08831c, library sha256 28a22902b2bf8cd0b4c930033f092ea34dbd7ec69c29d1de5cc6678a85a8533c; Ipopt 3.14.10, MUMPS 5.5.1",
+    "python": "3.8.20 with numpy 1.18.1, scipy 1.3.3, casadi 3.5.1, matplotlib 3.3.1, scikit-learn 0.23.1, trajectory_planning_helpers 0.76, quadprog 0.1.12",
+    "downloads": "approved by the user on 2026-09-25 ('Download both')"
+  },
+  "optima": {
+    "formula-one-style": {
+      "directory": "out/optimal/p4-final-f1",
+      "label": "Offline optimum for fastest-lap's 3-DOF model of this car, at the stated mesh, tolerance and solver status: not a run of this project's plant",
+      "status": "Optimal Solution Found",
+      "converged": true,
+      "iterations": 53,
+      "tolerance": 1e-08,
+      "mesh_points": 500,
+      "lap_time_s": 14.14344036250595,
+      "objective": 14.165697647171672,
+      "speed_mps": [
+        27.585345168625295,
+        40.02637010634641
+      ],
+      "tire_energy_kj": [
+        34.51289428674641,
+        144.45112005819126,
+        87.7177603389747,
+        186.6864436301889
+      ],
+      "sensitivities": [
+        {
+          "parameter": "mass_kg",
+          "unit": "kg",
+          "value": 660.0,
+          "step": -10.0,
+          "seconds_per_unit": 0.003155337782611021,
+          "method": "fastest-lap's sensitivity analysis at the solution",
+          "cross_check_seconds_per_unit": 0.0031532263932158243,
+          "half_step": 5.0
+        },
+        {
+          "parameter": "cg_height_m",
+          "unit": "m",
+          "value": 0.3,
+          "step": -0.01,
+          "seconds_per_unit": 2.970423223512686,
+          "method": "fastest-lap's sensitivity analysis at the solution",
+          "cross_check_seconds_per_unit": 2.895995721808653,
+          "half_step": 0.01
+        },
+        {
+          "parameter": "brake_bias_front",
+          "unit": "fraction",
+          "value": 0.6,
+          "step": 0.02,
+          "seconds_per_unit": 4.440892098500626e-14,
+          "method": "central difference of two re-solves",
+          "cross_check_seconds_per_unit": null,
+          "half_step": 0.02
+        },
+        {
+          "parameter": "downforce_area_m2",
+          "unit": "m^2",
+          "value": 4.5,
+          "step": 0.1,
+          "seconds_per_unit": -0.32337406542182073,
+          "method": "fastest-lap's sensitivity analysis at the solution",
+          "cross_check_seconds_per_unit": -0.32277894592038336,
+          "half_step": 0.1
+        },
+        {
+          "parameter": "max_drive_power_w",
+          "unit": "W",
+          "value": 735499.0,
+          "step": 10000.0,
+          "seconds_per_unit": -5.606510441412238e-10,
+          "method": "fastest-lap's sensitivity analysis at the solution",
+          "cross_check_seconds_per_unit": -5.244238932888833e-10,
+          "half_step": 10000.0
+        }
+      ],
+      "problem_fingerprint": "29e93d29c593396f"
+    },
+    "electric-race-car": {
+      "directory": "out/optimal/p4-final-erc",
+      "label": "Offline optimum for fastest-lap's 3-DOF model of this car with its peak friction floored at 1.0, more than this car has, at the stated mesh, tolerance and solver status: faster than this car can be, and not a run of this project's plant",
+      "status": "Optimal Solution Found",
+      "converged": true,
+      "iterations": 71,
+      "tolerance": 1e-08,
+      "mesh_points": 500,
+      "lap_time_s": 19.82156204285762,
+      "objective": 19.85993913171957,
+      "speed_mps": [
+        18.26677240476742,
+        35.536831782986866
+      ],
+      "tire_energy_kj": [
+        32.150840495969156,
+        78.88807583037729,
+        96.80248617030438,
+        135.1742097599988
+      ],
+      "sensitivities": [
+        {
+          "parameter": "mass_kg",
+          "unit": "kg",
+          "value": 1200.0,
+          "step": -10.0,
+          "seconds_per_unit": 0.0004474772910814881,
+          "method": "fastest-lap's sensitivity analysis at the solution",
+          "cross_check_seconds_per_unit": 0.00044697070013270944,
+          "half_step": 5.0
+        },
+        {
+          "parameter": "cg_height_m",
+          "unit": "m",
+          "value": 0.38,
+          "step": -0.01,
+          "seconds_per_unit": 1.8010588141934456,
+          "method": "fastest-lap's sensitivity analysis at the solution",
+          "cross_check_seconds_per_unit": 1.668332404609707,
+          "half_step": 0.01
+        },
+        {
+          "parameter": "brake_bias_front",
+          "unit": "fraction",
+          "value": 0.6,
+          "step": 0.02,
+          "seconds_per_unit": 0.0,
+          "method": "central difference of two re-solves",
+          "cross_check_seconds_per_unit": null,
+          "half_step": 0.02
+        },
+        {
+          "parameter": "downforce_area_m2",
+          "unit": "m^2",
+          "value": 1.9591836734693875,
+          "step": 0.1,
+          "seconds_per_unit": -0.2827531974489362,
+          "method": "fastest-lap's sensitivity analysis at the solution",
+          "cross_check_seconds_per_unit": -0.28270214059888943,
+          "half_step": 0.1
+        },
+        {
+          "parameter": "max_drive_power_w",
+          "unit": "W",
+          "value": 230000.0,
+          "step": 10000.0,
+          "seconds_per_unit": -6.868651702767056e-07,
+          "method": "fastest-lap's sensitivity analysis at the solution",
+          "cross_check_seconds_per_unit": -7.063068848479403e-07,
+          "half_step": 10000.0
+        }
+      ],
+      "problem_fingerprint": "4971a65b1f0d895a"
+    },
+    "formula-student-electric": {
+      "directory": "out/optimal/p4-final-fse",
+      "label": "Offline optimum for fastest-lap's 3-DOF model of this car, at the stated mesh, tolerance and solver status: not a run of this project's plant",
+      "status": "Optimal Solution Found",
+      "converged": true,
+      "iterations": 34,
+      "tolerance": 1e-08,
+      "mesh_points": 500,
+      "lap_time_s": 16.36014453561978,
+      "objective": 16.396227426314596,
+      "speed_mps": [
+        29.967826447319773,
+        30.026033337305634
+      ],
+      "tire_energy_kj": [
+        4.439804405225543,
+        18.19388106765716,
+        10.549740588778038,
+        21.126137615445007
+      ],
+      "sensitivities": [
+        {
+          "parameter": "mass_kg",
+          "unit": "kg",
+          "value": 178.0,
+          "step": -10.0,
+          "seconds_per_unit": 0.0012782352055861691,
+          "method": "fastest-lap's sensitivity analysis at the solution",
+          "cross_check_seconds_per_unit": null,
+          "half_step": 5.0
+        },
+        {
+          "parameter": "cg_height_m",
+          "unit": "m",
+          "value": 0.3,
+          "step": -0.01,
+          "seconds_per_unit": 0.9367565250387428,
+          "method": "fastest-lap's sensitivity analysis at the solution",
+          "cross_check_seconds_per_unit": null,
+          "half_step": 0.01
+        },
+        {
+          "parameter": "brake_bias_front",
+          "unit": "fraction",
+          "value": 0.6,
+          "step": 0.02,
+          "seconds_per_unit": 0.0,
+          "method": "central difference of two re-solves",
+          "cross_check_seconds_per_unit": null,
+          "half_step": 0.02
+        },
+        {
+          "parameter": "downforce_area_m2",
+          "unit": "m^2",
+          "value": 4.07,
+          "step": 0.1,
+          "seconds_per_unit": -0.08222212325500862,
+          "method": "fastest-lap's sensitivity analysis at the solution",
+          "cross_check_seconds_per_unit": null,
+          "half_step": 0.1
+        },
+        {
+          "parameter": "max_drive_power_w",
+          "unit": "W",
+          "value": 80000.0,
+          "step": 10000.0,
+          "seconds_per_unit": -5.719850076782546e-10,
+          "method": "fastest-lap's sensitivity analysis at the solution",
+          "cross_check_seconds_per_unit": null,
+          "half_step": 10000.0
+        }
+      ],
+      "problem_fingerprint": "0067982c780802ac"
+    }
+  },
+  "cross_check": {
+    "directory": "out/optimal/p4-final-erc-tum",
+    "fastest_lap": {
+      "lap_time_s": 19.82156204285762,
+      "status": "Optimal Solution Found",
+      "mesh_points": 500,
+      "tolerance": 1e-08,
+      "model": "f1-3dof",
+      "label": "Offline optimum for fastest-lap's 3-DOF model of this car with its peak friction floored at 1.0, more than this car has, at the stated mesh, tolerance and solver status: faster than this car can be, and not a run of this project's plant",
+      "top_speed_mps": 35.53683178298686,
+      "lowest_speed_mps": 18.266772404767423
+    },
+    "tum": {
+      "as_published": {
+        "lap_time_s": 20.683,
+        "status": "Optimal Solution Found",
+        "mesh_points": 169,
+        "stepsize_m": 3.0,
+        "seconds": 29.7836657,
+        "friction": {
+          "mue": 1.0,
+          "eps_front": -0.1,
+          "eps_rear": -0.1,
+          "f_z0": 3000.0
+        },
+        "top_speed_mps": 34.97581519997432,
+        "lowest_speed_mps": 17.265883252811374,
+        "lap_time_difference_s": 0.8614379571423783,
+        "line": {
+          "median_gap_m": 0.6711034578819308,
+          "p95_gap_m": 1.1837256456847844,
+          "worst_gap_m": 1.3597295352281016
+        },
+        "speed": {
+          "median_difference_mps": -1.1215764552225167,
+          "p95_abs_difference_mps": 2.0057710542091405,
+          "worst_abs_difference_mps": 2.2254424259078114
+        }
+      },
+      "at_fastest_lap_floor": {
+        "lap_time_s": 20.023,
+        "status": "Optimal Solution Found",
+        "mesh_points": 169,
+        "stepsize_m": 3.0,
+        "seconds": 21.977995899999996,
+        "friction": {
+          "mue": 1.0,
+          "eps_front": 0.0,
+          "eps_rear": 0.0,
+          "f_z0": 3000.0
+        },
+        "top_speed_mps": 35.3357551383268,
+        "lowest_speed_mps": 18.93351226021665,
+        "lap_time_difference_s": 0.2014379571423781,
+        "line": {
+          "median_gap_m": 0.654272913008579,
+          "p95_gap_m": 1.1703183469450655,
+          "worst_gap_m": 1.440462083223546
+        },
+        "speed": {
+          "median_difference_mps": -0.44679787981976915,
+          "p95_abs_difference_mps": 1.6895906696021528,
+          "worst_abs_difference_mps": 1.7481106449410255
+        }
+      }
+    },
+    "friction_floor": "fastest-lap floors peak friction at 1.0 and this car's falls below it (front_tire peak_friction_lateral_low 0.9333; front_tire peak_friction_lateral_high 0.8; rear_tire peak_friction_lateral_low 0.9333; rear_tire peak_friction_lateral_high 0.8): tum.at_fastest_lap_floor solves TUM's formulation at that floor, the like-for-like comparison"
+  },
+  "friction_floor": {
+    "tool": "tools/optimal_lap/friction_floor.py",
+    "speed_mps": 30,
+    "peak_friction": [
+      0.5,
+      0.8,
+      1.0,
+      1.2,
+      1.5
+    ],
+    "lateral_g": {
+      "electric-race-car": [
+        1.085,
+        1.085,
+        1.087,
+        1.303,
+        1.628
+      ],
+      "formula-one-style": [
+        1.353,
+        1.353,
+        1.355,
+        1.623,
+        2.029
+      ]
+    }
+  },
+  "brake_bias": "The Formula One style solution at brake bias 0.3 and 0.6 differs in speed by at most 7e-15 m/s, the hardest braking 0.509 to the front either way; the central difference over 0.02 either side is 4e-14 s per unit.",
+  "first_cross_check": "Before the profile's correction: fastest-lap 19.711 s against TUM 20.683 s.",
+  "controller_gap": {
+    "optimum_s": 14.143,
+    "runs": "out/runs/p4-gap-*",
+    "flying_lap_s": {
+      "grip fractions": 31.34,
+      "envelope 80%": 20.92,
+      "envelope 100%": 19.16,
+      "MPCC on envelope 80%": 15.115
+    },
+    "note": "The judge's second lap; none left the course or touched a cone."
+  }
+}

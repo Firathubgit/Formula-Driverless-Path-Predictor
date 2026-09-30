@@ -1,0 +1,30 @@
+{
+  "version": 5,
+  "cmakeMinimumRequired": {"major": 3, "minor": 24, "patch": 0},
+  "configurePresets": [
+    {
+      "name": "windows-core", "displayName": "Windows / headless C++20",
+      "generator": "Visual Studio 17 2022", "architecture": "x64",
+      "binaryDir": "${sourceDir}/build/core", "cacheVariables": {"BUILD_TESTING": "ON"}
+    },
+    {
+      "name": "windows-desktop", "displayName": "Windows / Qt 6.8.3",
+      "inherits": "windows-core", "binaryDir": "${sourceDir}/build/desktop",
+      "cacheVariables": {"FD_BUILD_DESKTOP": "ON", "CMAKE_PREFIX_PATH": "${sourceDir}/.tools/Qt/6.8.3/msvc2022_64"}
+    },
+    {
+      "name": "linux-core", "generator": "Ninja", "binaryDir": "${sourceDir}/build/linux-core",
+      "cacheVariables": {"CMAKE_BUILD_TYPE": "Release", "BUILD_TESTING": "ON"}
+    }
+  ],
+  "buildPresets": [
+    {"name":"windows-core","configurePreset":"windows-core","configuration":"Release"},
+    {"name":"windows-desktop","configurePreset":"windows-desktop","configuration":"Release"},
+    {"name":"linux-core","configurePreset":"linux-core"}
+  ],
+  "testPresets": [
+    {"name":"windows-core","configurePreset":"windows-core","configuration":"Release","output":{"outputOnFailure":true}},
+    {"name":"windows-desktop","configurePreset":"windows-desktop","configuration":"Release","output":{"outputOnFailure":true}},
+    {"name":"linux-core","configurePreset":"linux-core","output":{"outputOnFailure":true}}
+  ]
+}

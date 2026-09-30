@@ -1,0 +1,129 @@
+{
+  "verified_on": "2026-09-15",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decision": "docs/decisions/0009-usable-dynamic-plant.md",
+  "source_fingerprint": "4f462cd073f83d6c25d6b9506da56dcba0cecc2fede2c3ff47b63ab2e187c28d",
+  "headless_ctest": {
+    "passed": 7,
+    "total": 7,
+    "seconds": 50.7
+  },
+  "desktop_ctest": {
+    "passed": 8,
+    "total": 8,
+    "seconds": 65.18,
+    "qml_checks": 220,
+    "previous_qml_checks": 193,
+    "qml_warnings": []
+  },
+  "prediction_cost_benchmark": {
+    "note": "Scratch Release benchmark, default dynamic car at 9 s entering the first corner; measurement only",
+    "tick_us": {
+      "as_built": 7.58887,
+      "prepared_tire": 2.24332,
+      "prepared_tire_and_2_5ms_substep": 1.04782
+    },
+    "prediction_ms": {
+      "kinematic": 0.403019,
+      "as_built": 5.52457,
+      "prepared_tire": 2.16567,
+      "final": 1.35171
+    },
+    "blocked_decision_six_lines_ms": {
+      "as_built": 33.4644,
+      "prepared_tire": 13.1472,
+      "final": 8.33431
+    }
+  },
+  "blend_fix": {
+    "failure": "pull-away through the blend band differed by 2.7 cm between 2.5 ms and 0.5 ms substeps (x 7.0655 vs 7.0921 m)",
+    "cause": "the lateral state was pulled toward kinematic motion once per substep, so the pull depended on the step",
+    "fix": "blended state derivative with 20 per second relaxation toward kinematic motion",
+    "after": {
+      "convergence": "within 1 cm and 1e-3 of a 0.5 ms reference in three manoeuvres",
+      "braking_through_band_max_step": {
+        "yaw_rate_radps": 0.000593951,
+        "lateral_velocity_mps": 0.000513583
+      }
+    }
+  },
+  "suites": {
+    "fd_vehicle_model_groups": 14,
+    "fd_tire_model_groups": 12,
+    "fd_recording_playback_groups": 9
+  },
+  "schema_3": {
+    "metadata": "vehicle_model with every parameter including both tires",
+    "telemetry_columns_added": [
+      "lateral_velocity_mps",
+      "yaw_rate_radps",
+      "within_grip_envelope"
+    ],
+    "summary_field_added": "max_rear_sideslip_rad",
+    "new_tamper_cases": [
+      "kinematic-sliding",
+      "kinematic-yaw-rate",
+      "sliding-but-valid",
+      "unknown-vehicle",
+      "summary-sideslip"
+    ],
+    "dynamic_fixture": {
+      "samples": 2401,
+      "max_rear_sideslip_rad": 0.121059,
+      "plant_reproduction_m": 9.90384e-10,
+      "mass_edited_plant_reproduction_m": 2.38835e-05
+    }
+  },
+  "recordings_checked": {
+    "total": 33,
+    "schema_1": 18,
+    "schema_2": 8,
+    "schema_3": 7,
+    "rejected": 0,
+    "plant_reproduction_range_m": [
+      9.979e-11,
+      9.945e-10
+    ]
+  },
+  "kinematic_unchanged": {
+    "runs": [
+      "out/runs/schema3-scenario-baseline",
+      "out/runs/schema3-scenario-avoid",
+      "out/runs/schema3-scenario-stop",
+      "out/runs/schema3-verified-transient"
+    ],
+    "compared_against": "out/runs/seam-* (schema 2)",
+    "result": "decisions, trajectories, plans, events and track byte-identical; schema 2 telemetry columns identical on every row; summary identical apart from max_rear_sideslip_rad"
+  },
+  "headless_runs": {
+    "out/runs/schema3-dynamic-lap": {
+      "plant": "dynamic",
+      "lap_s": 33.795,
+      "max_tracking_error_m": 0.35,
+      "max_rear_sideslip_rad": 0.042,
+      "invalid_samples": "0/6760",
+      "plant_reproduction_m": 9.857e-10
+    },
+    "out/runs/schema3-rwd-lap": {
+      "plant": "dynamic, drive_front_fraction 0",
+      "laps": 0,
+      "duration_s": 40,
+      "max_tracking_error_m": 9.006,
+      "max_rear_sideslip_rad": 1.439,
+      "invalid_samples": "5538/8001",
+      "plant_reproduction_m": 9.941e-10
+    },
+    "out/runs/schema3-kinematic-lap": {
+      "plant": "kinematic",
+      "lap_s": 33.52,
+      "max_tracking_error_m": 0.267,
+      "invalid_samples": "0/6705",
+      "plant_reproduction_m": 9.803e-10
+    }
+  },
+  "desktop": {
+    "selector": "header Vehicle model Kinematic/Dynamic, paused live only",
+    "readout": "REAR SIDESLIP metric for the dynamic plant only",
+    "capture": "docs/assets/dynamic-plant.png"
+  }
+}

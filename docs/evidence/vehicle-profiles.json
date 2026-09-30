@@ -1,0 +1,46 @@
+{
+  "verified_on": "2026-09-26",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "source_fingerprint": "acf7dab6372560aa09d627d0aa7aac92e7a97fc7520b01fac4d06f543ed28245",
+  "headless_ctest": "`scripts/build.ps1`: 28 of 28 CTest suites pass in 688.3 s; no compiler warning.",
+  "desktop_ctest": "`scripts/build.ps1 -Desktop`: 30 of 30 in 723.9 s, the QML controls suite running 615 checks in 115.8 s with no QML warning; no compiler warning.",
+  "qml_controls": "615 checks passed, 0 QML warnings",
+  "recordings": "With this build 397 of the 429 recordings in `out/runs` pass `--check-recording`. Refused: `mpcc-dynamic-laps-mpcc` and `p75c-FSG24-known`, cut off while written; `p62x-dynamic-1789837332`, written before schema 13's dynamic car metadata settled; 28 `p75-`, `p75f-` and `p75g-` layout runs recorded before the cone memory entered the metadata (the final `p75h-*` runs pass); and `p8-profile-electric-race-car`, which names TUM's car with the tire decision 0034 corrected.",
+  "decisions": [
+    "docs/decisions/0033-physics-profiles.md",
+    "docs/decisions/0034-theoretical-best-lap.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan section 8 (selectable vehicles with honest physics, as physics only; the showroom untouched)"
+  ],
+  "profiles": {
+    "formula-one-style": {
+      "envelope_plan_lap_estimate_s": 20.25,
+      "headless_lap_s": 22.34,
+      "optimum_s": 14.143
+    },
+    "formula-student-electric": {
+      "envelope_plan_lap_estimate_s": 19.77,
+      "headless_lap_s": 22.67,
+      "optimum_s": 16.36
+    },
+    "electric-race-car": {
+      "envelope_plan_lap_estimate_s": 29.75,
+      "headless_lap_from_rest_s": 31.93,
+      "optimum_s_at_fastest_lap_floor": 19.822,
+      "before_correction": {
+        "envelope_plan_lap_estimate_s": 28.7,
+        "headless_lap_s": 30.98
+      }
+    },
+    "racing-kart": {
+      "envelope_plan_lap_estimate_s": 28.24,
+      "headless_lap_s": 31.39
+    },
+    "project-roadster": {
+      "envelope_plan_lap_estimate_s": 30.29,
+      "headless_lap_s": 31.95
+    }
+  },
+  "correction": "Decision 0034's cross-check found TUM's car had 0.1 too much lateral friction: TUM's solver scales the lateral peak by 1 + eps Fz / f_z0. Corrected to 0.933 at 2000 N and 0.800 at 6000 N laterally, 1.0 longitudinally, floor 0.6."
+}

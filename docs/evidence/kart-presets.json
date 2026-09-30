@@ -1,0 +1,19 @@
+{
+  "decision": "0043",
+  "date": "2026-09-28",
+  "build": "Release fd_assistance_presets_tests and fd_desktop passed",
+  "storage_checks": 25,
+  "ui": {
+    "checks": 773,
+    "failure": "",
+    "method": "Actual QML controls, bindings and QQuickWindow captures",
+    "passed": true,
+    "qml_warnings": []
+  },
+  "ui_seconds": 151.82,
+  "inspected_capture": "build/desktop/ui-evidence/compact-kart-presets.png",
+  "real_slot_1_seeded_from_user_screenshot": true,
+  "ui_storage_isolated": true,
+  "full_regression_rerun": false,
+  "physical_controller_exercised": false
+}

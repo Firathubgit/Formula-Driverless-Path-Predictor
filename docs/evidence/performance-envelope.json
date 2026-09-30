@@ -1,0 +1,915 @@
+{
+  "verified_on": "2026-09-16",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0017-performance-envelope.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 3.1",
+    "TrackWayFastPlan Phase 3 Visible list: the current point on a live G-G diagram with the envelope drawn around it"
+  ],
+  "source_fingerprint": "cf58dbdcf59cf9b84ee4bedb605141346203396dd665cb802a361f049a28be65",
+  "headless_ctest": {
+    "passed": 13,
+    "total": 13,
+    "test_seconds": 139.96
+  },
+  "desktop_ctest": {
+    "passed": 14,
+    "total": 14,
+    "test_seconds": 147.89,
+    "qml_checks": 339,
+    "previous_qml_checks": 331,
+    "qml_warnings": []
+  },
+  "suites": {
+    "fd_performance_envelope_groups": 12
+  },
+  "method": {
+    "approach": "simulate to settle through the vehicle seam (advance and envelope), no solver",
+    "model": "four-wheel car only; kinematic bicycle and single-track car refused",
+    "within_peak": "no wheel lifted and every tire's combined slip at most 1",
+    "speed_grid_mps": {
+      "first": 4,
+      "step": 2,
+      "last": "configured top speed + 4"
+    },
+    "settling": {
+      "chunk_s": 0.5,
+      "cap_s": 6.0,
+      "judged_window_s": 0.25,
+      "yaw_rate_spread_share": 0.002,
+      "speed_share": 0.01,
+      "speed_hold": "PI throttle loop, gains 4 and 4"
+    },
+    "lateral": {
+      "sweep_steps": 24,
+      "halvings": 10,
+      "limit_reasons": [
+        "tire",
+        "steering",
+        "settling"
+      ]
+    },
+    "levels": {
+      "fractions": [
+        0,
+        0.25,
+        0.5,
+        0.75,
+        0.9,
+        1.0
+      ],
+      "target_share": 0.01,
+      "halvings": 12
+    },
+    "longitudinal": {
+      "probe_s": 0.1,
+      "measured_over": "second half of the probe",
+      "halvings": 14,
+      "largest_command_g": 2.5,
+      "limit_reasons": [
+        "tire",
+        "actuator"
+      ]
+    },
+    "sides": "left and right derived separately",
+    "fingerprint": "FNV-1a over generator version, validated vehicle and configuration; identity shared with steering tables",
+    "export": {
+      "ggv.csv": "v_mps, ax_max_mps2 = straight braking limit less drag deceleration, ay_max_mps2 = smaller side's lateral limit",
+      "ax_max_machines.csv": "v_mps, ax_max_machines_mps2 = straight forward limit plus drag deceleration",
+      "envelope.csv": "speed, side, fraction, lateral, forward, braking and limit labels"
+    }
+  },
+  "recorded_map_tables_this_build_derives": {
+    "runs": 10,
+    "fingerprints": [
+      "ab0e2ddc4c80494d",
+      "fcf7bf80916dad96",
+      "5c44cfef2fce1369",
+      "0b26520b53b21437",
+      "cf0fb25d77ae8e85",
+      "2ebd2d6f6f36fe09",
+      "823d6fcb227dff98"
+    ]
+  },
+  "envelope_reproduction": "default envelope derived by the final core build is byte-identical to out/envelope-default in all three files",
+  "recordings_load": {
+    "total": 85,
+    "by_schema": {
+      "1": 18,
+      "2": 8,
+      "3": 7,
+      "4": 20,
+      "5": 4,
+      "6": 11,
+      "7": 17
+    },
+    "rejected": 0,
+    "plant_reproduction_m": [
+      9.979e-11,
+      9.989e-10
+    ]
+  },
+  "tests": {
+    "symmetry_largest_difference_mps2": {
+      "lateral_limit": 0.00213,
+      "longitudinal_below_limit": 7.1e-14
+    },
+    "tire_capacity_at_16_mps": {
+      "default": [
+        9.362,
+        9.678
+      ],
+      "winged_3_m2": [
+        10.024,
+        10.2
+      ]
+    },
+    "low_speed_4_mps": {
+      "lateral_limit": 3.298,
+      "tires_capacity": 9.803,
+      "full_steering_geometric": 3.773,
+      "outer_front_combined_slip_on_full_steering": 1.002,
+      "front_axle_slip_angle_rad": [
+        0.063,
+        0.121
+      ]
+    },
+    "forward_limit_against_power_less_drag_mps2": {
+      "14": [
+        7.64,
+        8.462
+      ],
+      "16": [
+        6.891,
+        7.367
+      ],
+      "18": [
+        6.165,
+        6.506
+      ],
+      "20": [
+        5.55,
+        5.808
+      ],
+      "22": [
+        5.026,
+        5.227
+      ],
+      "24": [
+        4.573,
+        4.733
+      ]
+    },
+    "braking_at_8_mps_straight": {
+      "default_forward": 7.729,
+      "default_braking": -7.765,
+      "matched_bias_braking": -9.542
+    },
+    "lateral_limit_12_to_24_mps": {
+      "without_downforce": [
+        9.377,
+        9.446
+      ],
+      "with_3_m2": [
+        9.66,
+        10.461
+      ]
+    },
+    "lateral_limit_16_mps_by_cg_height": {
+      "0.35": 9.362,
+      "0.6": 8.997
+    }
+  },
+  "headless_runs": [
+    {
+      "directory": "out/envelope-default",
+      "flags": [
+        "--plant",
+        "four-wheel"
+      ],
+      "fingerprint": "033cc3dd344a93cd",
+      "derived_in_s": 1.333,
+      "rows": [
+        {
+          "speed_mps": 4.0,
+          "forward_mps2": 7.728,
+          "forward_limit": "tire",
+          "braking_mps2": -7.72,
+          "lateral_limit_mps2": 3.298,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 6.0,
+          "forward_mps2": 7.729,
+          "forward_limit": "tire",
+          "braking_mps2": -7.74,
+          "lateral_limit_mps2": 6.477,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 8.0,
+          "forward_mps2": 7.729,
+          "forward_limit": "tire",
+          "braking_mps2": -7.765,
+          "lateral_limit_mps2": 8.746,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 10.0,
+          "forward_mps2": 7.728,
+          "forward_limit": "tire",
+          "braking_mps2": -7.796,
+          "lateral_limit_mps2": 9.288,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 12.0,
+          "forward_mps2": 7.723,
+          "forward_limit": "tire",
+          "braking_mps2": -7.832,
+          "lateral_limit_mps2": 9.377,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 14.0,
+          "forward_mps2": 7.64,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.872,
+          "lateral_limit_mps2": 9.458,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 16.0,
+          "forward_mps2": 6.891,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.919,
+          "lateral_limit_mps2": 9.362,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 18.0,
+          "forward_mps2": 6.165,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.969,
+          "lateral_limit_mps2": 9.333,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 20.0,
+          "forward_mps2": 5.55,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.024,
+          "lateral_limit_mps2": 9.296,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 22.0,
+          "forward_mps2": 5.026,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.084,
+          "lateral_limit_mps2": 9.425,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 24.0,
+          "forward_mps2": 4.573,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.149,
+          "lateral_limit_mps2": 9.446,
+          "lateral_limit": "settling"
+        }
+      ]
+    },
+    {
+      "directory": "out/envelope-downforce-3",
+      "flags": [
+        "--plant",
+        "four-wheel",
+        "--downforce-area",
+        "3"
+      ],
+      "fingerprint": "c1327d99bbd97278",
+      "derived_in_s": 1.236,
+      "rows": [
+        {
+          "speed_mps": 4.0,
+          "forward_mps2": 7.763,
+          "forward_limit": "tire",
+          "braking_mps2": -7.741,
+          "lateral_limit_mps2": 3.298,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 6.0,
+          "forward_mps2": 7.803,
+          "forward_limit": "tire",
+          "braking_mps2": -7.79,
+          "lateral_limit_mps2": 6.488,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 8.0,
+          "forward_mps2": 7.854,
+          "forward_limit": "tire",
+          "braking_mps2": -7.86,
+          "lateral_limit_mps2": 8.828,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 10.0,
+          "forward_mps2": 7.918,
+          "forward_limit": "tire",
+          "braking_mps2": -7.948,
+          "lateral_limit_mps2": 9.475,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 12.0,
+          "forward_mps2": 7.993,
+          "forward_limit": "tire",
+          "braking_mps2": -8.055,
+          "lateral_limit_mps2": 9.66,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 14.0,
+          "forward_mps2": 7.772,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.18,
+          "lateral_limit_mps2": 9.847,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 16.0,
+          "forward_mps2": 6.922,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.322,
+          "lateral_limit_mps2": 10.024,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 18.0,
+          "forward_mps2": 6.185,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.483,
+          "lateral_limit_mps2": 9.992,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 20.0,
+          "forward_mps2": 5.567,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.661,
+          "lateral_limit_mps2": 10.114,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 22.0,
+          "forward_mps2": 5.041,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.856,
+          "lateral_limit_mps2": 10.305,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 24.0,
+          "forward_mps2": 4.587,
+          "forward_limit": "actuator",
+          "braking_mps2": -9.068,
+          "lateral_limit_mps2": 10.461,
+          "lateral_limit": "tire"
+        }
+      ]
+    },
+    {
+      "directory": "out/envelope-bias-0.7",
+      "flags": [
+        "--plant",
+        "four-wheel",
+        "--brake-bias-front",
+        "0.7"
+      ],
+      "fingerprint": "00e8da03707e59f7",
+      "derived_in_s": 1.349,
+      "rows": [
+        {
+          "speed_mps": 4.0,
+          "forward_mps2": 7.728,
+          "forward_limit": "tire",
+          "braking_mps2": -8.18,
+          "lateral_limit_mps2": 3.298,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 6.0,
+          "forward_mps2": 7.729,
+          "forward_limit": "tire",
+          "braking_mps2": -8.193,
+          "lateral_limit_mps2": 6.477,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 8.0,
+          "forward_mps2": 7.729,
+          "forward_limit": "tire",
+          "braking_mps2": -8.21,
+          "lateral_limit_mps2": 8.746,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 10.0,
+          "forward_mps2": 7.728,
+          "forward_limit": "tire",
+          "braking_mps2": -8.231,
+          "lateral_limit_mps2": 9.288,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 12.0,
+          "forward_mps2": 7.723,
+          "forward_limit": "tire",
+          "braking_mps2": -8.256,
+          "lateral_limit_mps2": 9.377,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 14.0,
+          "forward_mps2": 7.64,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.285,
+          "lateral_limit_mps2": 9.458,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 16.0,
+          "forward_mps2": 6.891,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.319,
+          "lateral_limit_mps2": 9.362,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 18.0,
+          "forward_mps2": 6.165,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.357,
+          "lateral_limit_mps2": 9.333,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 20.0,
+          "forward_mps2": 5.55,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.398,
+          "lateral_limit_mps2": 9.296,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 22.0,
+          "forward_mps2": 5.026,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.443,
+          "lateral_limit_mps2": 9.425,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 24.0,
+          "forward_mps2": 4.573,
+          "forward_limit": "actuator",
+          "braking_mps2": -8.493,
+          "lateral_limit_mps2": 9.446,
+          "lateral_limit": "settling"
+        }
+      ]
+    },
+    {
+      "directory": "out/envelope-bias-0",
+      "flags": [
+        "--plant",
+        "four-wheel",
+        "--brake-bias-front",
+        "0"
+      ],
+      "fingerprint": "a85f5f629f7c5a8a",
+      "derived_in_s": 1.083,
+      "rows": [
+        {
+          "speed_mps": 4.0,
+          "forward_mps2": 7.728,
+          "forward_limit": "tire",
+          "braking_mps2": -4.205,
+          "lateral_limit_mps2": 3.298,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 6.0,
+          "forward_mps2": 7.729,
+          "forward_limit": "tire",
+          "braking_mps2": -4.212,
+          "lateral_limit_mps2": 6.477,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 8.0,
+          "forward_mps2": 7.729,
+          "forward_limit": "tire",
+          "braking_mps2": -4.222,
+          "lateral_limit_mps2": 8.746,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 10.0,
+          "forward_mps2": 7.728,
+          "forward_limit": "tire",
+          "braking_mps2": -4.236,
+          "lateral_limit_mps2": 9.288,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 12.0,
+          "forward_mps2": 7.723,
+          "forward_limit": "tire",
+          "braking_mps2": -4.254,
+          "lateral_limit_mps2": 9.377,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 14.0,
+          "forward_mps2": 7.64,
+          "forward_limit": "actuator",
+          "braking_mps2": -4.275,
+          "lateral_limit_mps2": 9.458,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 16.0,
+          "forward_mps2": 6.891,
+          "forward_limit": "actuator",
+          "braking_mps2": -4.3,
+          "lateral_limit_mps2": 9.362,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 18.0,
+          "forward_mps2": 6.165,
+          "forward_limit": "actuator",
+          "braking_mps2": -4.329,
+          "lateral_limit_mps2": 9.333,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 20.0,
+          "forward_mps2": 5.55,
+          "forward_limit": "actuator",
+          "braking_mps2": -4.361,
+          "lateral_limit_mps2": 9.296,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 22.0,
+          "forward_mps2": 5.026,
+          "forward_limit": "actuator",
+          "braking_mps2": -4.397,
+          "lateral_limit_mps2": 9.425,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 24.0,
+          "forward_mps2": 4.573,
+          "forward_limit": "actuator",
+          "braking_mps2": -4.436,
+          "lateral_limit_mps2": 9.446,
+          "lateral_limit": "settling"
+        }
+      ]
+    },
+    {
+      "directory": "out/envelope-cg-0.6",
+      "flags": [
+        "--plant",
+        "four-wheel",
+        "--cg-height",
+        "0.6"
+      ],
+      "fingerprint": "44994f66f01a7921",
+      "derived_in_s": 1.246,
+      "rows": [
+        {
+          "speed_mps": 4.0,
+          "forward_mps2": 6.748,
+          "forward_limit": "tire",
+          "braking_mps2": -6.744,
+          "lateral_limit_mps2": 3.335,
+          "lateral_limit": "steering"
+        },
+        {
+          "speed_mps": 6.0,
+          "forward_mps2": 6.75,
+          "forward_limit": "tire",
+          "braking_mps2": -6.763,
+          "lateral_limit_mps2": 6.614,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 8.0,
+          "forward_mps2": 6.748,
+          "forward_limit": "tire",
+          "braking_mps2": -6.788,
+          "lateral_limit_mps2": 8.581,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 10.0,
+          "forward_mps2": 6.746,
+          "forward_limit": "tire",
+          "braking_mps2": -6.818,
+          "lateral_limit_mps2": 8.899,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 12.0,
+          "forward_mps2": 6.741,
+          "forward_limit": "tire",
+          "braking_mps2": -6.854,
+          "lateral_limit_mps2": 8.946,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 14.0,
+          "forward_mps2": 6.733,
+          "forward_limit": "tire",
+          "braking_mps2": -6.894,
+          "lateral_limit_mps2": 8.985,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 16.0,
+          "forward_mps2": 6.672,
+          "forward_limit": "actuator",
+          "braking_mps2": -6.938,
+          "lateral_limit_mps2": 8.997,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 18.0,
+          "forward_mps2": 6.121,
+          "forward_limit": "actuator",
+          "braking_mps2": -6.988,
+          "lateral_limit_mps2": 8.941,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 20.0,
+          "forward_mps2": 5.533,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.042,
+          "lateral_limit_mps2": 8.908,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 22.0,
+          "forward_mps2": 5.017,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.1,
+          "lateral_limit_mps2": 8.87,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 24.0,
+          "forward_mps2": 4.568,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.163,
+          "lateral_limit_mps2": 8.954,
+          "lateral_limit": "tire"
+        }
+      ]
+    },
+    {
+      "directory": "out/envelope-mass-1200",
+      "flags": [
+        "--plant",
+        "four-wheel",
+        "--mass",
+        "1200"
+      ],
+      "fingerprint": "f0ead0588fa16c3f",
+      "derived_in_s": 1.106,
+      "rows": [
+        {
+          "speed_mps": 4.0,
+          "forward_mps2": 7.537,
+          "forward_limit": "tire",
+          "braking_mps2": -7.533,
+          "lateral_limit_mps2": 3.211,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 6.0,
+          "forward_mps2": 7.537,
+          "forward_limit": "tire",
+          "braking_mps2": -7.545,
+          "lateral_limit_mps2": 6.235,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 8.0,
+          "forward_mps2": 7.536,
+          "forward_limit": "tire",
+          "braking_mps2": -7.56,
+          "lateral_limit_mps2": 8.39,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 10.0,
+          "forward_mps2": 7.323,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.578,
+          "lateral_limit_mps2": 8.895,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 12.0,
+          "forward_mps2": 6.263,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.601,
+          "lateral_limit_mps2": 9.003,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 14.0,
+          "forward_mps2": 5.431,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.627,
+          "lateral_limit_mps2": 9.085,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 16.0,
+          "forward_mps2": 4.776,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.655,
+          "lateral_limit_mps2": 9.056,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 18.0,
+          "forward_mps2": 4.247,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.687,
+          "lateral_limit_mps2": 9.077,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 20.0,
+          "forward_mps2": 3.811,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.721,
+          "lateral_limit_mps2": 9.089,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 22.0,
+          "forward_mps2": 3.444,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.759,
+          "lateral_limit_mps2": 9.121,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 24.0,
+          "forward_mps2": 3.128,
+          "forward_limit": "actuator",
+          "braking_mps2": -7.8,
+          "lateral_limit_mps2": 9.137,
+          "lateral_limit": "settling"
+        }
+      ]
+    },
+    {
+      "directory": "out/envelope-grip-0.7",
+      "flags": [
+        "--plant",
+        "four-wheel",
+        "--grip",
+        "0.7"
+      ],
+      "fingerprint": "65e0ab051a7c359d",
+      "derived_in_s": 1.228,
+      "rows": [
+        {
+          "speed_mps": 4.0,
+          "forward_mps2": 5.762,
+          "forward_limit": "tire",
+          "braking_mps2": -5.76,
+          "lateral_limit_mps2": 3.119,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 6.0,
+          "forward_mps2": 5.766,
+          "forward_limit": "tire",
+          "braking_mps2": -5.782,
+          "lateral_limit_mps2": 5.607,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 8.0,
+          "forward_mps2": 5.769,
+          "forward_limit": "tire",
+          "braking_mps2": -5.81,
+          "lateral_limit_mps2": 6.543,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 10.0,
+          "forward_mps2": 5.771,
+          "forward_limit": "tire",
+          "braking_mps2": -5.845,
+          "lateral_limit_mps2": 6.671,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 12.0,
+          "forward_mps2": 5.77,
+          "forward_limit": "tire",
+          "braking_mps2": -5.885,
+          "lateral_limit_mps2": 6.671,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 14.0,
+          "forward_mps2": 5.767,
+          "forward_limit": "tire",
+          "braking_mps2": -5.93,
+          "lateral_limit_mps2": 6.648,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 16.0,
+          "forward_mps2": 5.762,
+          "forward_limit": "tire",
+          "braking_mps2": -5.979,
+          "lateral_limit_mps2": 6.58,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 18.0,
+          "forward_mps2": 5.756,
+          "forward_limit": "tire",
+          "braking_mps2": -6.034,
+          "lateral_limit_mps2": 6.645,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 20.0,
+          "forward_mps2": 5.379,
+          "forward_limit": "actuator",
+          "braking_mps2": -6.093,
+          "lateral_limit_mps2": 6.602,
+          "lateral_limit": "tire"
+        },
+        {
+          "speed_mps": 22.0,
+          "forward_mps2": 4.928,
+          "forward_limit": "actuator",
+          "braking_mps2": -6.156,
+          "lateral_limit_mps2": 6.568,
+          "lateral_limit": "settling"
+        },
+        {
+          "speed_mps": 24.0,
+          "forward_mps2": 4.504,
+          "forward_limit": "actuator",
+          "braking_mps2": -6.222,
+          "lateral_limit_mps2": 6.582,
+          "lateral_limit": "tire"
+        }
+      ]
+    }
+  ],
+  "desktop": {
+    "card": "G-G ENVELOPE beside TIRE SLIP for the four-wheel car; boundary from side_at at the current speed, one-g circle, dot at lateral and achieved longitudinal acceleration",
+    "derivation": "worker thread; re-derived when car, setup or applied grip changes; shown only while generated_for the car shown",
+    "live_capture": {
+      "file": "docs/assets/gg-envelope.png",
+      "fingerprint_shown": "033cc3dd",
+      "speed_kmh": 39
+    },
+    "replay_capture": {
+      "file": "docs/assets/gg-envelope-replay.png",
+      "fingerprint_shown": "a85f5f62",
+      "recorded_car": "brake_bias_front 0",
+      "recorded_deceleration_mps2_at_8_s": -3.586,
+      "speed_mps": 18.39,
+      "braking_limit_mps2_there": -4.335,
+      "rear_wheels": "locked",
+      "note": "inside the boundary while sliding: a sliding tire gives less than its peak"
+    }
+  },
+  "not_done": [
+    "fastest-lap G-G cross-check: its Windows release is not on this machine and downloading it awaits the user's approval",
+    "the speed plan does not use the envelope yet (Phase 3.2)"
+  ]
+}

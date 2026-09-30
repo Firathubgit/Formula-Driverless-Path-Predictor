@@ -1,0 +1,533 @@
+{
+  "verified_on": "2026-09-19",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0024-model-predictive-contouring-control.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 6.1 (port, into fd_mpcc with OSQP)",
+    "TrackWayFastPlan 6.2 (first measurement: plan error ahead from recordings)",
+    "TrackWayFastPlan 6.3 (MPCC against the policy baselines this project has, same scenarios and cars)",
+    "TrackWayFastPlan 6.4 (MPCC's plan as the ribbon; solver status and solve time on screen)"
+  ],
+  "source_fingerprint": "9968a3ef3572882a58d3db22d7810016e2d98b8af170d81ef78048910fabfa12",
+  "headless_ctest": "20/20 suites pass in 327.3 s (fd_mpcc 125.9 s)",
+  "desktop_ctest": "21/21 suites pass in 418.7 s",
+  "qml_controls": "482 checks passed, 0 QML warnings",
+  "recordings": "255/256 recordings in out/runs pass --check-recording (schemas 1-12, 40 of schema 12); out/runs/mpcc-dynamic-laps-mpcc was cut off while written (no events.csv) and is refused",
+  "sources_studied": {
+    "MPCC-fullsize C++": [
+      "Model/model.cpp (getF, Jacobians, discretizeModel)",
+      "Cost/cost.cpp (contouring, lag, progress, heading, sideslip)",
+      "Constraints/constraints.cpp (track half-spaces, rear friction ellipse, front slip angle)",
+      "MPC/mpc.cpp (runMPC: two SQP iterations, mixing 0.9, shifted warm start, reset after failures)",
+      "Params/*.json"
+    ],
+    "licence": "Apache-2.0; structure studied, nothing copied"
+  },
+  "method": {
+    "prediction_model": "SingleTrackModel: the dynamic single-track plant's own equations; reduced_single_track for the four-wheel car (no load transfer, aerodynamics, brake bias or wheel speeds); the kinematic bicycle, which has no tires, is refused",
+    "horizon": "60 stages of 0.05 s, two RK4 steps each",
+    "state": "centre of gravity pose and body velocity, progress station, acceleration, steering, progress rate; inputs their rates",
+    "cost": "contouring 0.1 (x10 at the last stage), lag 100, progress reward 1, heading 0.5, sideslip 5, yaw rate 0.01, input values and rates, slack 1000 quadratic and 100 linear",
+    "constraints": "corridor less half width and 0.3 m, only the chosen side beside a blockage; each axle's slip angle within 0.7 of its peak; each axle's requested forces within 0.95 of its friction ellipse; top speed, softened by its own slack and falling at 0.5 g from a car above it; steering and its rate",
+    "solving": "two SQP steps per decision, forward-difference linearisation of 6 state columns and 2 inputs, step share 0.9, proximal step penalty 1, OSQP tolerance 1e-3 warm-started from the last multipliers, restart from the policy's prediction after two failed decisions",
+    "acceptance": "the simulation lets the plan drive only when solved, within its own slip angles and the corridor, clear of every blockage by first_blockage_entered, and not holding; otherwise the policy drives and the decision says why"
+  },
+  "closed_loop_runs": {
+    "note": "fd_headless on Foundry Circuit into fresh out/runs/mpcc3-* directories; two laps where laps are listed (standing, then flying), one lap with a blockage, 20 s for the full-width stop. Every run passes --check-recording. Solve times are wall clock on this host, printed, not recorded. One track; not a general claim.",
+    "scenarios": {
+      "dynamic-laps": {
+        "policy": {
+          "directory": "out/runs/mpcc3-dynamic-laps-policy",
+          "lap_times_s": [
+            33.795,
+            32.13
+          ],
+          "max_cross_track_error_m": 0.35,
+          "rms_cross_track_error_m": 0.163,
+          "max_grip": 0.75,
+          "max_rear_sideslip_rad": 0.042,
+          "max_speed_mps": 20.0,
+          "invalid_samples": "0/13186"
+        },
+        "map": {
+          "directory": "out/runs/mpcc3-dynamic-laps-map",
+          "lap_times_s": [
+            33.785,
+            32.1
+          ],
+          "max_cross_track_error_m": 0.349,
+          "rms_cross_track_error_m": 0.162,
+          "max_grip": 0.751,
+          "max_rear_sideslip_rad": 0.042,
+          "max_speed_mps": 20.0,
+          "invalid_samples": "0/13178"
+        },
+        "mpcc": {
+          "directory": "out/runs/mpcc3-dynamic-laps-mpcc",
+          "lap_times_s": [
+            26.655,
+            25.26
+          ],
+          "max_cross_track_error_m": 3.739,
+          "rms_cross_track_error_m": 1.524,
+          "max_grip": 0.95,
+          "max_rear_sideslip_rad": 0.076,
+          "max_speed_mps": 20.001,
+          "invalid_samples": "0/10384",
+          "controller": {
+            "drove": 2596,
+            "decisions": 2596,
+            "policy_holding": 0,
+            "policy_refused": 0,
+            "solve_median_ms": 18.45,
+            "solve_p95_ms": 63.177,
+            "solve_longest_ms": 236.13
+          },
+          "plan_error": {
+            "0.5_s": {
+              "median_m": 0.001,
+              "p95_m": 0.024,
+              "worst_m": 0.101,
+              "samples": 2571
+            },
+            "1.0_s": {
+              "median_m": 0.008,
+              "p95_m": 0.293,
+              "worst_m": 1.061,
+              "samples": 2546
+            },
+            "2.0_s": {
+              "median_m": 0.051,
+              "p95_m": 1.728,
+              "worst_m": 3.615,
+              "samples": 2496
+            },
+            "3.0_s": {
+              "median_m": 0.451,
+              "p95_m": 3.624,
+              "worst_m": 7.339,
+              "samples": 2446
+            }
+          }
+        }
+      },
+      "soft-front-laps": {
+        "policy": {
+          "directory": "out/runs/mpcc3-soft-front-laps-policy",
+          "lap_times_s": [
+            33.94,
+            32.26
+          ],
+          "max_cross_track_error_m": 0.709,
+          "rms_cross_track_error_m": 0.31,
+          "max_grip": 0.761,
+          "max_rear_sideslip_rad": 0.044,
+          "max_speed_mps": 20.0,
+          "invalid_samples": "0/13241"
+        },
+        "map": {
+          "directory": "out/runs/mpcc3-soft-front-laps-map",
+          "lap_times_s": [
+            33.85,
+            32.18
+          ],
+          "max_cross_track_error_m": 0.332,
+          "rms_cross_track_error_m": 0.158,
+          "max_grip": 0.747,
+          "max_rear_sideslip_rad": 0.042,
+          "max_speed_mps": 20.0,
+          "invalid_samples": "0/13207"
+        },
+        "mpcc": {
+          "directory": "out/runs/mpcc3-soft-front-laps-mpcc",
+          "lap_times_s": [
+            26.675,
+            25.285
+          ],
+          "max_cross_track_error_m": 3.74,
+          "rms_cross_track_error_m": 1.528,
+          "max_grip": 0.95,
+          "max_rear_sideslip_rad": 0.076,
+          "max_speed_mps": 20.001,
+          "invalid_samples": "0/10393",
+          "controller": {
+            "drove": 2598,
+            "decisions": 2598,
+            "policy_holding": 0,
+            "policy_refused": 0,
+            "solve_median_ms": 17.914,
+            "solve_p95_ms": 69.073,
+            "solve_longest_ms": 188.318
+          },
+          "plan_error": {
+            "0.5_s": {
+              "median_m": 0.001,
+              "p95_m": 0.021,
+              "worst_m": 0.08,
+              "samples": 2574
+            },
+            "1.0_s": {
+              "median_m": 0.007,
+              "p95_m": 0.272,
+              "worst_m": 0.924,
+              "samples": 2549
+            },
+            "2.0_s": {
+              "median_m": 0.044,
+              "p95_m": 1.709,
+              "worst_m": 3.615,
+              "samples": 2499
+            },
+            "3.0_s": {
+              "median_m": 0.464,
+              "p95_m": 3.702,
+              "worst_m": 7.341,
+              "samples": 2449
+            }
+          }
+        }
+      },
+      "four-wheel-laps": {
+        "policy": {
+          "directory": "out/runs/mpcc3-four-wheel-laps-policy",
+          "lap_times_s": [
+            34.045,
+            32.345
+          ],
+          "max_cross_track_error_m": 0.344,
+          "rms_cross_track_error_m": 0.16,
+          "max_grip": 0.826,
+          "max_rear_sideslip_rad": 0.041,
+          "max_speed_mps": 19.879,
+          "invalid_samples": "0/13279",
+          "samples_with_a_wheel_locked": 0
+        },
+        "envelope": {
+          "directory": "out/runs/mpcc3-four-wheel-laps-envelope",
+          "lap_times_s": [
+            31.95,
+            30.695
+          ],
+          "max_cross_track_error_m": 0.514,
+          "rms_cross_track_error_m": 0.214,
+          "max_grip": 0.977,
+          "max_rear_sideslip_rad": 0.057,
+          "max_speed_mps": 19.879,
+          "invalid_samples": "0/12530",
+          "samples_with_a_wheel_locked": 0
+        },
+        "mpcc": {
+          "directory": "out/runs/mpcc3-four-wheel-laps-mpcc",
+          "lap_times_s": [
+            27.07,
+            25.35
+          ],
+          "max_cross_track_error_m": 3.698,
+          "rms_cross_track_error_m": 1.516,
+          "max_grip": 1.0,
+          "max_rear_sideslip_rad": 0.079,
+          "max_speed_mps": 19.98,
+          "invalid_samples": "471/10485",
+          "samples_with_a_wheel_locked": 0,
+          "controller": {
+            "drove": 2621,
+            "decisions": 2621,
+            "policy_holding": 0,
+            "policy_refused": 0,
+            "solve_median_ms": 17.453,
+            "solve_p95_ms": 68.785,
+            "solve_longest_ms": 124.619
+          },
+          "plan_error": {
+            "0.5_s": {
+              "median_m": 0.012,
+              "p95_m": 0.082,
+              "worst_m": 0.392,
+              "samples": 2597
+            },
+            "1.0_s": {
+              "median_m": 0.059,
+              "p95_m": 0.681,
+              "worst_m": 1.544,
+              "samples": 2572
+            },
+            "2.0_s": {
+              "median_m": 0.311,
+              "p95_m": 2.242,
+              "worst_m": 4.916,
+              "samples": 2522
+            },
+            "3.0_s": {
+              "median_m": 0.568,
+              "p95_m": 3.433,
+              "worst_m": 6.23,
+              "samples": 2472
+            }
+          }
+        }
+      },
+      "dynamic-lane": {
+        "policy": {
+          "directory": "out/runs/mpcc3-dynamic-lane-policy",
+          "lap_times_s": [
+            33.745
+          ],
+          "max_cross_track_error_m": 2.799,
+          "rms_cross_track_error_m": 0.57,
+          "max_grip": 0.755,
+          "max_rear_sideslip_rad": 0.042,
+          "max_speed_mps": 20.0,
+          "invalid_samples": "0/6750",
+          "offset_beside_blockage_m": [
+            2.54,
+            2.79
+          ]
+        },
+        "mpcc": {
+          "directory": "out/runs/mpcc3-dynamic-lane-mpcc",
+          "lap_times_s": [
+            26.71
+          ],
+          "max_cross_track_error_m": 3.738,
+          "rms_cross_track_error_m": 1.645,
+          "max_grip": 0.95,
+          "max_rear_sideslip_rad": 0.076,
+          "max_speed_mps": 20.001,
+          "invalid_samples": "0/5343",
+          "offset_beside_blockage_m": [
+            2.25,
+            2.27
+          ],
+          "controller": {
+            "drove": 1336,
+            "decisions": 1336,
+            "policy_holding": 0,
+            "policy_refused": 0,
+            "solve_median_ms": 19.983,
+            "solve_p95_ms": 61.792,
+            "solve_longest_ms": 224.342
+          },
+          "plan_error": {
+            "0.5_s": {
+              "median_m": 0.003,
+              "p95_m": 0.036,
+              "worst_m": 0.103,
+              "samples": 1311
+            },
+            "1.0_s": {
+              "median_m": 0.031,
+              "p95_m": 0.43,
+              "worst_m": 1.067,
+              "samples": 1286
+            },
+            "2.0_s": {
+              "median_m": 0.346,
+              "p95_m": 1.862,
+              "worst_m": 3.615,
+              "samples": 1236
+            },
+            "3.0_s": {
+              "median_m": 0.974,
+              "p95_m": 3.934,
+              "worst_m": 7.346,
+              "samples": 1186
+            }
+          }
+        }
+      },
+      "dynamic-corner": {
+        "policy": {
+          "directory": "out/runs/mpcc3-dynamic-corner-policy",
+          "lap_times_s": [
+            33.735
+          ],
+          "max_cross_track_error_m": 3.259,
+          "rms_cross_track_error_m": 0.97,
+          "max_grip": 0.848,
+          "max_rear_sideslip_rad": 0.042,
+          "max_speed_mps": 20,
+          "invalid_samples": "0/6748",
+          "offset_beside_blockage_m": [
+            2.94,
+            3.26
+          ]
+        },
+        "mpcc": {
+          "directory": "out/runs/mpcc3-dynamic-corner-mpcc",
+          "lap_times_s": [
+            27.99
+          ],
+          "max_cross_track_error_m": 3.809,
+          "rms_cross_track_error_m": 1.695,
+          "max_grip": 0.951,
+          "max_rear_sideslip_rad": 0.076,
+          "max_speed_mps": 20.0,
+          "invalid_samples": "84/5599",
+          "offset_beside_blockage_m": [
+            2.44,
+            2.76
+          ],
+          "controller": {
+            "drove": 1378,
+            "decisions": 1400,
+            "policy_holding": 18,
+            "policy_refused": 4,
+            "solve_median_ms": 19.687,
+            "solve_p95_ms": 55.152,
+            "solve_longest_ms": 187.36
+          },
+          "plan_error": {
+            "0.5_s": {
+              "median_m": 0.003,
+              "p95_m": 0.064,
+              "worst_m": 0.316,
+              "samples": 1353
+            },
+            "1.0_s": {
+              "median_m": 0.032,
+              "p95_m": 0.477,
+              "worst_m": 2.535,
+              "samples": 1328
+            },
+            "2.0_s": {
+              "median_m": 0.237,
+              "p95_m": 4.527,
+              "worst_m": 7.258,
+              "samples": 1278
+            },
+            "3.0_s": {
+              "median_m": 0.83,
+              "p95_m": 10.39,
+              "worst_m": 11.836,
+              "samples": 1228
+            }
+          }
+        }
+      },
+      "dynamic-stop": {
+        "policy": {
+          "directory": "out/runs/mpcc3-dynamic-stop-policy",
+          "lap_times_s": [],
+          "max_cross_track_error_m": 0,
+          "rms_cross_track_error_m": 0,
+          "max_grip": 0.56,
+          "max_rear_sideslip_rad": 0,
+          "max_speed_mps": 14.2,
+          "invalid_samples": "0/4001",
+          "final_station_m": 61.78
+        },
+        "mpcc": {
+          "directory": "out/runs/mpcc3-dynamic-stop-mpcc",
+          "lap_times_s": [],
+          "max_cross_track_error_m": 0.003,
+          "rms_cross_track_error_m": 0.0,
+          "max_grip": 0.95,
+          "max_rear_sideslip_rad": 0.0,
+          "max_speed_mps": 14.793,
+          "invalid_samples": "0/4001",
+          "final_station_m": 61.79,
+          "controller": {
+            "drove": 75,
+            "decisions": 1000,
+            "policy_holding": 918,
+            "policy_refused": 7,
+            "solve_median_ms": 25.843,
+            "solve_p95_ms": 36.9,
+            "solve_longest_ms": 59.931
+          },
+          "plan_error": {
+            "0.5_s": {
+              "median_m": 0.027,
+              "p95_m": 0.324,
+              "worst_m": 0.405,
+              "samples": 75
+            },
+            "1.0_s": {
+              "median_m": 0.387,
+              "p95_m": 1.606,
+              "worst_m": 1.839,
+              "samples": 75
+            },
+            "2.0_s": {
+              "median_m": 3.129,
+              "p95_m": 6.97,
+              "worst_m": 7.336,
+              "samples": 75
+            },
+            "3.0_s": {
+              "median_m": 9.014,
+              "p95_m": 14.188,
+              "worst_m": 14.266,
+              "samples": 75
+            }
+          }
+        }
+      },
+      "dynamic-grip-drop": {
+        "policy": {
+          "directory": "out/runs/mpcc3-dynamic-grip-drop-policy",
+          "lap_times_s": [
+            37.825,
+            37.12
+          ],
+          "max_cross_track_error_m": 0.405,
+          "rms_cross_track_error_m": 0.158,
+          "max_grip": 0.926,
+          "max_rear_sideslip_rad": 0.063,
+          "max_speed_mps": 20.012,
+          "invalid_samples": "86/14990"
+        },
+        "mpcc": {
+          "directory": "out/runs/mpcc3-dynamic-grip-drop-mpcc",
+          "lap_times_s": [
+            28.265,
+            27.255
+          ],
+          "max_cross_track_error_m": 3.829,
+          "rms_cross_track_error_m": 1.739,
+          "max_grip": 0.953,
+          "max_rear_sideslip_rad": 0.077,
+          "max_speed_mps": 20.001,
+          "invalid_samples": "56/11105",
+          "controller": {
+            "drove": 2762,
+            "decisions": 2776,
+            "policy_holding": 0,
+            "policy_refused": 14,
+            "solve_median_ms": 20.471,
+            "solve_p95_ms": 148.01,
+            "solve_longest_ms": 258.766
+          },
+          "plan_error": {
+            "0.5_s": {
+              "median_m": 0.002,
+              "p95_m": 0.064,
+              "worst_m": 0.336,
+              "samples": 2738
+            },
+            "1.0_s": {
+              "median_m": 0.016,
+              "p95_m": 0.503,
+              "worst_m": 1.445,
+              "samples": 2713
+            },
+            "2.0_s": {
+              "median_m": 0.149,
+              "p95_m": 2.371,
+              "worst_m": 4.356,
+              "samples": 2663
+            },
+            "3.0_s": {
+              "median_m": 1.048,
+              "p95_m": 6.008,
+              "worst_m": 7.504,
+              "samples": 2613
+            }
+          }
+        }
+      }
+    }
+  }
+}

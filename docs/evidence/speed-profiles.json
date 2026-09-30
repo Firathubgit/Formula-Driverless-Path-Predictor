@@ -1,0 +1,416 @@
+{
+  "verified_on": "2026-09-17",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0023-per-action-speed-profiles.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 5.3",
+    "TrackWayFastPlan Phase 5 visible: each action's path in its own colour with its estimated time",
+    "TrackWayFastPlan section 9: the planner invariant now states what is optimised, over what horizon and lattice resolution"
+  ],
+  "source_fingerprint": "030c34c3cf7248e186a6d35b369ce272d384c1c28e2db628dd1687651ea6915a",
+  "headless_ctest": "19 of 19 suites passed in 194.67 s; fd_speed_profile 0.43 s, fd_lattice_planning 8.56 s, fd_recording_playback 38.55 s",
+  "desktop_ctest": "20 of 20 suites passed in 264.72 s; fd_desktop_controls 60.65 s",
+  "suites": {
+    "fd_speed_profile_groups": 10,
+    "fd_lattice_planning_groups": 16,
+    "fd_recording_playback_groups": 16
+  },
+  "sources_studied": {
+    "race_stack_graph_ltpl": [
+      "graph_ltpl/online_graph/src/VpForwardBackward.py (forward-backward profile per action path within a local gg diagram, from the planned speed at the car to an end speed)",
+      "graph_ltpl/online_graph/src/OnlineTrajectoryHandler.py (each action's end speed from the race line's speed at its end node, reduced by that node's offset)"
+    ],
+    "licence": "graph_ltpl is LGPL-3.0; structure studied, nothing copied"
+  },
+  "method": {
+    "profile": "make_speed_profile: points every 0.5 m of station; path curvature from the reference's curvature and rate and the offset's derivatives; slopes vary linearly between segment middles, the car's own slope over start_turn_m; caps from the plan's limits (grip fractions, or envelope_fraction of the car's lateral/forward/braking limits); backward pass from the end speed, forward pass from the car's actual speed; time as constant acceleration between end speeds along the path's own distance",
+    "path_as_driven": "from the car straight to the path's first point at least a pursuit distance ahead, then along its points; the reference line rejoins the reference a pursuit distance ahead",
+    "horizon": "the end of the decision's farthest path, at least 60 m, ending no faster than the reference plan there",
+    "choice": "the clear option of least estimated time, the cheaper path on a tie; the previous decision's choice kept while clear and within lattice_switch_margin_s = 0.05 s of the fastest",
+    "search_changes": "a turn is refused only if beyond the lateral budget at the slowest speed the car can brake to by then; within a pursuit distance of the car a blockage is widened by the half width only; a return continues whatever path the car was on",
+    "controller": "ControlIntent::speed_profile: target interpolated in speed squared, feedforward the span's acceleration; before the profile its first speed, beyond it the reference plan"
+  },
+  "tests": {
+    "fd_speed_profile": [
+      "a straight at the top speed holds it: 60 m in 3 s, samples every half metre",
+      "from rest the speed is the square root of twice the longitudinal grip fraction times distance, and the time its square root law",
+      "inside the first corner the cap is the circle's: on the reference sqrt(lateral*18), 2 m inside or outside sqrt(lateral*16) and sqrt(lateral*20), with lengths scaled by the same ratio",
+      "braking into the corner follows the backward pass exactly, over more than 40 samples",
+      "the profile ends no faster than asked",
+      "a start beyond the path's limit brakes at the limit until within, and says so",
+      "a 2 m step over 10 m turns at the segments' middles: curvature 0.02/(1+slope^2)^1.5, path longer than its stations by its slope, and the turn caps the speed",
+      "along the reference the profile reproduces the plan's curvature limits, with the grip fractions and with the four-wheel car's envelope (34 points each)",
+      "the controller follows a profile, and the reference plan beyond it, command for command",
+      "bad requests are refused"
+    ],
+    "fd_lattice_planning": [
+      "the faster side is passed when both are clear: on the straight the right path is cheaper and faster; before the first corner the inside (left) costs 2.16e6 against 1.18e6 but is 0.078 s faster and is taken",
+      "a near tie keeps the previous choice; a difference beyond the margin switches",
+      "each action is predicted along its own speed profile, to a common horizon, with its time equal to that profile's",
+      "the estimate is what the car drives: the first pass decision estimated 3.210 s to its horizon and the car took 3.25 s",
+      "a pass is finished before returning: the four-wheel car on 80% of its envelope passes the corner blockage 3.67 m off, no sample outside the corridor, worst rear sideslip 0.064 rad",
+      "the closed-loop scenarios still avoid and stop, and the lattice planner's pass uses less grip than the five-offset planner's",
+      "no clear way home keeps the path the car is on: with grip dropped to 0.45 beside the lane blockage, 220 decisions find nothing clear and every one keeps the lattice path, saying so"
+    ],
+    "fd_recording_playback": [
+      "a schema 11 run of each planner round-trips, decision for decision, including the run that loses every clear way home",
+      "seven tampered variants are rejected by name: a profile not starting at the recorded state, an estimated time disagreeing with its profile, a lattice path without a profile, profiles of one decision ending at different stations, a choice that was neither the fastest clear action nor the previous one within the margin, a blocked line taken while a clear one was offered, and a decision that drove on past the blockage it named with nothing clear"
+    ],
+    "mutations_run_and_reverted": [
+      "dropping the offset's second derivative from the path curvature fails the turn group",
+      "choosing by path cost instead of estimated time fails the corner comparison and the grip comparison",
+      "letting a return commit only to its own action leaves the corridor for 495 samples and slides at 0.89 rad",
+      "falling back to the first option when nothing is clear turns the car back to the reference and fails both the planner group and the recording round-trip"
+    ]
+  },
+  "closed_loop_runs": {
+    "note": "fd_headless on Foundry Circuit, same start and configuration, into fresh out/runs/final2-* directories; the kinematic bicycle with grip fractions unless stated. Offsets are signed metres left of the reference while the rear axle is beside the blockage, on the first lap. Planning times are wall clock on this host, not recorded. One track and one geometry per scenario; not a general claim.",
+    "scenarios": {
+      "clear corridor, one lap": {
+        "lattice": {
+          "directory": "out/runs/final2-lattice-clear-lap",
+          "lap_s": 33.52,
+          "max_grip": 0.686,
+          "max_cross_track_error_m": 0.27,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "straight": 1676
+          },
+          "decisions_comparing_clear_actions_by_time": 0
+        },
+        "five-offsets": {
+          "directory": "out/runs/final2-five-offsets-clear-lap",
+          "lap_s": 33.52,
+          "max_grip": 0.686,
+          "max_cross_track_error_m": 0.27,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "offset": 1676
+          },
+          "decisions_comparing_clear_actions_by_time": 0
+        }
+      },
+      "lane blocked 62-68 m from -4.5 to 1.0 m, one lap": {
+        "lattice": {
+          "directory": "out/runs/final2-lattice-avoid",
+          "lap_s": 33.495,
+          "max_grip": 0.684,
+          "max_cross_track_error_m": 2.53,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "straight": 1469,
+            "pass left": 151,
+            "return": 55
+          },
+          "decisions_comparing_clear_actions_by_time": 22,
+          "max_grip_at_s_m": 496.6,
+          "offset_beside_blockage_m": [
+            2.33,
+            2.53
+          ],
+          "largest_offset_60_to_200_m_past_m": 0.266,
+          "first_pass_estimate": {
+            "action": "pass left",
+            "estimated_s": 3.406,
+            "driven_s": 3.41,
+            "horizon_station_m": 70.6
+          },
+          "planning_ms": "206 steps weighed alternatives; median 1.424 ms, 95th percentile 2.370 ms, longest 3.329 ms"
+        },
+        "five-offsets": {
+          "directory": "out/runs/final2-five-offsets-avoid",
+          "lap_s": 33.24,
+          "max_grip": 0.995,
+          "max_cross_track_error_m": 3.32,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "offset": 1662
+          },
+          "decisions_comparing_clear_actions_by_time": 0,
+          "max_grip_at_s_m": 161.2,
+          "offset_beside_blockage_m": [
+            3.07,
+            3.08
+          ],
+          "largest_offset_60_to_200_m_past_m": 3.317,
+          "planning_ms": "408 steps weighed alternatives; median 2.301 ms, 95th percentile 3.439 ms, longest 9.114 ms"
+        }
+      },
+      "whole corridor blocked 62-68 m": {
+        "lattice": {
+          "directory": "out/runs/final2-lattice-stop",
+          "lap_s": null,
+          "max_grip": 0.55,
+          "max_cross_track_error_m": 0,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "straight": 99,
+            "brake": 901
+          },
+          "decisions_comparing_clear_actions_by_time": 0,
+          "max_grip_at_s_m": 0.0,
+          "final_station_m": 61.78,
+          "planning_ms": "901 steps weighed alternatives; median 0.831 ms, 95th percentile 1.437 ms, longest 4.468 ms"
+        },
+        "five-offsets": {
+          "directory": "out/runs/final2-five-offsets-stop",
+          "lap_s": null,
+          "max_grip": 0.55,
+          "max_cross_track_error_m": 0,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "offset": 1000
+          },
+          "decisions_comparing_clear_actions_by_time": 0,
+          "max_grip_at_s_m": 0.0,
+          "final_station_m": 61.78,
+          "planning_ms": "901 steps weighed alternatives; median 2.702 ms, 95th percentile 3.693 ms, longest 8.932 ms"
+        }
+      },
+      "bollard 62-68 m from -0.5 to 1.5 m on the straight": {
+        "lattice": {
+          "directory": "out/runs/final2-lattice-bollard",
+          "lap_s": null,
+          "max_grip": 0.706,
+          "max_cross_track_error_m": 2.02,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "straight": 809,
+            "pass right": 149,
+            "return": 42
+          },
+          "decisions_comparing_clear_actions_by_time": 93,
+          "max_grip_at_s_m": 36.9,
+          "offset_beside_blockage_m": [
+            -2.02,
+            -1.83
+          ],
+          "largest_offset_60_to_200_m_past_m": 0.266,
+          "first_pass_estimate": {
+            "action": "pass right",
+            "estimated_s": 3.405,
+            "driven_s": 3.41,
+            "horizon_station_m": 70.6
+          },
+          "planning_ms": "191 steps weighed alternatives; median 1.724 ms, 95th percentile 2.501 ms, longest 3.535 ms"
+        },
+        "five-offsets": {
+          "directory": "out/runs/final2-five-offsets-bollard",
+          "lap_s": null,
+          "max_grip": 0.953,
+          "max_cross_track_error_m": 1.72,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "offset": 1000
+          },
+          "decisions_comparing_clear_actions_by_time": 0,
+          "max_grip_at_s_m": 92.5,
+          "offset_beside_blockage_m": [
+            -1.64,
+            -1.64
+          ],
+          "largest_offset_60_to_200_m_past_m": 0.264,
+          "planning_ms": "226 steps weighed alternatives; median 2.455 ms, 95th percentile 3.622 ms, longest 4.858 ms"
+        }
+      },
+      "bollard 130-136 m from -0.5 to 1.5 m, entering the first corner, one lap": {
+        "lattice": {
+          "directory": "out/runs/final2-lattice-corner",
+          "lap_s": 33.485,
+          "max_grip": 0.85,
+          "max_cross_track_error_m": 3.27,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "straight": 1317,
+            "pass right": 52,
+            "pass left": 107,
+            "return": 199
+          },
+          "decisions_comparing_clear_actions_by_time": 201,
+          "max_grip_at_s_m": 160.0,
+          "offset_beside_blockage_m": [
+            3.01,
+            3.09
+          ],
+          "largest_offset_60_to_200_m_past_m": 0.179,
+          "first_pass_estimate": {
+            "action": "pass right",
+            "estimated_s": 3.21,
+            "driven_s": 3.25,
+            "horizon_station_m": 132.0
+          },
+          "planning_ms": "358 steps weighed alternatives; median 1.689 ms, 95th percentile 2.535 ms, longest 4.914 ms"
+        },
+        "five-offsets": {
+          "directory": "out/runs/final2-five-offsets-corner",
+          "lap_s": 33.26,
+          "max_grip": 0.998,
+          "max_cross_track_error_m": 3.35,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "offset": 1663
+          },
+          "decisions_comparing_clear_actions_by_time": 0,
+          "max_grip_at_s_m": 161.3,
+          "offset_beside_blockage_m": [
+            2.82,
+            3.11
+          ],
+          "largest_offset_60_to_200_m_past_m": 0.198,
+          "planning_ms": "232 steps weighed alternatives; median 2.393 ms, 95th percentile 3.319 ms, longest 4.240 ms"
+        }
+      },
+      "four-wheel car on 80% of its envelope, lane blocked": {
+        "lattice": {
+          "directory": "out/runs/final2-lattice-four-wheel-envelope-avoid",
+          "lap_s": null,
+          "max_grip": 0.977,
+          "max_cross_track_error_m": 2.81,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "straight": 793,
+            "pass left": 134,
+            "return": 73
+          },
+          "decisions_comparing_clear_actions_by_time": 60,
+          "max_grip_at_s_m": 137.7,
+          "offset_beside_blockage_m": [
+            2.55,
+            2.81
+          ],
+          "largest_offset_60_to_200_m_past_m": 0.479,
+          "first_pass_estimate": {
+            "action": "pass left",
+            "estimated_s": 3.341,
+            "driven_s": 3.37,
+            "horizon_station_m": 68.4
+          },
+          "planning_ms": "207 steps weighed alternatives; median 6.171 ms, 95th percentile 10.295 ms, longest 17.165 ms"
+        },
+        "five-offsets": {
+          "directory": "out/runs/final2-five-offsets-four-wheel-envelope-avoid",
+          "lap_s": null,
+          "max_grip": 1.0,
+          "max_cross_track_error_m": 3.28,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "offset": 1000
+          },
+          "decisions_comparing_clear_actions_by_time": 0,
+          "max_grip_at_s_m": 19.6,
+          "offset_beside_blockage_m": [
+            3.12,
+            3.24
+          ],
+          "largest_offset_60_to_200_m_past_m": 3.192,
+          "planning_ms": "925 steps weighed alternatives; median 15.541 ms, 95th percentile 18.305 ms, longest 28.495 ms"
+        }
+      },
+      "four-wheel car on 80% of its envelope, bollard at the corner": {
+        "lattice": {
+          "directory": "out/runs/final2-lattice-four-wheel-envelope-corner",
+          "lap_s": null,
+          "max_grip": 1.0,
+          "max_cross_track_error_m": 3.67,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "straight": 639,
+            "pass right": 58,
+            "pass left": 66,
+            "brake": 1,
+            "return": 236
+          },
+          "decisions_comparing_clear_actions_by_time": 120,
+          "max_grip_at_s_m": 197.7,
+          "offset_beside_blockage_m": [
+            3.47,
+            3.6
+          ],
+          "largest_offset_60_to_200_m_past_m": 0.435,
+          "first_pass_estimate": {
+            "action": "pass right",
+            "estimated_s": 3.17,
+            "driven_s": 3.23,
+            "horizon_station_m": 132.0
+          },
+          "planning_ms": "361 steps weighed alternatives; median 9.986 ms, 95th percentile 12.430 ms, longest 21.849 ms"
+        },
+        "five-offsets": {
+          "directory": "out/runs/final2-five-offsets-four-wheel-envelope-corner",
+          "lap_s": null,
+          "max_grip": 1.0,
+          "max_cross_track_error_m": 1.96,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "offset": 1000
+          },
+          "decisions_comparing_clear_actions_by_time": 0,
+          "max_grip_at_s_m": 162.8,
+          "offset_beside_blockage_m": [
+            -1.75,
+            -1.55
+          ],
+          "largest_offset_60_to_200_m_past_m": 0.457,
+          "planning_ms": "298 steps weighed alternatives; median 16.052 ms, 95th percentile 19.421 ms, longest 37.071 ms"
+        }
+      },
+      "dynamic car with soft front tires steered by MAP, lane blocked": {
+        "lattice": {
+          "directory": "out/runs/final2-lattice-dynamic-map-avoid",
+          "lap_s": null,
+          "max_grip": 0.752,
+          "max_cross_track_error_m": 2.76,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "straight": 795,
+            "pass left": 132,
+            "return": 73
+          },
+          "decisions_comparing_clear_actions_by_time": 73,
+          "max_grip_at_s_m": 138.2,
+          "offset_beside_blockage_m": [
+            2.52,
+            2.76
+          ],
+          "largest_offset_60_to_200_m_past_m": 0.32,
+          "first_pass_estimate": {
+            "action": "pass left",
+            "estimated_s": 3.406,
+            "driven_s": 3.415,
+            "horizon_station_m": 70.6
+          },
+          "planning_ms": "205 steps weighed alternatives; median 3.408 ms, 95th percentile 6.034 ms, longest 7.161 ms"
+        },
+        "five-offsets": {
+          "directory": "out/runs/final2-five-offsets-dynamic-map-avoid",
+          "lap_s": null,
+          "max_grip": 0.946,
+          "max_cross_track_error_m": 3.32,
+          "invalid_samples": 0,
+          "chosen_actions": {
+            "offset": 1000
+          },
+          "decisions_comparing_clear_actions_by_time": 0,
+          "max_grip_at_s_m": 81.2,
+          "offset_beside_blockage_m": [
+            2.17,
+            2.91
+          ],
+          "largest_offset_60_to_200_m_past_m": 0.321,
+          "planning_ms": "135 steps weighed alternatives; median 7.232 ms, 95th percentile 9.200 ms, longest 16.878 ms"
+        }
+      }
+    },
+    "telemetry_identical": {
+      "clear lap, lattice against five offsets": true,
+      "clear lap, against decision 0022's run before speed profiles": true,
+      "clear lap, against the run before the no-clear-way-home fix": true,
+      "whole corridor blocked, against decision 0022's run": true,
+      "whole corridor blocked, against the run before the no-clear-way-home fix": true
+    }
+  },
+  "recordings": "215 of 215 recordings in out/runs pass --check-recording under this build: 18 of schema 1, 8 of 2, 7 of 3, 20 of 4, 4 of 5, 11 of 6, 17 of 7, 17 of 8, 33 of 9, 14 of 10 and 66 of 11",
+  "qml_controls": "447 checks of actual QML controls, bindings and 1100x700 window captures; no QML warnings; build/desktop/ui-evidence/verification.json"
+}

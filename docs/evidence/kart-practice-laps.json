@@ -1,0 +1,22 @@
+{
+  "decision": "0041",
+  "date": "2026-09-28",
+  "desktop_build": "Release passed; final marker variable rename rebuilt without the previous shadowing warning",
+  "competition_groups": 8,
+  "track_conditioning_groups": 13,
+  "actual_kart_timing_fixtures": "Two continuous laps at 10 m/s at centre and +/-2 m offset, 5 ms observations",
+  "ui": {
+    "checks": 750,
+    "failure": "",
+    "method": "Actual QML controls, bindings and QQuickWindow captures",
+    "passed": true,
+    "qml_warnings": []
+  },
+  "ui_seconds": 130.95,
+  "inspected_captures": [
+    "build/desktop/ui-evidence/compact-kart-lap-clock.png",
+    "build/desktop/ui-evidence/compact-kart-guidance-settings.png"
+  ],
+  "full_regression_rerun": false,
+  "physical_controller_exercised": false
+}

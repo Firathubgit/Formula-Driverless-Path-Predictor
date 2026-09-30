@@ -1,0 +1,8 @@
+add_library(fd_core STATIC src/core.cpp src/trajectory.cpp src/local_planner.cpp src/tire.cpp src/vehicle.cpp src/steering.cpp src/setup.cpp src/performance_envelope.cpp src/model_identity.cpp src/track_conditioning.cpp src/lattice.cpp src/speed_profile.cpp src/predictive_control.cpp src/cones.cpp src/fitpack.cpp src/cone_path.cpp src/delaunay_path.cpp src/path_following.cpp src/competition.cpp src/vehicle_profiles.cpp src/human_driving.cpp)
+target_include_directories(fd_core PUBLIC include)
+target_compile_features(fd_core PUBLIC cxx_std_20)
+if(MSVC)
+  target_compile_options(fd_core PRIVATE /W4 /permissive- /utf-8)
+else()
+  target_compile_options(fd_core PRIVATE -Wall -Wextra -Wpedantic)
+endif()

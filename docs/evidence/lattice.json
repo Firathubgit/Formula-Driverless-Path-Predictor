@@ -1,0 +1,371 @@
+{
+  "verified_on": "2026-09-17",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "decisions": [
+    "docs/decisions/0021-offline-lattice.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 5.1",
+    "TrackWayFastPlan Phase 5 visible: the lattice drawn faintly ahead of the car"
+  ],
+  "source_fingerprint": "dbf72e2b12aa058ba8dbcf5ea9725a52f36e20d267d5db52d982db16d6b13a39",
+  "headless_ctest": {
+    "passed": 17,
+    "total": 17,
+    "test_seconds": 203.2
+  },
+  "desktop_ctest": {
+    "passed": 18,
+    "total": 18,
+    "test_seconds": 263.25,
+    "qml_checks": 404,
+    "qml_warnings": [],
+    "fd_desktop_controls_seconds": 58.11,
+    "fd_desktop_controls_timeout_s": 120,
+    "fd_recording_playback_seconds": 37.06,
+    "fd_lattice_seconds": 0.29
+  },
+  "suites": {
+    "fd_lattice_groups": 10,
+    "fd_raceline_groups": 8
+  },
+  "sources_studied": {
+    "tum_graph_ltpl_offline_graph": [
+      "gen_node_skeleton.py",
+      "gen_edges.py",
+      "prune_graph.py",
+      "gen_offline_cost.py",
+      "main_offline_callback.py",
+      "imp_global_traj/src/variable_step_size.py",
+      "params/ltpl_config_offline.ini"
+    ],
+    "licence": "LGPL-3.0 (race_stack planner/graph_based_planner); structure studied, nothing copied",
+    "frenet_planner": "QuinticPolynomial (Apache-2.0) read; the quintic Hermite form is written from its closed form",
+    "papers": [
+      "Stahl et al., ITSC 2019 (graph-based local trajectory planner)",
+      "Werling et al., ICRA 2010 (Frenet optimal trajectories)"
+    ]
+  },
+  "method": {
+    "layers": "from station 0; the next at 6 m, or 4 m when the reference curves more than 0.02 1/m anywhere in the 6 m ahead; a last gap longer than its spacing split in two",
+    "nodes": "whole multiples of 0.5 m along the layer's left normal, within the corridor (track edges or half the width) less 0.9 m each side; reference node at offset 0",
+    "node_slope": "0 at the reference; toward an edge, offset / usable limit times that edge's own slope (corridor edge rate by central difference over +-1 m)",
+    "edges": "to every node of the next layer with |d1 - (d0 + slope0 * L)| <= 0.3 * L; offset = quintic Hermite in station with node slopes and zero second derivative at both ends",
+    "curvature": "(P (k P + d'') + d' (k' d + 2 k d')) / (P^2 + d'^2)^(3/2), P = 1 - k d; k and k' interpolated from the reference's samples",
+    "removal_order": [
+      "curvature beyond tan(max_steering_rad)/wheelbase_m or P <= 0",
+      "any sample outside the corridor less 0.9 m",
+      "dead ends, iteratively"
+    ],
+    "offline_cost": "7500 mean|curvature|^2 L + 2500 (max-min curvature)^2 L + 0 L + min(10000 |d_end|, 10000) L",
+    "reference_normal": "chord through the reference 0.25 m either side"
+  },
+  "tests": {
+    "preset_layers": {
+      "layers": 100,
+      "before_straights": 54,
+      "before_corners": 46
+    },
+    "nodes_per_layer": {
+      "preset": "17, -4..4 m",
+      "reference_2_m_right_of_centre": "17, -6..2 m"
+    },
+    "preset_generated_edges": 9412,
+    "circle_40_m_curvature": {
+      "parallel_error_1pm": 3.46945e-18,
+      "offset_change_peak_1pm": 0.446551,
+      "offset_change_error_1pm": 0.00148522,
+      "mutation_without_second_derivative": "fails"
+    },
+    "steering_removal": {
+      "limit_0.236": {
+        "removed": 1690,
+        "of": 9412,
+        "sharpest_kept_1pm": 0.235626
+      },
+      "limit_0.098": {
+        "removed": 5984,
+        "of": 9412,
+        "sharpest_kept_1pm": 0.0772284
+      }
+    },
+    "narrowing_corridor": {
+      "removed_for_corridor": 5,
+      "removed_as_dead_ends": 61,
+      "kept": 7590,
+      "generated": 9392
+    },
+    "straight_costs_length_weight_3": {
+      "reference": 18,
+      "0_to_0.5_m": 30621.3,
+      "0_to_1_m": 62962.2,
+      "parallel_2_m": 120018
+    },
+    "swinging_corridor": {
+      "slope_peak": 0.0986449,
+      "slope_error": 0.000528009,
+      "usable_nodes": 1637,
+      "nodes": 1648,
+      "unusable_at_most_path_per_reference_metre": 0.8125,
+      "mutation_zero_slopes": "fails"
+    },
+    "refusal": "The reference near 59.81 m is closer to the corridor's edge than the vehicle half width, 0.90 m",
+    "racing_line_lattice": {
+      "layers": 96,
+      "usable_nodes": 1585,
+      "nodes": 1586,
+      "edges": 7034,
+      "narrowest_layer_span": 0.9375,
+      "mutation_zero_slopes": "fails"
+    }
+  },
+  "design_findings": {
+    "fixed_heading_on_racing_line_3_m_corners": {
+      "usable_nodes": 1075,
+      "nodes": 1785,
+      "dead_ends": 1257,
+      "worst_layer_span": 0.125,
+      "mean_layer_span": 0.575
+    },
+    "corridor_slopes_3_m_corners": {
+      "usable_nodes": 1736,
+      "nodes": 1785,
+      "dead_ends": 76,
+      "worst_layer_span": 0.8
+    },
+    "corridor_slopes_4_m_corners": {
+      "usable_nodes": 1585,
+      "nodes": 1586,
+      "dead_ends": 1,
+      "worst_layer_span": 0.9375
+    },
+    "spacing_sweep_racing_line_with_slopes": {
+      "0.5/6/3": {
+        "usable": "1736/1785",
+        "worst_span": 0.8
+      },
+      "0.5/8/4": {
+        "usable": "1350/1351",
+        "worst_span": 0.938
+      },
+      "0.5/6/4": {
+        "usable": "1585/1586",
+        "worst_span": 0.938
+      },
+      "0.5/10/5": {
+        "usable": "1092/1092",
+        "worst_span": 1.0
+      },
+      "0.25/6/3": {
+        "usable": "3552/3552",
+        "worst_span": 1.0,
+        "edges": 25979,
+        "seconds": 0.025
+      }
+    },
+    "one_node_step_curvature_1pm": {
+      "3_m": 0.32,
+      "4_m": 0.18,
+      "default_steering_limit": 0.236
+    },
+    "racing_line_crossing_rate_m_per_m": 0.24
+  },
+  "lattices": [
+    {
+      "directory": "out/lattices/preset",
+      "command": "fd_headless --write-lattice out/lattices/preset",
+      "laid_in_s_measurement_only": 0.008,
+      "track": "Foundry Circuit",
+      "track_length_m": 507.562,
+      "corridor_edges": false,
+      "layers": 100,
+      "layer_gaps_m": {
+        "3.56": 1,
+        "4.0": 45,
+        "6.0": 54
+      },
+      "nodes": 1700,
+      "usable_nodes": 1700,
+      "narrowest_layer_span": 1.0,
+      "mean_layer_span": 1.0,
+      "edges": 7722,
+      "generated_edges": 9412,
+      "removed_for_steering": 1690,
+      "removed_for_corridor": 0,
+      "removed_as_dead_ends": 0,
+      "mean_edges_out_of_usable_node": 4.54,
+      "peak_edge_curvature_1pm": 0.2356,
+      "steering_limit_1pm": 0.2358,
+      "reference_edges": 100,
+      "median_cost": 60690.5,
+      "source_fingerprint": "dbf72e2b12aa058ba8dbcf5ea9725a52f36e20d267d5db52d982db16d6b13a39"
+    },
+    {
+      "directory": "out/lattices/preset-racing-line",
+      "command": "fd_headless --line racing --write-lattice out/lattices/preset-racing-line",
+      "laid_in_s_measurement_only": 0.01,
+      "track": "Foundry Circuit racing line",
+      "track_length_m": 503.387,
+      "corridor_edges": true,
+      "layers": 96,
+      "layer_gaps_m": {
+        "4.0": 36,
+        "5.39": 1,
+        "6.0": 59
+      },
+      "nodes": 1586,
+      "usable_nodes": 1585,
+      "narrowest_layer_span": 0.9375,
+      "mean_layer_span": 0.9993,
+      "edges": 7034,
+      "generated_edges": 8889,
+      "removed_for_steering": 1854,
+      "removed_for_corridor": 0,
+      "removed_as_dead_ends": 1,
+      "mean_edges_out_of_usable_node": 4.44,
+      "peak_edge_curvature_1pm": 0.2358,
+      "steering_limit_1pm": 0.2358,
+      "reference_edges": 96,
+      "median_cost": 59998.6,
+      "source_fingerprint": "dbf72e2b12aa058ba8dbcf5ea9725a52f36e20d267d5db52d982db16d6b13a39"
+    },
+    {
+      "directory": "out/lattices/centreline",
+      "command": "fd_headless --track out/tracks/foundry-centreline.csv --write-lattice out/lattices/centreline",
+      "laid_in_s_measurement_only": 0.008,
+      "track": "foundry-centreline",
+      "track_length_m": 506.865,
+      "corridor_edges": false,
+      "layers": 100,
+      "layer_gaps_m": {
+        "2.43": 2,
+        "4.0": 43,
+        "6.0": 55
+      },
+      "nodes": 1700,
+      "usable_nodes": 1700,
+      "narrowest_layer_span": 1.0,
+      "mean_layer_span": 1.0,
+      "edges": 7720,
+      "generated_edges": 9380,
+      "removed_for_steering": 1660,
+      "removed_for_corridor": 0,
+      "removed_as_dead_ends": 0,
+      "mean_edges_out_of_usable_node": 4.54,
+      "peak_edge_curvature_1pm": 0.2358,
+      "steering_limit_1pm": 0.2358,
+      "reference_edges": 100,
+      "median_cost": 60331.0,
+      "source_fingerprint": "dbf72e2b12aa058ba8dbcf5ea9725a52f36e20d267d5db52d982db16d6b13a39"
+    },
+    {
+      "directory": "out/lattices/racing-line",
+      "command": "fd_headless --track out/tracks/foundry-centreline.csv --line racing --write-lattice out/lattices/racing-line",
+      "laid_in_s_measurement_only": 0.011,
+      "track": "foundry-centreline racing line",
+      "track_length_m": 503.388,
+      "corridor_edges": true,
+      "layers": 96,
+      "layer_gaps_m": {
+        "4.0": 36,
+        "5.39": 1,
+        "6.0": 59
+      },
+      "nodes": 1585,
+      "usable_nodes": 1584,
+      "narrowest_layer_span": 0.9375,
+      "mean_layer_span": 0.9993,
+      "edges": 7032,
+      "generated_edges": 8880,
+      "removed_for_steering": 1847,
+      "removed_for_corridor": 0,
+      "removed_as_dead_ends": 1,
+      "mean_edges_out_of_usable_node": 4.44,
+      "peak_edge_curvature_1pm": 0.2358,
+      "steering_limit_1pm": 0.2358,
+      "reference_edges": 96,
+      "median_cost": 59998.8,
+      "source_fingerprint": "dbf72e2b12aa058ba8dbcf5ea9725a52f36e20d267d5db52d982db16d6b13a39"
+    },
+    {
+      "directory": "out/lattices/traced-racing-line",
+      "command": "fd_headless --track out/tracks/foundry-traced.csv --line racing --write-lattice out/lattices/traced-racing-line",
+      "laid_in_s_measurement_only": 0.008,
+      "track": "foundry-traced racing line",
+      "track_length_m": 503.301,
+      "corridor_edges": true,
+      "layers": 97,
+      "layer_gaps_m": {
+        "3.65": 2,
+        "4.0": 37,
+        "6.0": 58
+      },
+      "nodes": 1604,
+      "usable_nodes": 1604,
+      "narrowest_layer_span": 1.0,
+      "mean_layer_span": 1.0,
+      "edges": 6982,
+      "generated_edges": 8901,
+      "removed_for_steering": 1919,
+      "removed_for_corridor": 0,
+      "removed_as_dead_ends": 0,
+      "mean_edges_out_of_usable_node": 4.35,
+      "peak_edge_curvature_1pm": 0.2358,
+      "steering_limit_1pm": 0.2358,
+      "reference_edges": 97,
+      "median_cost": 59970.3,
+      "source_fingerprint": "dbf72e2b12aa058ba8dbcf5ea9725a52f36e20d267d5db52d982db16d6b13a39"
+    },
+    {
+      "directory": "out/lattices/racing-line-margin-0.3",
+      "command": "fd_headless --track out/tracks/foundry-centreline.csv --line racing --line-margin 0.3 --write-lattice out/lattices/racing-line-margin-0.3",
+      "laid_in_s_measurement_only": 0.008,
+      "track": "foundry-centreline racing line",
+      "track_length_m": 504.76,
+      "corridor_edges": true,
+      "layers": 97,
+      "layer_gaps_m": {
+        "4.0": 37,
+        "4.38": 2,
+        "6.0": 58
+      },
+      "nodes": 1583,
+      "usable_nodes": 1576,
+      "narrowest_layer_span": 0.9333,
+      "mean_layer_span": 0.9953,
+      "edges": 6815,
+      "generated_edges": 8780,
+      "removed_for_steering": 1951,
+      "removed_for_corridor": 1,
+      "removed_as_dead_ends": 13,
+      "mean_edges_out_of_usable_node": 4.32,
+      "peak_edge_curvature_1pm": 0.2358,
+      "steering_limit_1pm": 0.2358,
+      "reference_edges": 97,
+      "median_cost": 59997.0,
+      "source_fingerprint": "dbf72e2b12aa058ba8dbcf5ea9725a52f36e20d267d5db52d982db16d6b13a39"
+    }
+  ],
+  "contract": "tests/recording_contract.cmake writes the preset lattice, checks table rows against reported counts and lattice.json, refuses a non-empty directory and --obstruct, and lays the racing line's lattice within corridor edges",
+  "desktop": {
+    "drawing": "edges leaving the layers within 60 m ahead of the car's station, as Lines primitives in #4d6470 at 0.02 m, redrawn when the layers ahead change",
+    "laid_along": [
+      "the preset at start",
+      "the racing line when chosen",
+      "a replayed recording's track"
+    ],
+    "capture": "docs/assets/lattice.png (compact-racing-line.png from the final UI verification, 9 s on the racing line; inspected)"
+  },
+  "recordings_load": {
+    "checked": 135,
+    "rejected": 0
+  },
+  "not_done": [
+    "No online search, action set or per-action speed profile (Phases 5.2 and 5.3).",
+    "Edges are pruned by the kinematic steering limit only: no speed, grip or envelope.",
+    "Obstructions are stated in centreline coordinates and are not related to the lattice.",
+    "Cost weights are ForzaETH's scaled values, not tuned.",
+    "Nodes keep the rear axle a half width inside the corridor; no swept body check.",
+    "The desktop has no control over lattice options; only the defaults are drawn."
+  ]
+}

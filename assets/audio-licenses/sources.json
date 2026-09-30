@@ -1,0 +1,10 @@
+{
+  "revision": "Speed Dreams SVN r9651",
+  "base": "https://svn.code.sf.net/p/speed-dreams/code/!svn/bc/9651/trunk/data/",
+  "files": [
+    { "file": "f1v10.wav", "path": "cars/models/mp1-diamond-r25/f1v10.wav", "sha256": "4ec848701dd8123a450bee27da7715efef708751820e67faaee9fd65cd639e97", "license": "Free Art License 1.3", "credit": "Speed Dreams, Diamond R25 pack; Copyright 2020 Xavier Bertaux" },
+    { "file": "skid_tyres.wav", "path": "data/sound/skid_tyres.wav", "sha256": "da5c521bd98da2c71d189db15e4facb26530163bab92861bd1dbf86177f3d0db", "license": "CC0-1.0", "credit": "LukaCafuka (Freesound 752837), sampling and mixing by Overshot for Speed Dreams" },
+    { "file": "Speed-Dreams-README.txt", "path": "cars/models/mp1-diamond-r25/readme.txt", "sha256": "a88db5e0e7cb429a9c9c8ad41358a04d17c9762aa5c258c129c2698896bd40ee" },
+    { "file": "Speed-Dreams-SoundCredits.txt", "path": "data/sound/SoundCredits.txt", "sha256": "e2a63ec911e96854ad9d7b5dfbb9cce5a9281a2d7d7df412ae9ac1b3c7230938" }
+  ]
+}

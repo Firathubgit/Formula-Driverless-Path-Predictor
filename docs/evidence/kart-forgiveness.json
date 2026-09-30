@@ -1,0 +1,68 @@
+{
+  "decision": "0040",
+  "date": "2026-09-28",
+  "build": "scripts/build.ps1 -Desktop",
+  "regression": {
+    "passed": 33,
+    "total": 33,
+    "seconds": 551.96
+  },
+  "human_driving_groups": 12,
+  "measurements": [
+    {
+      "peak_sideslip_deg": 14.7909,
+      "speed_kmh": 59.5821,
+      "level": 1,
+      "stopping_distance_m": 5.59351
+    },
+    {
+      "peak_sideslip_deg": 0.732298,
+      "speed_kmh": 47.6029,
+      "level": 50,
+      "stopping_distance_m": 2.56153
+    },
+    {
+      "peak_sideslip_deg": 0.183228,
+      "speed_kmh": 42.5715,
+      "level": 70,
+      "stopping_distance_m": 2.31384
+    },
+    {
+      "peak_sideslip_deg": 0.0559601,
+      "speed_kmh": 40.0494,
+      "level": 80,
+      "stopping_distance_m": 2.26872
+    },
+    {
+      "peak_sideslip_deg": 0.00707633,
+      "speed_kmh": 37.5251,
+      "level": 90,
+      "stopping_distance_m": 2.25233
+    },
+    {
+      "peak_sideslip_deg": 0,
+      "speed_kmh": 35,
+      "level": 100,
+      "stopping_distance_m": 2.25
+    }
+  ],
+  "measurement_conditions": "Rental kart, 5 ms ticks, controls held 20 ms; 8 s full throttle; full brake from 9 m/s; 1.5 s at 25% brake and 80% steering from 9 m/s.",
+  "ui_full_suite": {
+    "checks": 744,
+    "passed": true,
+    "seconds": 132.12,
+    "qml_warnings": []
+  },
+  "physical_controller_exercised": false,
+  "final_ui": {
+    "checks": 744,
+    "failure": "",
+    "method": "Actual QML controls, bindings and QQuickWindow captures",
+    "passed": true,
+    "qml_warnings": [],
+    "seconds": 130.37
+  },
+  "inspected_captures": [
+    "build/desktop/ui-evidence/compact-kart-forgiveness.png"
+  ]
+}

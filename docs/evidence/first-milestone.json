@@ -1,0 +1,66 @@
+{
+  "verified_on": "2026-09-13",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "scope": "Internal first lap and grip milestone; replay, ROS and Blender showroom remain future work",
+  "desktop_ctest": {
+    "passed": 3,
+    "total": 3
+  },
+  "headless_ctest": {
+    "passed": 2,
+    "total": 2
+  },
+  "qml_controls": {
+    "checks": 38,
+    "failure": "",
+    "method": "Actual QML controls, bindings and QQuickWindow captures",
+    "passed": true,
+    "qml_warnings": []
+  },
+  "grip_comparison": {
+    "scope": "This preset, 20 m/s cap, same standing start; not a universal monotonicity claim",
+    "source_fingerprint": "2b3fba4eaa8ae1c071a0c12a36938c52254522949787f490f7c4e27b436a599b",
+    "high": {
+      "grip_mu": 1,
+      "first_lap_s": 33.52,
+      "max_cross_track_error_m": 0.266731158981,
+      "max_combined_grip_utilization": 0.685950974649,
+      "planned_braking_station_m": 111.245015466,
+      "first_corner_station_m": 138.159132112,
+      "first_corner_speed_mps": 10.7115734138
+    },
+    "low": {
+      "grip_mu": 0.45,
+      "first_lap_s": 48.26,
+      "max_cross_track_error_m": 0.196932933704,
+      "max_combined_grip_utilization": 0.682299304715,
+      "planned_braking_station_m": 66.3881543913,
+      "first_corner_station_m": 138.159132112,
+      "first_corner_speed_mps": 7.1855418898
+    },
+    "lower_grip_brakes_earlier_by_m": 44.85686107469999
+  },
+  "transient_summary": {
+    "completed": true,
+    "laps": 1,
+    "elapsed_simulation_s": 44.565,
+    "samples": 8914,
+    "max_cross_track_error_m": 0.262131637376,
+    "rms_cross_track_error_m": 0.0658640747961,
+    "max_speed_mps": 19.9602860743,
+    "max_combined_grip_utilization": 1.23772533187,
+    "invalid_samples": 1020,
+    "parameter_events": 1,
+    "lap_crossing_times_s": [
+      44.565
+    ]
+  },
+  "app_capture": "docs/assets/braking.png",
+  "limitations": [
+    "known track and ideal state",
+    "kinematic tire-slip omission",
+    "rear-axle margin is not swept-body collision",
+    "Linux and remote CI unexecuted",
+    "no measured render FPS"
+  ]
+}

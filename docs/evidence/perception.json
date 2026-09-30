@@ -1,0 +1,17 @@
+{
+  "verified_on": "2026-09-26",
+  "reference_host": "Windows x64; MSVC 19.44.35217; SDK 10.0.26100.0; CMake 3.31.6; Qt 6.8.3",
+  "source_fingerprint": "acf7dab6372560aa09d627d0aa7aac92e7a97fc7520b01fac4d06f543ed28245",
+  "headless_ctest": "`scripts/build.ps1`: 28 of 28 CTest suites pass in 688.3 s; no compiler warning.",
+  "desktop_ctest": "`scripts/build.ps1 -Desktop`: 30 of 30 in 723.9 s, the QML controls suite running 615 checks in 115.8 s with no QML warning; no compiler warning.",
+  "qml_controls": "615 checks passed, 0 QML warnings",
+  "recordings": "With this build 397 of the 429 recordings in `out/runs` pass `--check-recording`. Refused: `mpcc-dynamic-laps-mpcc` and `p75c-FSG24-known`, cut off while written; `p62x-dynamic-1789837332`, written before schema 13's dynamic car metadata settled; 28 `p75-`, `p75f-` and `p75g-` layout runs recorded before the cone memory entered the metadata (the final `p75h-*` runs pass); and `p8-profile-electric-race-car`, which names TUM's car with the tire decision 0034 corrected.",
+  "decisions": [
+    "docs/decisions/0030-simulated-cone-perception.md"
+  ],
+  "plan_phases": [
+    "TrackWayFastPlan 7.2 (mock perception: course cones laid along the corridor, a front cone sensor after PacSim's model, simulated detections labelled as such, recorded as schema 15)"
+  ],
+  "measured": "As decision 0030 records, verified when it was accepted: detection 0.952 at 5 m against the model's 0.948 and 0.517 at 35 m against 0.511; colour right 0.970 at 3 m and 0.844 at 14 m; the scatter of detections at 20 m within 2% of the reported covariance; a one-lap dynamic run with --perception 4 gave 335 frames and 4681 detections, every frame reproduced by the check.",
+  "this_build": "fd_cones and fd_perception pass in this build's suites (see headless_ctest and desktop_ctest)."
+}
