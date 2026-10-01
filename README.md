@@ -13,6 +13,8 @@ car accelerates, holds speed, brakes or changes line, and lets you take the whee
 <img width="2858" height="1646" alt="image" src="https://github.com/user-attachments/assets/fcc44681-565f-4124-8109-b84355053b63" />
 
 
+<img width="800" height="458" alt="Racing_Showroom_and_Lap_8s" src="https://github.com/user-attachments/assets/d9a8003e-0f97-462d-9cb0-f6acac6db838" />
+
 
 *A lap in the desktop application, shown at three times speed.*
 
