@@ -5,7 +5,8 @@ car accelerates, holds speed, brakes or changes line, and lets you take the whee
 
 
 
-https://github.com/user-attachments/assets/3a332d19-a724-4757-a7ac-9dc34b104293
+
+
 
 <img width="2864" height="1640" alt="image" src="https://github.com/user-attachments/assets/8881017f-3e37-40cc-a3f7-d45b2615f5ad" />
 
