@@ -157,6 +157,29 @@ void Simulation::feed_driver() {
         for (const auto& frame : perception_->delivered()) cone_driver_->perceive(frame);
 }
 
+void Simulation::set_kart_environment(KartEnvironment environment) {
+    if (tick_!=0 || !std::holds_alternative<FourWheelCar>(model_))
+        throw std::invalid_argument("Kart environment requires a fresh four-wheel run");
+    if (barrier_clearance(environment,plant_.pose,config_)<0)
+        throw std::invalid_argument("The kart's starting bumper overlaps a wall");
+    kart_environment_=std::move(environment);
+}
+
+void Simulation::set_grip_aid(std::optional<double> share, double steering_gain, double coasting_steering_floor_rad) {
+    if (!std::isfinite(coasting_steering_floor_rad) || coasting_steering_floor_rad<0 || coasting_steering_floor_rad>config_.max_steering_rad)
+        throw std::invalid_argument("Coasting steering allowance must be finite and within physical lock");
+    if (!std::isfinite(steering_gain) || steering_gain <= 0)
+        throw std::invalid_argument("The steering gain must be finite and positive");
+    if (share) {
+        if (!(*share > 0 && *share <= 1)) throw std::invalid_argument("The steering aid's share must lie within (0, 1]");
+        if (!std::holds_alternative<FourWheelCar>(model_)) throw std::invalid_argument("The steering aid needs the four-wheel car, whose limits it follows");
+    }
+    aid_share_ = share;
+    aid_steering_gain_ = steering_gain;
+    aid_coasting_steering_floor_rad_ = coasting_steering_floor_rad;
+    if (!share) aid_envelope_.reset();
+}
+
 void Simulation::set_human_driving(bool on) {
     if (on==human_) return;
     if (!on) {
@@ -242,7 +265,8 @@ void Simulation::step() {
     const double previous_steering=plant_.pose.steering_rad;
     const double previous_speed=plant_.pose.speed_mps;
     const double previous_lateral=plant_.lateral_velocity_mps;
-    plant_=human_ ? advance_assisted(model_,plant_,held_command_,config_,config_.fixed_dt_s,assistance_)
+    plant_=human_ && kart_environment_ ? advance_with_barriers(model_,plant_,held_command_,config_,config_.fixed_dt_s,assistance_,*kart_environment_)
+                  : human_ ? advance_assisted(model_,plant_,held_command_,config_,config_.fixed_dt_s,assistance_)
                   : advance(model_,plant_,held_command_,config_,config_.fixed_dt_s);
     ++tick_;
     plant_.pose.time_s=static_cast<double>(tick_)*config_.fixed_dt_s;
@@ -256,7 +280,7 @@ void Simulation::step() {
         std::abs(state.steering_rad-previous_steering)>steering_rate*config_.fixed_dt_s+1e-9;
     diagnostics_.longitudinal_acceleration_mps2=(state.speed_mps-previous_speed)/config_.fixed_dt_s;
     update_diagnostics();
-    if (assistance_active())
+    if (assistance_active() || (human_ && kart_environment_))
         diagnostics_.lateral_acceleration_mps2=(plant_.lateral_velocity_mps-previous_lateral)/config_.fixed_dt_s+
                                               plant_.pose.speed_mps*plant_.yaw_rate_radps;
     // One reading a tick, of the state the tick ended in: a channel faster than the tick would still sample once.
@@ -304,7 +328,19 @@ void Simulation::update_control() {
 
 void Simulation::drive_by_hand() {
     // The decision just made stays as the planner made it, shown and not driven; the person's controls drive.
-    held_command_=human_command(controls_,plant_,model_,config_,assistance_);
+    GripAid aid;
+    if (aid_share_) {
+        // The plan's own envelope when it was derived for this car and grip, else one kept for the aid.
+        if (envelope_ && envelope_->generated_for(model_,config_)) aid.envelope=&*envelope_;
+        else {
+            if (!aid_envelope_ || !aid_envelope_->generated_for(model_,config_)) aid_envelope_.emplace(model_,config_);
+            aid.envelope=&*aid_envelope_;
+        }
+        aid.share=*aid_share_;
+        aid.steering_gain=aid_steering_gain_;
+        aid.coasting_steering_floor_rad=aid_coasting_steering_floor_rad_;
+    }
+    held_command_=human_command(controls_,plant_,model_,config_,assistance_,aid_share_ ? &aid : nullptr);
     diagnostics_.requested=held_command_;
     // Nothing pursued a target: no lookahead, and no correction to geometry.
     diagnostics_.lookahead_m=0;

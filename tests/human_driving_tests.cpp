@@ -374,6 +374,184 @@ void forgiveness_lifecycle_is_transactional() {
     near(simulation.state().x_m,expected.pose.x_m,0,"switching off restores the ordinary integrator from the actual state");
     near(simulation.state().speed_mps,expected.pose.speed_mps,0,"switching off restores ordinary speed response");
 }
+
+// The stick's grip-aware steering (decision 0047): a full tilt turns the wheels no further than the kart holds at its speed.
+struct StickRun { double peak_slip{}, final_lateral{}, final_speed{}; };
+StickRun full_stick(const fd::PerformanceEnvelope* envelope, double share, double speed, double stick) {
+    const auto& profile=fd::vehicle_profile("gokartcentralen-realistic");
+    const auto config=fd::configured_for(profile,fd::Config{});
+    const fd::VehicleModel model=profile.car;
+    auto state=moving(model,config,speed);
+    const fd::GripAid aid{envelope,share};
+    const fd::DriverControls controls{1.0,0,stick};  // the throttle floored: the mistake the aid is for
+    StickRun run;
+    fd::Command command;
+    const double dt=0.005;
+    for (int i=0;i<static_cast<int>(std::lround(4.0/dt));++i) {
+        if (i%4==0) command=fd::human_command(controls,state,model,config,{},envelope ? &aid : nullptr);
+        state=fd::advance(model,state,command,config,dt);
+        run.peak_slip=std::max(run.peak_slip,std::abs(fd::rear_sideslip_rad(state)));
+    }
+    run.final_lateral=std::abs(state.pose.speed_mps*state.yaw_rate_radps);
+    run.final_speed=state.pose.speed_mps;
+    return run;
+}
+
+void realistic_kart_steering_gain_reaches_the_vehicle() {
+    const auto& profile=fd::vehicle_profile("gokartcentralen-realistic");
+    const auto config=fd::configured_for(profile,fd::Config{});
+    const fd::VehicleModel model=profile.car;
+    const fd::PerformanceEnvelope envelope(model,config);
+    const fd::GripAid original{&envelope,0.9}, increased{&envelope,0.9,1.1};
+    for (double speed : {0.0,6.0,10.0,14.0,60/3.6,80/3.6}) {
+        const auto state=moving(model,config,speed);
+        for (double stick : {-1.0,-0.5,0.0,0.5,1.0}) {
+            const fd::DriverControls controls{0.3,0,stick};
+            const auto before=fd::human_command(controls,state,model,config,{},&original);
+            const auto after=fd::human_command(controls,state,model,config,{},&increased);
+            near(after.steering_rad,std::clamp(before.steering_rad*1.1,-fd::human_steering_limit_rad(state,model,config,&increased),fd::human_steering_limit_rad(state,model,config,&increased)),1e-12,
+                 "10 percent stick sensitivity, bounded by the speed-dependent limit");
+            near(after.acceleration_mps2,before.acceleration_mps2,0,"steering gain leaves pedals unchanged");
+        }
+    }
+    fd::Simulation simulation(fd::make_preset_track(),config,model);
+    simulation.set_grip_aid(0.9,1.1);
+    simulation.set_human_driving(true);
+    simulation.set_driver_controls({0,0,0.5});
+    steps(simulation,0.2);
+    near(simulation.state().steering_rad,1.1*std::pow(0.5,1.5)*config.max_steering_rad,1e-12,
+         "the simulation carries the increased command through the steering actuator");
+    for (double bad : {0.0,-1.0,std::numeric_limits<double>::infinity(),std::numeric_limits<double>::quiet_NaN()})
+        rejects<std::invalid_argument>([&]{simulation.set_grip_aid(0.9,bad);},"invalid gain refused");
+}
+
+void realistic_kart_respects_speed_and_tire_limits() {
+    const auto& profile=fd::vehicle_profile("gokartcentralen-realistic");
+    const auto config=fd::configured_for(profile,{});
+    const fd::VehicleModel model=profile.car;
+    const fd::PerformanceEnvelope envelope(model,config);
+    const fd::GripAid aid{&envelope,0.9,1.1};
+    double previous=config.max_steering_rad+1;
+    for (double kmh:{0.0,20.0,40.0,60.0,80.0}) {
+        const auto state=moving(model,config,kmh/3.6);
+        const auto command=fd::human_command({0,0,1},state,model,config,{},&aid);
+        require(command.steering_rad<previous,"full-stick steering decreases with speed");
+        previous=command.steering_rad;
+        std::cout<<"  full stick at "<<kmh<<" km/h: "<<command.steering_rad*180/std::numbers::pi<<" degrees\n";
+    }
+    require(previous<config.max_steering_rad/3,"80 km/h must not allow low-speed lock");
+    // The plant itself must still saturate when asked beyond its tires. Seed 80
+    // km/h deliberately, rather than making the kart accelerate past its motor limit.
+    for (double sign:{-1.0,1.0}) {
+        auto state=moving(model,config,80/3.6);
+        bool slipped=false;
+        for (int i=0;i<100;++i) {
+            state=fd::advance(model,state,{0,sign*config.max_steering_rad},config,0.005);
+            slipped=slipped || !fd::envelope(model,state,config,0).within;
+        }
+        const double rolling=state.pose.speed_mps*std::tan(state.pose.steering_rad)/config.wheelbase_m;
+        std::cout<<"  80 km/h physical lock: yaw "<<state.yaw_rate_radps<<", no-slip yaw "<<rolling<<" rad/s\n";
+        require(slipped,"excessive high-speed lock must exceed tire grip");
+        require(std::abs(state.yaw_rate_radps)<std::abs(rolling)*0.6,"plant must not force high-speed no-slip turning");
+    }
+    auto state=moving(model,config,0);
+    for (int i=0;i<4000;++i) {
+        const auto command=fd::human_command({1,0,0},state,model,config,{},&aid);
+        state=fd::advance(model,state,command,config,0.005);
+        require(state.pose.speed_mps<=profile.car.max_drive_speed_mps+0.01,"motor limit exceeded under full throttle");
+    }
+    std::cout<<"  20 s full throttle: "<<state.pose.speed_mps*3.6<<" km/h\n";
+    require(state.pose.speed_mps>14,"speed-limit check must exercise the motor's upper range");
+}
+
+void coasting_opens_steering_without_adding_grip() {
+    const auto& profile=fd::vehicle_profile("gokartcentralen-realistic");
+    const auto config=fd::configured_for(profile,{});
+    const fd::VehicleModel model=profile.car;
+    const fd::PerformanceEnvelope envelope(model,config);
+    const double coast_floor=17*std::numbers::pi/180;
+    const fd::GripAid aid{&envelope,0.9,1.1,coast_floor};
+    for (double kmh:{0.0,20.0,40.0,60.0,80.0}) for (double sign:{-1.0,1.0}) {
+        const auto state=moving(model,config,kmh/3.6);
+        const double base=fd::human_steering_limit_rad(state,model,config,&aid);
+        const auto coast=fd::human_command({0,0,sign},state,model,config,{},&aid);
+        near(sign*coast.steering_rad,std::max(base,coast_floor),1e-12,"coasting allows at least 17 degrees, bounded by physical lock");
+        double previous=std::abs(coast.steering_rad);
+        for (int i=1;i<=25;++i) {
+            const double pedal=i/100.0;
+            const auto gas=fd::human_command({pedal,0,sign},state,model,config,{},&aid);
+            const auto brake=fd::human_command({0,pedal,sign},state,model,config,{},&aid);
+            near(gas.steering_rad,brake.steering_rad,0,"either pedal restores the same steering bound");
+            require(std::abs(gas.steering_rad)<=previous+1e-12,"steering closes progressively with pedal travel");
+            require(previous-std::abs(gas.steering_rad)<0.02,"no abrupt pedal steering jump");
+            previous=std::abs(gas.steering_rad);
+        }
+        near(previous,base,1e-12,"quarter pedal restores the ordinary speed limit");
+    }
+    auto state=moving(model,config,80/3.6);
+    bool slipped=false;
+    for (int i=0;i<100;++i) {
+        const auto command=fd::human_command({0,0,1},state,model,config,{},&aid);
+        state=fd::advance(model,state,command,config,0.005);
+        slipped=slipped || !fd::envelope(model,state,config,0).within;
+    }
+    require(slipped,"extra coast wheel travel must not invent extra grip at 80 km/h");
+    fd::Simulation simulation(fd::make_preset_track(),config,model);
+    simulation.set_grip_aid(0.9,1.1,coast_floor);
+    for (double bad:{-0.1,config.max_steering_rad+0.01,std::numeric_limits<double>::quiet_NaN()})
+        rejects<std::invalid_argument>([&]{simulation.set_grip_aid(0.9,1.1,bad);},"invalid coast allowance refused");
+}
+
+void the_grip_aid_keeps_the_stick_and_pedals_inside_the_grip() {
+    const auto& profile=fd::vehicle_profile("gokartcentralen-realistic");
+    const auto config=fd::configured_for(profile,fd::Config{});
+    const fd::VehicleModel model=profile.car;
+    const fd::PerformanceEnvelope envelope(model,config);
+    const fd::GripAid aid{&envelope,0.9};
+    for (const double speed : {5.0,6.0,8.0,10.0,14.0}) {
+        const auto state=moving(model,config,speed);
+        const double plain=fd::human_steering_limit_rad(state,model,config), aided=fd::human_steering_limit_rad(state,model,config,&aid);
+        std::cout << "  at " << speed << " m/s a full stick steers " << plain << " rad, with the aid " << aided << " rad\n";
+        require(aided <= plain+1e-12, "the aid only ever takes steering away, at "+std::to_string(speed)+" m/s");
+        if (speed <= 6) require(aided < plain-0.02, "in the hairpins the aid is what keeps a full stick inside the kart's grip, at "+std::to_string(speed)+" m/s");
+    }
+    // The pedals: on a straight the aid leaves them as they were; mid-corner a floored throttle and a floored brake ask for
+    // less than the plant has left beside the cornering it is doing.
+    {
+        const auto straight=moving(model,config,9);
+        const fd::DriverControls floor_throttle{1,0,0}, floor_brake{0,1,0};
+        // A floored pedal asks for all the grip, far more than 10 kW can deliver; the aid caps what is asked at what the plant
+        // can give, so the plant's response is the same, and a gentler pedal is not changed at all.
+        require(fd::human_command(floor_throttle,straight,model,config,{},&aid).acceleration_mps2 >= envelope.forward_limit(9,0)-1e-9,
+                "a straight leaves the plant all it can deliver");
+        const fd::DriverControls gentle{0.2,0,0};
+        near(fd::human_command(gentle,straight,model,config,{},&aid).acceleration_mps2,fd::human_command(gentle,straight,model,config).acceleration_mps2,0,"a gentle pedal on a straight is not changed");
+        auto turning=moving(model,config,9);
+        turning.yaw_rate_radps=0.95;  // 8.5 m/s^2 of cornering
+        const double throttle_plain=fd::human_command(floor_throttle,turning,model,config).acceleration_mps2, throttle_aided=fd::human_command(floor_throttle,turning,model,config,{},&aid).acceleration_mps2;
+        const double brake_plain=fd::human_command(floor_brake,turning,model,config).acceleration_mps2, brake_aided=fd::human_command(floor_brake,turning,model,config,{},&aid).acceleration_mps2;
+        std::cout << "  cornering at 8.5 m/s^2 at 9 m/s: a floored throttle asks " << throttle_plain << " m/s^2 plain, " << throttle_aided << " aided; a floored brake "
+                  << brake_plain << " and " << brake_aided << "\n";
+        require(throttle_aided < throttle_plain && throttle_aided >= 0, "mid-corner the aided throttle asks for less");
+        require(brake_aided > brake_plain && brake_aided < 0, "mid-corner the aided brake asks for less, and still brakes");
+    }
+    // Off, or without an envelope, nothing changes, bit for bit.
+    const auto state=moving(model,config,8);
+    const fd::GripAid none{nullptr,0.9};
+    near(fd::human_steering_limit_rad(state,model,config,&none),fd::human_steering_limit_rad(state,model,config),0,"no envelope, no aid");
+    for (const double bad : {0.0,-0.1,1.5,std::numeric_limits<double>::quiet_NaN()}) {
+        const fd::GripAid invalid{&envelope,bad};
+        rejects<std::invalid_argument>([&]{fd::human_steering_limit_rad(state,model,config,&invalid);},"an aid share outside (0, 1] is refused");
+    }
+    // What it is for: a full tilt held through a corner. Without the aid the kart's rear steps out; with it, the kart keeps
+    // its grip and turns as hard as it can hold.
+    for (const double speed : {6.0,9.0}) {
+        const auto plain=full_stick(nullptr,0.9,speed,1.0), aided=full_stick(&envelope,0.9,speed,1.0);
+        std::cout << "  full stick held 4 s from " << speed << " m/s: rear sideslip peaks at " << plain.peak_slip << " rad plain, " << aided.peak_slip
+                  << " rad aided; lateral " << plain.final_lateral << " and " << aided.final_lateral << " m/s^2\n";
+        require(aided.peak_slip < plain.peak_slip,"the aided kart's rear steps out less than the plain kart's");
+    }
+}
 } // namespace
 
 int main() {
@@ -391,6 +569,10 @@ int main() {
         {"forgiveness_measurably_changes_driving", forgiveness_measurably_changes_driving},
         {"manual_forgiveness_controls_are_independent_and_effective", manual_forgiveness_controls_are_independent_and_effective},
         {"forgiveness_lifecycle_is_transactional", forgiveness_lifecycle_is_transactional},
+        {"the_grip_aid_keeps_the_stick_and_pedals_inside_the_grip", the_grip_aid_keeps_the_stick_and_pedals_inside_the_grip},
+        {"realistic_kart_steering_gain_reaches_the_vehicle", realistic_kart_steering_gain_reaches_the_vehicle},
+        {"realistic_kart_respects_speed_and_tire_limits", realistic_kart_respects_speed_and_tire_limits},
+        {"coasting_opens_steering_without_adding_grip", coasting_opens_steering_without_adding_grip},
     };
     int failures = 0;
     for (const auto& [name, test] : tests) {

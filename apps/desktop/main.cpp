@@ -3,10 +3,15 @@
 #include "live_cars.hpp"
 #include "showroom.hpp"
 #include "track_geometry.hpp"
+#include "graphics_device.hpp"
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickWindow>
+#include <QQuickItem>
+#include <QQuickItemGrabResult>
+#include <QPainter>
+#include <QScreen>
 #include <QQuickStyle>
 #include <QFileInfo>
 #include <QDir>
@@ -20,6 +25,7 @@
 #include <algorithm>
 
 void scheduleUiVerification(QGuiApplication&, QQmlApplicationEngine&, Bridge&, const QString&, QStringList&, bool&);
+void scheduleKartBenchmark(QGuiApplication&, QQmlApplicationEngine&, Bridge&, const QString&);
 void scheduleShowroomVerification(QGuiApplication&, QQmlApplicationEngine&, Bridge&, Showroom&, const QString&, QStringList&, bool&);
 
 int main(int argc,char** argv) {
@@ -87,6 +93,8 @@ int main(int argc,char** argv) {
         QTextStream(stderr) << "fd_desktop: --kart: " << bridge.status() << '\n';
         return 5;
     }
+    // A person at the wheel from the start, for captures of what the driver sees (decision 0037).
+    if(args.contains("--you")) bridge.setHumanDriving(true);
     const int at=args.indexOf("--at-time");
     if(at>=0) {
         bool okay=false;
@@ -94,7 +102,38 @@ int main(int argc,char** argv) {
         if(!okay || !std::isfinite(time) || time<0 || time>600)return 4;
         bridge.advanceForCapture(time);
     }
+    // The run advanced until the car reaches a station of its lap, for captures of a place rather than a time: the plant
+    // drives there tick by tick as in any run, for at most three minutes of it.
+    const int station=args.indexOf("--at-station");
+    if(station>=0) {
+        bool okay=false;
+        const double metres=station+1<args.size()?args[station+1].toDouble(&okay):-1;
+        if(!okay || !std::isfinite(metres) || metres<0 || metres>=bridge.trackLength()) {
+            QTextStream(stderr) << "--at-station needs a station of the lap in metres, from 0 to under its length\n";
+            return 4;
+        }
+        const auto arrived=[&] {
+            const double ahead=bridge.progress()*bridge.trackLength()-metres;
+            return ahead>=0 && ahead<5;
+        };
+        for(double run=0;run<180 && !arrived();run+=0.02) bridge.advanceForCapture(0.02);
+        if(!arrived()) {
+            QTextStream(stderr) << "--at-station: the car did not reach that station within three minutes\n";
+            return 4;
+        }
+    }
     if(args.contains("--overview")) bridge.setOverview(true);
+    // The camera, for captures: 0 follow, 1 overview, 2 the driver's eyes.
+    const int camera=args.indexOf("--camera");
+    if(camera>=0) {
+        bool okay=false;
+        const int value=camera+1<args.size()?args[camera+1].toInt(&okay):-1;
+        if(!okay || value<0 || value>2) {
+            QTextStream(stderr) << "--camera needs 0 (follow), 1 (overview) or 2 (driver's eyes)\n";
+            return 4;
+        }
+        bridge.setCameraMode(value);
+    }
     if(args.contains("--coupe")) bridge.setAppearance(1);
     // Which car is drawn at the plant's pose, as the showroom would choose it: presentation only.
     const int look=args.indexOf("--appearance");
@@ -111,7 +150,7 @@ int main(int argc,char** argv) {
     if(media >= 0 && media + 1 >= args.size()) { QTextStream(stderr) << "--showroom-media needs a media directory\n"; return 4; }
     Showroom showroom(media >= 0 ? args[media + 1] : QStringLiteral(FD_SHOWROOM_MEDIA));
     QObject::connect(&showroom, &Showroom::selected, &bridge, &Bridge::setAppearance);
-    const bool silentAudio=args.contains("--verify-ui") || args.contains("--verify-showroom") || args.contains("--capture") || args.contains("--capture-showroom");
+    const bool silentAudio=args.contains("--verify-ui") || args.contains("--verify-showroom") || args.contains("--capture") || args.contains("--capture-scene") || args.contains("--capture-showroom");
     RaceAudio sound(!silentAudio,silentAudio ? testPresets.filePath("sound.ini") : QString{});
     const auto followSound=[&] {
         race_sound::Frame frame;
@@ -149,6 +188,14 @@ int main(int argc,char** argv) {
     LiveCars liveCars(liveCarsDirectory >= 0 ? args[liveCarsDirectory + 1] : QStringLiteral(FD_LIVE_CARS));
     QObject::connect(&bridge, &Bridge::modeChanged, &showroom, [&] { if(bridge.replay()) showroom.bypass(); });
     QQmlApplicationEngine engine;
+    QObject::connect(&engine,&QQmlApplicationEngine::objectCreated,&app,[&bridge](QObject* object,const QUrl&) {
+        if (auto* window=qobject_cast<QQuickWindow*>(object)) {
+            configureGraphicsDevice(*window);
+            const auto refresh=[&bridge](QScreen* screen) { bridge.setDisplayRefreshRate(screen ? screen->refreshRate() : 60); };
+            refresh(window->screen());
+            QObject::connect(window,&QWindow::screenChanged,&bridge,refresh);
+        }
+    });
     QStringList qml_warnings;
     QObject::connect(&engine,&QQmlApplicationEngine::warnings,&app,[&](const QList<QQmlError>& errors) {
         for(const auto& e:errors)qml_warnings.append(e.toString());
@@ -161,9 +208,17 @@ int main(int argc,char** argv) {
     if(engine.rootObjects().isEmpty())return 1;
     const bool captureShowroom = args.contains("--capture-showroom");
     const int verifyShowroom = args.indexOf("--verify-showroom");
-    if(!bridge.replay() && (captureShowroom || (!args.contains("--verify-ui") && !args.contains("--at-time") && !args.contains("--capture") && !args.contains("--skip-showroom"))))
+    if(!bridge.replay() && (captureShowroom || (!args.contains("--verify-ui") && !args.contains("--at-time") && !args.contains("--at-station") && !args.contains("--capture") && !args.contains("--capture-scene") && !args.contains("--skip-showroom"))))
         showroom.open();
     const int verify=args.indexOf("--verify-ui");
+    const int benchmark=args.indexOf("--benchmark-kart");
+    if (benchmark>=0) {
+        if (benchmark+1>=args.size()) return 4;
+        showroom.bypass();
+        bridge.setKartMode(true);
+        bridge.setHumanDriving(true);
+        scheduleKartBenchmark(app,engine,bridge,QFileInfo(args[benchmark+1]).absoluteFilePath());
+    }
     bool ui_verified=false;
     if(verify>=0 && verify+1<args.size())
         scheduleUiVerification(app,engine,bridge,QFileInfo(args[verify+1]).absoluteFilePath(),qml_warnings,ui_verified);
@@ -177,6 +232,33 @@ int main(int argc,char** argv) {
             QDir().mkpath(QFileInfo(path).absolutePath());
             const bool saved=window && window->grabWindow().save(path);
             app.exit(saved?0:2);
+        });
+    }
+    // The driving scene alone, without the display drawn over it, at 1920 pixels wide: for comparing what is drawn with a
+    // photograph or a film of the place. The road is seen through a little, so the scene is laid over the window's backdrop.
+    const int captureScene=args.indexOf("--capture-scene");
+    if(captureScene>=0 && captureScene+1<args.size()) {
+        const QString path=QFileInfo(args[captureScene+1]).absoluteFilePath();
+        QTimer::singleShot(1800,&app,[&app,&engine,path] {
+            auto* window=qobject_cast<QQuickWindow*>(engine.rootObjects().first());
+            auto* view=window ? window->findChild<QQuickItem*>("drivingView") : nullptr;
+            if(!view || view->width()<=0) { app.exit(2); return; }
+            const QSize size(1920,static_cast<int>(std::lround(1920*view->height()/view->width())));
+            const auto grab=view->grabToImage(size);
+            if(!grab) { app.exit(2); return; }
+            QObject::connect(grab.data(),&QQuickItemGrabResult::ready,&app,[&app,grab,path,size] {
+                // On a display scaled above 100% the grab is that much larger, in its own device pixels; it is brought to size.
+                QImage scene=grab->image();
+                scene.setDevicePixelRatio(1);
+                if(scene.size()!=size) scene=scene.scaled(size,Qt::IgnoreAspectRatio,Qt::SmoothTransformation);
+                QImage flat(scene.size(),QImage::Format_RGB32);
+                flat.fill(QColor("#08090b"));
+                QPainter painter(&flat);
+                painter.drawImage(0,0,scene);
+                painter.end();
+                QDir().mkpath(QFileInfo(path).absolutePath());
+                app.exit(flat.save(path)?0:2);
+            });
         });
     }
     const int code=app.exec();

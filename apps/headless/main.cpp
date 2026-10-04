@@ -58,6 +58,7 @@ struct Options {
     std::optional<std::filesystem::path> course_file;   // a PacSim layout instead of the preset
     std::optional<fd::Discipline> discipline;           // a trackdrive unless stated
     std::optional<std::string> profile;                 // a physics profile instead of a plant's defaults
+    std::vector<std::pair<std::string,double>> car_set; // values of the four-wheel car tuned one by one (decision 0046)
     bool plant_given{};
     std::optional<std::filesystem::path> track_file;
     std::optional<double> track_width, track_smoothing;
@@ -207,6 +208,9 @@ Options parse(int argc,char** argv) {
                          "--course drives a Formula Student layout in PacSim's track format instead of the preset: its cones\n"
                          "as laid, its centreline traced between them and conditioned, its corridor the cones' own, and its\n"
                          "timekeeping gates. PacSim's layouts are read from where they are and never copied here.\n"
+                         "--car-set NAME=VALUE (repeatable) tunes one value of the four-wheel car or its configuration after the profile or\n"
+                         "setup flags, such as tires.peak_friction_lateral_low=1.1, max_brake_torque_nm=120 or max_steering_rad=0.6; a tuned\n"
+                         "car no longer names its profile. An unknown name lists the valid ones.\n"
                          "--profile builds the four-wheel car from a documented physics profile (decision 0033): Limebeer's\n"
                          "Formula One car, PacSim's and MPCC's Formula Student car, TUM's example electric race car, Lot's\n"
                          "racing kart, the Sodi RSX2 rental kart Gokartcentralen Göteborg runs (decision 0038; drive it on\n"
@@ -244,6 +248,11 @@ Options parse(int argc,char** argv) {
         else if (flag=="--check-optimal-lap") options.optimal_check=value;
         else if (flag=="--obstruct") options.obstructions.push_back(parse_obstruction(value));
         else if (flag=="--profile") options.profile=value;
+        else if (flag=="--car-set") {
+            const auto equals=value.find('=');
+            if (equals==std::string::npos || equals==0) throw std::invalid_argument("--car-set takes NAME=VALUE, such as tires.peak_friction_lateral_low=1.1");
+            options.car_set.emplace_back(value.substr(0,equals),number(value.substr(equals+1)));
+        }
         else if (flag=="--plant") {
             options.plant_given=true;
             if (value=="kinematic") options.model=fd::KinematicBicycle{};
@@ -376,6 +385,13 @@ Options parse(int argc,char** argv) {
         options.model=profile.car;
         options.config=fd::configured_for(profile,options.config);
         options.request.vehicle_profile=profile.id;
+    }
+    if (!options.car_set.empty()) {
+        auto* four=std::get_if<fd::FourWheelCar>(&options.model);
+        if (!four) throw std::invalid_argument("--car-set tunes the four-wheel car; give --profile or --plant four-wheel");
+        for (const auto& [name,value] : options.car_set) fd::set_car_value(*four,options.config,name,value);
+        // A tuned car is no longer the profile it began as, and a recording must not claim it is.
+        options.request.vehicle_profile.clear();
     }
     if (options.soft_front) {
         if (!std::holds_alternative<fd::DynamicSingleTrack>(options.model))

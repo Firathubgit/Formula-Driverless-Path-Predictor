@@ -114,6 +114,16 @@ TirePeak tire_peak(const TireParameters& tire, double load) {
     return TireAtLoad(tire, load).peak();
 }
 
+double TireAtLoad::longitudinal_force(double slip_ratio, double slip_angle_rad) const {
+    if (!std::isfinite(slip_ratio) || !std::isfinite(slip_angle_rad))
+        throw std::invalid_argument("Tire force requires finite slip ratio and slip angle");
+    const double kappa_n = slip_ratio/peak_.slip_ratio;
+    const double alpha_n = slip_angle_rad/peak_.slip_angle_rad;
+    const double rho = std::hypot(kappa_n, alpha_n);
+    const double longitudinal = curve_over_rho(shape_longitudinal_, stiffness_longitudinal_, rho);
+    return peak_.friction_longitudinal*load_n_*longitudinal*kappa_n;
+}
+
 TireForce tire_force(const TireParameters& tire, double slip_ratio, double slip_angle_rad, double load) {
     validate_tire(tire);
     if (!std::isfinite(slip_ratio) || !std::isfinite(slip_angle_rad) || !std::isfinite(load))

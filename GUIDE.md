@@ -12,6 +12,24 @@ three-second prediction, the status line says what the car brakes for and where,
 The driver's display of [decision 0035](docs/decisions/0035-drivers-display.md); the feature screenshots further down
 predate it and show the earlier layout of the same readouts, whose controls now open from the dock.*
 
+## Desktop performance checks
+
+On Windows, the desktop selects the high-performance hardware GPU before Qt creates its rendering device, using
+[DXGI's preference order](https://learn.microsoft.com/en-us/windows/win32/api/dxgi1_6/nf-dxgi1_6-idxgifactory6-enumadapterbygpupreference)
+and [Qt's adapter selection](https://doc.qt.io/qt-6.8/qquickgraphicsdevice.html#fromAdapter). It keeps explicit Qt backend/adapter
+overrides; set `FD_DEFAULT_GPU=1` in the launching process to retain Qt's default selection for comparison.
+Display updates follow the monitor refresh rate (4–16 ms wakeups); physics and control still run on their original fixed ticks.
+Hidden dynamic scene layers build their latest geometry when shown. Visible detail, MSAA, reflections and physics are unchanged.
+The minimap keeps its static circuit image and paints moving markers separately; a hidden speed chart refreshes when shown.
+Forecasts validate their unchanging reference once, and wheel-speed solves evaluate only the longitudinal component of the
+same combined-slip tire law. Neither change shortens the prediction horizon or changes integration/solver tolerances.
+
+`./scripts/run.ps1 --kart --camera 2 --skip-showroom --benchmark-kart out/performance/my-run` runs a repeatable local check:
+240 fixed batches (3.6 simulation seconds) with scripted controls, then 10 seconds of live driving. It disables controller input
+for that process, writes the sampled true poses and CPU/frame measurements to `benchmark.json`, captures `scene.png` and exits.
+Frame intervals are observed on the GUI thread; the separate render statistics describe the renderer. Run without other builds
+or tests for timing comparisons. The scripted steering is a workload, not a clean lap or a measurement of controller feel.
+
 ## What runs
 
 - One 507.56 m preset circuit, a kinematic bicycle and an autonomous lap using Pure Pursuit, and in the
@@ -97,6 +115,34 @@ predate it and show the earlier layout of the same readouts, whose controls now 
   with seven virtual gears, upshift cuts, downshift blips and quiet road noise. The kart's full-lap clock triggers a pling or a
   rising session-best chime. Master volume, engine/tire and cue switches are remembered locally. These gears
   affect sound only; the vehicle physics stays the same (decisions 0044, 0045).
+- The gokart's rental kart is fitted to the poster's coloured line (decision 0046): a kart with a grip of 1.0, as the earlier
+  one had, laps that line in 34.1 s in a quasi-steady-state model (the operator's own standard for a quick kart is 34.0 s) and
+  matches the poster's gas, coast and brake to within 3 m over 95% of the lap, but the plant gave only 37.5 s and spun at its
+  limit. The fitted kart's tires grip 1.35 sideways and 1.0 along and its steering is a kart's quick 3 rad/s: the plant laps the
+  poster's line in 34.5 s at its limit, 36.1 s at nine tenths of it (about a good driver's 36.4 s) and 38.5 s at four fifths.
+  Settings has a Realistic kart switch under Gokart (on by default) back to the earlier kart; `tools/kart/` re-checks the fit.
+  Desktop Realistic kart now has **40% more tire grip** than that fitted reference: 1.89 sideways and 1.4 along,
+  using the same slip model. Total mass remains 261 kg (186 kg kart + 75 kg driver). This chosen driving tune
+  is separate from the offline lap fit above (decision 0055). Stick sensitivity is increased only 10%, within the grip aid's
+  speed-dependent steering limit: full lock at walking pace, progressively less at speed. Steering gain cannot exceed
+  that limit; no forced no-slip response is applied (decision 0053). Coasting now permits at least
+  **17 degrees** of front-wheel travel at every speed, still bounded by physical lock. Either pedal smoothly returns to
+  the tighter speed-based limit over its first quarter travel. More wheel travel adds no tire grip (decision 0054).
+- The kart's lap clock times every lap by progress along the track, so a lap cut inside, run wide or driven on any line is timed when
+  it is done, and no lap reads as two (decision 0048).
+- Gokart mode's **Coach cues** card tells the driver what to do next from the poster's coloured line: GAS, LIFT, BRAKE with the metres to
+  the brake zone, TURN IN, APEX NOW, which corner (T1 to T10) and which way, and the wheel angle the bend asks for against yours. The
+  first-person view shows a kart's steering wheel turned with the front wheels; the seat vibrates with the road and the tires' scrub, and the
+  controller's motors with it. A light road hum remains while coasting; stronger feedback follows the tires' actual combined
+  slip near/beyond their peak, including braking and acceleration, rather than lateral acceleration alone (decision 0054).
+  The hall is drawn round the track, with barriers, kerbs and the banked ninth bend (decisions 0049, 0050); the
+  banking and vibration remain drawing. During human kart driving the full bumper collides with the track barriers,
+  hall walls and ground-level architecture: impacts stop or scrape along them. Hiding the hall does not disable contact.
+- The hall is Gokartcentralen's own as an onboard video of a lap shows it (decision 0051): a polished dark floor in which every lamp
+  stands as a streak, black twin-tube barriers red-rimmed inside the bends, green islands, the red gallery and footbridge at the start
+  straight, the timing board at the end of the west straight, the hairpin's coloured blocks, the fence and round deck at the banked
+  bend. Drawn from scratch and not measured. To lay the drawing beside a photograph or film of the place,
+  `./scripts/run.ps1 --kart --camera 2 --at-station 314 --capture-scene out/t9.png` saves the driver's view at the ninth corner.
 - Physics profiles for the four-wheel car from named sources, a Formula One car, a Formula Student car, TUM's electric
   race car and a racing kart, with every value marked published, derived, fitted or chosen.
 - The theoretical best lap: a car's minimum-time lap of the corridor solved offline by fastest-lap, checked as a

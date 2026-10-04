@@ -1,17 +1,21 @@
 #pragma once
 #include "assistance_presets.hpp"
+#include "fd/kart_coach.hpp"
 #include "fd/lattice.hpp"
 #include "fd/optimal_lap.hpp"
 #include "fd/performance_envelope.hpp"
 #include "fd/recording.hpp"
 #include "fd/setup.hpp"
+#include "fd/track_relief.hpp"
 #include "fd/trajectory.hpp"
 #include "gamepad.hpp"
+#include "kart_hall.hpp"
 #include <QColor>
 #include <QObject>
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QVariantList>
+#include <QVector4D>
 #include <cmath>
 #include <memory>
 #include <mutex>
@@ -178,6 +182,7 @@ class Bridge : public QObject {
     Q_PROPERTY(QString envelopeFingerprint READ envelopeFingerprint NOTIFY updated)
     Q_PROPERTY(QVariantList envelopeBoundary READ envelopeBoundary NOTIFY updated)
     Q_PROPERTY(double ggLateral READ ggLateral NOTIFY updated)
+    Q_PROPERTY(double kartTireScrub READ kartTireScrub NOTIFY updated)
     Q_PROPERTY(double ggLongitudinal READ ggLongitudinal NOTIFY updated)
     Q_PROPERTY(double steeringCorrectionDegrees READ steeringCorrectionDegrees NOTIFY updated)
     Q_PROPERTY(int lineMode READ lineMode NOTIFY modeChanged)
@@ -197,6 +202,9 @@ class Bridge : public QObject {
     // Gokart mode (decision 0038): the Gokartcentralen Göteborg track with its rental kart, and the car's wheelbase, which
     // the scene draws the kart-sized car at.
     Q_PROPERTY(bool kartMode READ kartMode NOTIFY modeChanged)
+    // Which rental kart gokart mode drives (decision 0046): the one fitted to the poster's line and a real driver's lap, or
+    // the earlier one with every tire at a grip of 1.
+    Q_PROPERTY(bool realisticKart READ realisticKart NOTIFY modeChanged)
     Q_PROPERTY(bool forgivenessEnabled READ forgivenessEnabled NOTIFY updated)
     Q_PROPERTY(double forgivenessLevel READ forgivenessLevel NOTIFY updated)
     Q_PROPERTY(bool forgivenessManual READ forgivenessManual NOTIFY updated)
@@ -205,6 +213,28 @@ class Bridge : public QObject {
     Q_PROPERTY(QString presetMessage READ presetMessage NOTIFY presetsChanged)
     Q_PROPERTY(bool forgivenessActive READ forgivenessActive NOTIFY updated)
     Q_PROPERTY(double wheelbase READ wheelbase NOTIFY modeChanged)
+    // The kart coach (decision 0049): the poster line's own corners and what it asks of the driver at the car's place on it,
+    // updated with every frame. Advice read from the car's pose, never an input to anything that drives.
+    Q_PROPERTY(bool coachAvailable READ coachAvailable NOTIFY updated)
+    Q_PROPERTY(int coachCall READ coachCall NOTIFY updated)
+    Q_PROPERTY(int coachCorner READ coachCorner NOTIFY updated)
+    Q_PROPERTY(int coachDirection READ coachDirection NOTIFY updated)
+    Q_PROPERTY(bool coachInCorner READ coachInCorner NOTIFY updated)
+    Q_PROPERTY(double coachToTurnIn READ coachToTurnIn NOTIFY updated)
+    Q_PROPERTY(double coachToApex READ coachToApex NOTIFY updated)
+    Q_PROPERTY(double coachToBrake READ coachToBrake NOTIFY updated)
+    Q_PROPERTY(double coachAdvisedSteeringDegrees READ coachAdvisedSteeringDegrees NOTIFY updated)
+    Q_PROPERTY(double coachOffset READ coachOffset NOTIFY updated)
+    Q_PROPERTY(int coachCorners READ coachCorners NOTIFY modeChanged)
+    // The ground under the kart (decision 0050): how high the banked bend lifts it and how it tilts, for drawing only.
+    Q_PROPERTY(double groundHeight READ groundHeight NOTIFY updated)
+    Q_PROPERTY(double groundRollDegrees READ groundRollDegrees NOTIFY updated)
+    // Where the kart hall's walls stand and its lamps hang (decision 0051), for the floor's reflections of them: the walls as
+    // (min x, min z, max x, max z) and the lamps as (first x, first z, spacing in x, spacing in z), in the scene's coordinates.
+    Q_PROPERTY(QVector4D hallBounds READ hallBounds NOTIFY modeChanged)
+    Q_PROPERTY(QVector4D hallLampGrid READ hallLampGrid NOTIFY modeChanged)
+    Q_PROPERTY(double hallLampHeight READ hallLampHeight NOTIFY modeChanged)
+    Q_PROPERTY(bool controllerRumble READ controllerRumble WRITE setControllerRumble NOTIFY driverChanged)
 public:
     explicit Bridge(QObject* parent = nullptr, QString presetsPath = {});
     bool running() const { return running_; }
@@ -440,6 +470,7 @@ public:
     // What the plant asks of its tires: live from the simulation, in replay derived from the recorded
     // plant state through the vehicle seam. Slip angles are zero for the kinematic bicycle.
     fd::Demand tireDemand() const;
+    double kartTireScrub() const { return kartMode() ? tire_scrub_for(tireDemand()) : 0; }
     double frontSlipDegrees() const { return tireDemand().front_slip_angle_rad*180/std::numbers::pi; }
     double rearSlipDegrees() const { return tireDemand().rear_slip_angle_rad*180/std::numbers::pi; }
     double frontPeakSlipDegrees() const { return tireDemand().front_peak_slip_angle_rad*180/std::numbers::pi; }
@@ -606,12 +637,20 @@ public:
     double driverSteering() const { return simulation_.driver_controls().steering; }
     // Reads the controller every frame unless off; the verification turns it off, so the controls it gives stand.
     void setGamepadEnabled(bool on) { gamepad_enabled_ = on; if (!on) pad_ = {}; }
+    // Presentation wakeups follow the display. Physics and control retain their fixed simulation ticks.
+    void setDisplayRefreshRate(double hz);
     // Gokart mode (decision 0038): a fresh run on the Gokartcentralen Göteborg track, traced from its published poster (400 m,
     // 6 m wide, clockwise), with the Sodi RSX2 rental kart's profile, judged on its laps and excursions without cones, as its
     // barriers make it. Whoever drives keeps the car; the car, control, plan and line stay the kart's until the mode is
     // left, which returns the track, car and configuration it came from. Live only, while paused.
     Q_INVOKABLE bool setKartMode(bool on);
     bool kartMode() const { return !playback_ && kart_mode_; }
+    // The realistic kart, fitted so that it laps the poster's line in about 34.5 s at its limit and in 36 to 38 s at nine
+    // tenths to four fifths of it, which is a good to an average driver's lap there, or the earlier rental kart. On by
+    // default. Chosen before the mode it is a setting of the next run; in the mode it is another kart, so the run starts
+    // afresh as leaving the mode and entering it again would, and its practice session with it. Live only, while paused.
+    Q_INVOKABLE bool setRealisticKart(bool on);
+    bool realisticKart() const { return realistic_kart_; }
     Q_INVOKABLE bool setForgiveness(bool enabled, double level);
     Q_INVOKABLE bool setForgivenessManual(bool manual, double acceleration, double braking, double steering, double grip, double speed);
     bool forgivenessManual() const { return simulation_.requested_driving_assistance().manual; }
@@ -625,6 +664,29 @@ public:
     double forgivenessLevel() const { return simulation_.requested_driving_assistance().level; }
     bool forgivenessActive() const { return kartMode() && simulation_.assistance_active(); }
     double wheelbase() const { return config().wheelbase_m; }
+    // Whether the car is on or beside the poster line, with the coach reading it.
+    bool coachAvailable() const { return kartMode() && coach_ && cues_.located; }
+    int coachCall() const { return static_cast<int>(cues_.call); }  // 0 gas, 1 lift, 2 brake, 3 turn in, 4 apex
+    int coachCorner() const { return cues_.corner; }
+    int coachDirection() const { return cues_.direction; }
+    bool coachInCorner() const { return cues_.in_corner; }
+    double coachToTurnIn() const { return cues_.to_turn_in_m; }
+    double coachToApex() const { return cues_.to_apex_m; }
+    double coachToBrake() const { return cues_.to_brake_m; }
+    double coachAdvisedSteeringDegrees() const { return cues_.advised_steering_rad*180/std::numbers::pi; }
+    double coachOffset() const { return cues_.offset_m; }
+    int coachCorners() const { return coach_ ? static_cast<int>(coach_->corners().size()) : 0; }
+    double groundHeight() const { return ground_.height_m; }
+    double groundRollDegrees() const { return ground_.roll_rad*180/std::numbers::pi; }
+    // The kart track's raised bend, or null where the ground is flat; drawing only.
+    const std::vector<CornerSpan>& cornerSpans() const { return corner_spans_; }
+    QVector4D hallBounds() const { return {float(hall_.min_x), float(hall_.min_z), float(hall_.max_x), float(hall_.max_z)}; }
+    QVector4D hallLampGrid() const { return {float(hall_.lamp_x0), float(hall_.lamp_z0), float(hall_.lamp_dx), float(hall_.lamp_dz)}; }
+    double hallLampHeight() const { return hall_.lamp_height_m; }
+    const fd::TrackRelief* relief() const { return kartMode() && relief_ && !relief_->flat() ? &*relief_ : nullptr; }
+    // The controller's motors follow the kart's road and tires while a person drives it (decision 0049).
+    bool controllerRumble() const { return rumble_enabled_; }
+    void setControllerRumble(bool on) { rumble_enabled_ = on; if (!on) gamepad_.rumble({}); emit driverChanged(); }
 signals:
     void presetsChanged();
     void updated();
@@ -659,6 +721,7 @@ private:
     void ensureEnvelope();
     void refreshPathPoints();
     void refreshPrediction();
+    void refreshCoach();
     // Recomputes the horizon's tire use from the plan in force, at most a few times a second: driving the four-wheel
     // plant along a three-second plan costs milliseconds, and the answer only changes as the plan does.
     void refreshPlanTireUse(bool decision_changed);
@@ -670,6 +733,12 @@ private:
     AssistancePresets presets_;
     QString preset_message_;
     std::optional<fd::PracticeLaps> practice_laps_;
+    std::optional<fd::KartCoach> coach_;
+    std::optional<fd::TrackRelief> relief_;
+    fd::Ground ground_;
+    std::vector<CornerSpan> corner_spans_;
+    KartHallLayout hall_;
+    fd::CoachCues cues_;
     std::optional<fd::Playback> playback_;
     QString recording_name_;
     QTimer timer_;
@@ -680,10 +749,11 @@ private:
     int appearance_{};
     Gamepad gamepad_;
     PadState pad_;
-    bool gamepad_enabled_{true}, menu_held_{};
+    bool gamepad_enabled_{true}, menu_held_{}, rumble_enabled_{true};
     // Refuses a change of car or course in gokart mode, saying why; true when refused.
     bool kartRefuses(const char* what);
     bool kart_mode_{};
+    bool realistic_kart_{true};
     // What gokart mode came from, to return to.
     struct BeforeKart {
         fd::Track centreline;

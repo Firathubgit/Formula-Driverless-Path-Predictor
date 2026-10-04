@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-04",
+  "change": "Desktop Realistic kart: 40% more longitudinal and lateral tire friction",
+  "grip_multiplier": 1.4,
+  "longitudinal_peak_friction": 1.4,
+  "lateral_peak_friction": 1.89,
+  "total_mass_kg": 261,
+  "reference": "Unchanged offline gokartcentralen-realistic profile",
+  "physics": "Ordinary combined-slip tire model; no forced rolling or no-slip assistance",
+  "build": "Windows desktop Release succeeded",
+  "targeted_ctest": {
+    "passed": 6,
+    "seconds": 18.19,
+    "tire_groups": 13,
+    "vehicle_groups": 20,
+    "vehicle_profile_groups": 3,
+    "human_driving_groups": 17,
+    "gamepad_checks": 40,
+    "barrier_checks": 2746
+  },
+  "ui": {
+    "passed": true,
+    "checks": 1000,
+    "qml_warnings": 0,
+    "seconds": 164.37,
+    "force_comparisons": 160,
+    "force_comparison_absolute_tolerance_n": 1e-8,
+    "coverage": "Front/rear, unloaded and loaded tires, positive/negative and pure/combined/large slips; setup reset; switching away/back without compounding; unchanged total mass"
+  },
+  "limitations": ["User-chosen grip tuning, not measured slick-tire data.", "Physical controller feel not evaluated."],
+  "logs": ["out/kart-grip/physics-tests.log", "out/kart-grip/ui-tests.log"]
+}

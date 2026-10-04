@@ -16,8 +16,19 @@ struct PadState {
 // so it is checked without a controller.
 PadState pad_from_xinput(int thumb_left_x, int left_trigger, int right_trigger, unsigned buttons);
 
+// What the controller's two motors do (decision 0049), each a share of its strength from 0 to 1: the heavy motor hums with the
+// road as the kart goes faster and shudders as the tires scrub near their limit, the light one buzzes with that scrub. Felt, not
+// an input: the plant never reads it. Nothing while paused or stationary.
+struct Rumble { double heavy{}, light{}; };
+// Actual combined tire slip relative to its peak, mapped smoothly to 0..1.
+double tire_scrub_for(const fd::Demand& demand);
+Rumble rumble_for(double speed_mps, double tire_scrub, bool running);
+
 class Gamepad {
 public:
+    ~Gamepad();
+    // Drives the connected controller's motors; nothing when none is connected.
+    void rumble(const Rumble& motors);
     // Reads the controller now. Asking a slot with nothing in it is slow, so without a controller the four slots are
     // searched at most every two seconds. Off Windows nothing is ever connected.
     PadState poll();

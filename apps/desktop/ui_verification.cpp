@@ -2,6 +2,7 @@
 #include "fd/mpcc.hpp"
 #endif
 #include "bridge.hpp"
+#include "kart_hall.hpp"
 #include "race_audio.hpp"
 #include "showroom.hpp"
 #include "fd/lattice.hpp"
@@ -27,6 +28,7 @@
 #include <limits>
 #include <cmath>
 #include <cstring>
+#include <numbers>
 #include <functional>
 #include <iomanip>
 #include <sstream>
@@ -1688,6 +1690,60 @@ void scheduleUiVerification(QGuiApplication& app, QQmlApplicationEngine& engine,
                           "the Göteborg track, 400 m and judged without cones, with the rental kart, and the person still driving");
                     check(item("modeLabel")->property("text").toString().startsWith("GOKART") && item("kartNote")->property("visible").toBool() &&
                           item("driverName")->property("text").toString()=="You drive","the display names the gokart track and who drives");
+                    // The desktop tune (0055) adds 40% tire friction to the offline fitted reference (0046).
+                    check(bridge.realisticKart() && item("realisticKartRow")->property("visible").toBool() && car->front_tire.peak_friction_lateral_low==1.35*1.4 &&
+                          car->front_tire.peak_friction_longitudinal_low==1.4 && bridge.simulation().config().max_steering_rate_radps==3.0 &&
+                          item("realisticKartSwitch")->property("checked").toBool(),
+                          "gokart mode starts with 40% more tire grip than the fitted reference, and offers the choice");
+                    const auto& reference=fd::vehicle_profile("gokartcentralen-realistic").car;
+                    for (const bool front : {true,false})
+                        for (const double load : {0.0,200.0,640.0,1200.0,7000.0})
+                            for (const double ratio : {0.0,0.03,-0.12,0.4})
+                                for (const double angle : {0.0,0.04,-0.15,0.5}) {
+                                    const auto baseline=fd::tire_force(front ? reference.front_tire : reference.rear_tire,ratio,angle,load);
+                                    const auto tuned=fd::tire_force(front ? car->front_tire : car->rear_tire,ratio,angle,load);
+                                    check(std::abs(tuned.longitudinal_n-1.4*baseline.longitudinal_n)<1e-8 &&
+                                          std::abs(tuned.lateral_n-1.4*baseline.lateral_n)<1e-8,
+                                          "actual kart tires produce 40% more force across loads and pure/combined/large slips");
+                                }
+                    check(bridge.simulation().grip_aid() && *bridge.simulation().grip_aid()==0.9,
+                          "the realistic kart retains its grip-aware command mapping");
+                    check(bridge.simulation().kart_environment() && !bridge.simulation().assistance_active() &&
+                          bridge.simulation().kart_environment()->walls().size()>2*bridge.track().points.size() &&
+                          item("kartNote")->property("text").toString().contains("steering travel reduced as speed rises"),
+                          "realistic kart uses speed-aware steering without no-slip assistance, and solid hall architecture");
+                    check(item("kartNote")->property("text").toString().contains("at least 17°") &&
+                          item("firstPersonCamera")->property("roadShake").toDouble()==0.4 &&
+                          bridge.kartTireScrub()>=0 && bridge.kartTireScrub()<=1,
+                          "coast steering allowance is explained and the camera has light road hum plus bounded actual tire scrub");
+                    check(item("realisticKartState")->property("text").toString().startsWith("ON") &&
+                          item("modeLabel")->property("text").toString().endsWith("REALISTIC KART") &&
+                          item("kartNote")->property("text").toString().contains("REALISTIC KART IS ON"),
+                          "the row, the title and the note all say plainly that the realistic kart is on");
+                    check(!item("forgivenessRow")->property("visible").toBool() && !item("forgivenessPresetsPanel")->property("visible").toBool() &&
+                          !item("forgivenessPanel")->property("visible").toBool() && item("forgivenessOffNote")->property("visible").toBool() &&
+                          !bridge.setForgiveness(true,80) && bridge.status().contains("realistic kart") && !bridge.forgivenessEnabled() &&
+                          !bridge.setForgivenessManual(true,34,14,40,100,79) && !bridge.saveForgivenessPreset(0) && !bridge.loadForgivenessPreset(0),
+                          "forgiveness is gone while the realistic kart is on: its controls are hidden and every way of enabling it is refused");
+                    {
+                        check(bridge.resetSetup() && std::get<fd::FourWheelCar>(bridge.simulation().vehicle_model()).rear_tire.peak_friction_lateral_high==1.35*1.4 &&
+                              std::get<fd::FourWheelCar>(bridge.simulation().vehicle_model()).front_tire.peak_friction_longitudinal_high==1.4 &&
+                              std::get<fd::FourWheelCar>(bridge.simulation().vehicle_model()).mass_kg==261 &&
+                              item("kartNote")->property("text").toString().contains("40% more tire grip"),
+                              "reset setup preserves the documented 40% grip tune and 261 kg total mass");
+                        auto* realistic=item("realisticKartSwitch");
+                        realistic->setProperty("checked",false);
+                        check(QMetaObject::invokeMethod(realistic,"toggled") && bridge.kartMode() && !bridge.realisticKart(),"the switch chooses the earlier kart without leaving the mode");
+                        const auto* earlier=std::get_if<fd::FourWheelCar>(&bridge.simulation().vehicle_model());
+                        check(earlier && earlier->front_tire.peak_friction_lateral_low==1.0 && bridge.simulation().config().max_steering_rate_radps==fd::Config{}.max_steering_rate_radps &&
+                              earlier->mass_kg==261 && bridge.simulation().human_driving() && item("kartNote")->property("text").toString().contains("REALISTIC KART IS OFF") &&
+                              item("realisticKartState")->property("text").toString().startsWith("OFF") &&
+                              item("modeLabel")->property("text").toString().endsWith("EARLIER KART"),
+                              "the earlier kart has a grip of 1 every way, the configuration's steering rate, and the row, title and note say it is off");
+                        check(item("forgivenessRow")->property("visible").toBool() && !item("forgivenessOffNote")->property("visible").toBool() &&
+                              !bridge.simulation().grip_aid(),
+                              "with the realistic kart off, forgiveness is offered again and the aid is gone");
+                    }
                     const auto entry=liveCars->property("cars").toList().value(bridge.carAppearance()).toMap();
                     const double model_wheelbase=entry.value("available").toBool() ? entry.value("wheelbase").toDouble() : 2.6;
                     check(std::abs(item("simulatedCar")->property("drawnScale").toDouble()-1.045/model_wheelbase)<1e-6 &&
@@ -1706,7 +1762,8 @@ void scheduleUiVerification(QGuiApplication& app, QQmlApplicationEngine& engine,
                         float v[7];std::memcpy(v,guide.constData()+k,sizeof(v));
                         const auto at=fd::project(bridge.track(),{v[0],-v[2]});
                         inside=inside && fd::within_corridor(bridge.track(),at,0.15);
-                        on_ground=on_ground && std::abs(v[1]-0.04)<1e-6;
+                        // On the ground, which the banked bend lifts (decision 0050) by the ground's own height there.
+                        on_ground=on_ground && std::abs(v[1]-0.04-bridge.relief()->ground_at({v[0],-v[2]}).height_m)<1e-5;
                         red=red || (v[3]>v[4] && v[3]>v[5]);
                         green=green || (v[4]>v[3] && v[4]>v[5]);
                         blue=blue || (v[5]>v[3] && v[5]>v[4]);
@@ -1745,6 +1802,76 @@ void scheduleUiVerification(QGuiApplication& app, QQmlApplicationEngine& engine,
                     const auto& start=bridge.simulation().track().points.front();
                     check(std::hypot(bridge.x()-start.x_m,bridge.y()-start.y_m)<1e-9 &&
                           !geometry("kartStartGeometry")->vertexData().isEmpty(),"the kart starts on its marked poster start line");
+                    // The coach, the hall, the cockpit and the banked bend (decisions 0049 and 0050).
+                    check(bridge.humanDriving() && bridge.coachAvailable() && bridge.coachCorners()==10 && item("coachHud")->property("visible").toBool(),
+                          "the coach reads the poster line's ten corners at the start line and its card is up");
+                    check(bridge.coachCorner()==1 && bridge.coachDirection()==-1 && !bridge.coachInCorner() && bridge.coachCall()==0 &&
+                          bridge.coachToBrake()>0 && bridge.coachToTurnIn()>bridge.coachToBrake() &&
+                          item("coachCall")->property("text").toString()=="GAS" && item("coachDetail")->property("text").toString().contains("T1 right"),
+                          "it says gas, with the brake zone and the first right-hand corner counted down");
+                    toggle("kartCoachSwitch",false);
+                    check(!item("coachHud")->property("visible").toBool(),"the coach card has its own switch");
+                    toggle("kartCoachSwitch",true);
+                    check(item("coachHud")->property("visible").toBool(),"and comes back");
+                    // The hall (decision 0051): its five drawn parts, the floor's gloss, and the lamps the floor mirrors.
+                    check(item("kartHall")->property("visible").toBool() && item("kartBarriers")->property("visible").toBool() &&
+                          item("kartFloor")->property("visible").toBool() && item("kartLamps")->property("visible").toBool() &&
+                          item("kartLampGlow")->property("visible").toBool() && !item("trackEdges")->property("visible").toBool(),
+                          "the hall, its barriers, floor and lamps are drawn round the kart track, with the hall's own painted lines");
+                    for(const char* name:{"kartBarrierGeometry","kartFloorGeometry","kartShellGeometry","kartLampGeometry","kartGlowGeometry","kartWearGeometry"})
+                        check(!geometry(name)->vertexData().isEmpty() && geometry(name)->vertexData().size()%(3*stride)==0,"each part of the hall is whole triangles");
+                    {
+                        const auto hall=kart_hall_layout(bridge.track());
+                        const auto walls=bridge.hallBounds(),grid=bridge.hallLampGrid();
+                        check(walls.x()==float(hall.min_x) && walls.y()==float(hall.min_z) && walls.z()==float(hall.max_x) && walls.w()==float(hall.max_z) &&
+                              grid.x()==float(hall.lamp_x0) && grid.y()==float(hall.lamp_z0) && grid.z()==float(hall.lamp_dx) && grid.w()==float(hall.lamp_dz) &&
+                              bridge.hallLampHeight()==hall.lamp_height_m,
+                              "the floor's shader is given the walls and the lamps the hall is drawn with");
+                        // The drawn lamps hang where the shader is told they do.
+                        const auto lamps=geometry("kartLampGeometry")->vertexData();
+                        int at_height=0;bool on_grid=true;
+                        for(qsizetype k=0;k<lamps.size();k+=stride) {
+                            float v[7];std::memcpy(v,lamps.constData()+k,sizeof(v));
+                            if(std::abs(v[1]-float(hall.lamp_height_m))>1e-4f)continue;
+                            ++at_height;
+                            const double column=std::round((v[0]-hall.lamp_x0)/hall.lamp_dx),row=std::round((v[2]-hall.lamp_z0)/hall.lamp_dz);
+                            on_grid=on_grid && std::hypot(v[0]-(hall.lamp_x0+column*hall.lamp_dx),v[2]-(hall.lamp_z0+row*hall.lamp_dz))<0.25;
+                        }
+                        check(on_grid && at_height==hall.lamp_columns*hall.lamp_rows*30,"every lamp of the grid is drawn, on the grid, at the mirrored height");
+                    }
+                    check(window->property("hallGloss").toDouble()==1 && window->property("hallOn").toBool(),"the hall's floor is polished");
+                    toggle("kartHallSwitch",false);
+                    check(bridge.simulation().kart_environment() && !bridge.simulation().kart_environment()->walls().empty(),
+                          "hiding the hall leaves its physical walls in force");
+                    check(!item("kartHall")->property("visible").toBool() && !item("kartBarriers")->property("visible").toBool() &&
+                          !item("kartFloor")->property("visible").toBool() && !item("kartLamps")->property("visible").toBool() &&
+                          item("trackEdges")->property("visible").toBool() && window->property("hallGloss").toDouble()==0,
+                          "the hall has its own switch: off, the bare track is as it was, lines, matt road and all");
+                    toggle("kartHallSwitch",true);
+                    bridge.setOverview(true);
+                    check(!item("kartHall")->property("visible").toBool() && !item("kartLamps")->property("visible").toBool() &&
+                          item("kartBarriers")->property("visible").toBool() && item("kartFloor")->property("visible").toBool() &&
+                          window->property("hallGloss").toDouble()==0,
+                          "the roof and its lamps are out of the way of the overview, with nothing for the floor to mirror; the barriers and the floor stay");
+                    bridge.setOverview(false);
+                    {
+                        const auto road=geometry("roadGeometry")->vertexData();
+                        float highest=0,lowest=1e9f;
+                        for(qsizetype k=0;k<road.size();k+=stride) {
+                            float v[7];std::memcpy(v,road.constData()+k,sizeof(v));
+                            highest=std::max(highest,v[1]);lowest=std::min(lowest,v[1]);
+                        }
+                        const double rise=6.0*std::tan(6.0*std::numbers::pi/180);
+                        check(std::abs(lowest-0.01)<1e-6 && std::abs(highest-(0.01+rise))<0.02,
+                              "the road is flat everywhere but the ninth bend, whose outside is raised by about 0.63 m");
+                    }
+                    check(bridge.groundHeight()==0 && bridge.groundRollDegrees()==0,"the kart on the line stands on flat ground");
+                    check(!item("kartCockpit")->property("visible").toBool() && item("cockpitWheelSpin")->property("eulerRotation").value<QVector3D>().z()==0 &&
+                          item("cockpitTireLeft")->property("eulerRotation").value<QVector3D>().y()==0,
+                          "the cockpit is not drawn over the car from outside; its steering wheel and front tires are straight with the front wheels");
+                    check(item("seatVibrationSwitch")->property("checked").toBool() && item("controllerRumbleSwitch")->property("checked").toBool(),
+                          "seat vibration and controller rumble have their switches");
+                    check(bridge.controllerRumble()==item("controllerRumbleSwitch")->property("checked").toBool(),"the rumble switch is the bridge's choice");
                     check(bridge.setDriverControls(1,0,0),"the accelerator floored");
                     emit bridge.acceleratorAtLine();
                     check(bridge.running(),"and the kart is away from the line");
@@ -1841,14 +1968,14 @@ void scheduleUiVerification(QGuiApplication& app, QQmlApplicationEngine& engine,
                     const auto restartPath=restartDir.filePath("presets.json");
                     {
                         Bridge first(nullptr,restartPath);
-                        check(first.setHumanDriving(true) && first.setKartMode(true) && first.setForgiveness(true,72) &&
+                        check(first.setRealisticKart(false) && first.setHumanDriving(true) && first.setKartMode(true) && first.setForgiveness(true,72) &&
                               first.setForgivenessManual(true,34,14,40,100,79) && first.saveForgivenessPreset(0),"save manual setup before closing");
                         check(first.setForgivenessManual(false,1,2,3,4,5) && first.loadForgivenessPreset(0),"load saved manual setup before closing");
                     }
                     {
                         Bridge reopened(nullptr,restartPath);
                         check(!reopened.forgivenessActive(),"reopening does not apply kart assistance to ordinary car");
-                        check(reopened.setKartMode(true) && reopened.setHumanDriving(true) && reopened.forgivenessEnabled() &&
+                        check(reopened.setRealisticKart(false) && reopened.setKartMode(true) && reopened.setHumanDriving(true) && reopened.forgivenessEnabled() &&
                               reopened.forgivenessManual() && reopened.forgivenessLevel()==72 &&
                               reopened.forgivenessTuning()["acceleration"].toDouble()==34 &&
                               reopened.forgivenessTuning()["braking"].toDouble()==14 &&
@@ -1896,6 +2023,14 @@ void scheduleUiVerification(QGuiApplication& app, QQmlApplicationEngine& engine,
                     check(!item("simulatedCar")->property("visible").toBool() && !item("reflectionView")->property("visible").toBool(),
                           "first person hides exterior shell and reflection to keep driver sightline clear");
                     check(item("drivingView")->property("camera").value<QObject*>()==item("firstPersonCamera"),"FP uses the driver eye camera");
+                    check(item("kartCockpit")->property("visible").toBool() && item("kartHall")->property("visible").toBool() &&
+                          window->property("hallGloss").toDouble()==1,
+                          "from the driver's seat the kart's own wheel, nose and front tires are drawn, in the hall, on its polished floor");
+                    check(std::abs(item("cockpitWheelSpin")->property("eulerRotation").value<QVector3D>().z()-
+                                   std::clamp(bridge.steeringDegrees()*3.5,-110.0,110.0))<1e-3 &&
+                          std::abs(item("cockpitTireLeft")->property("eulerRotation").value<QVector3D>().y()-bridge.steeringDegrees())<1e-4 &&
+                          std::abs(item("cockpitTireRight")->property("eulerRotation").value<QVector3D>().y()-bridge.steeringDegrees())<1e-4,
+                          "the wheel turns 3.5 times the front wheels' own angle and the drawn front tires turn exactly with them");
                     check(bridge.simulationTime()==time && bridge.x()==x && bridge.y()==y && bridge.revision()==revision,
                           "changing camera does not move or revise the plant");
                     bridge.setCameraMode(9);
@@ -1929,6 +2064,19 @@ void scheduleUiVerification(QGuiApplication& app, QQmlApplicationEngine& engine,
                     const auto& start=bridge.simulation().track().points.front();
                     check(bridge.practiceLapSeconds()==0 && std::hypot(bridge.x()-start.x_m,bridge.y()-start.y_m)<1e-9,
                           "restart returns to the designated start and rearms the gas-started clock");
+                }
+                {
+                    // Turning the realistic kart on again removes forgiveness: the assistance a person had set is gone from the
+                    // run, and stays saved for when the earlier kart is chosen again.
+                    auto* realistic=item("realisticKartSwitch");
+                    realistic->setProperty("checked",true);
+                    check(QMetaObject::invokeMethod(realistic,"toggled") && bridge.realisticKart() && bridge.kartMode() && bridge.simulation().human_driving() &&
+                          !bridge.forgivenessEnabled() && !bridge.forgivenessActive() && !bridge.simulation().assistance_active() &&
+                          !item("forgivenessRow")->property("visible").toBool() && item("forgivenessOffNote")->property("visible").toBool() &&
+                          bridge.simulation().grip_aid() && item("realisticKartState")->property("text").toString().startsWith("ON") &&
+                          std::get<fd::FourWheelCar>(bridge.simulation().vehicle_model()).front_tire.peak_friction_lateral_low==1.35*1.4 &&
+                          std::get<fd::FourWheelCar>(bridge.simulation().vehicle_model()).rear_tire.peak_friction_longitudinal_low==1.4,
+                          "switching the realistic kart on removes forgiveness and restores the grip tune without compounding");
                 }
                 check(!bridge.running() && bridge.setKartMode(false) && !bridge.kartMode() &&
                       std::abs(bridge.trackLength()-context->before_kart_length)<1e-9 && bridge.wheelbase()==context->before_kart_wheelbase &&

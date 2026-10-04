@@ -32,6 +32,9 @@ struct VehicleProfile {
     // The configuration members the profile sets on top of whatever else is configured: the wheelbase and steering
     // limit that belong to the car, and the speed cap its plan uses.
     double wheelbase_m{}, max_steering_rad{}, max_speed_mps{};
+    // How fast the front wheels can be turned, where the car's own differs from the configuration's default (a kart's
+    // quick hands, decision 0046); zero leaves the configuration's rate alone.
+    double max_steering_rate_radps{};
     std::vector<ParameterSource> parameters;
 };
 
@@ -41,5 +44,14 @@ const std::vector<VehicleProfile>& vehicle_profiles();
 const VehicleProfile& vehicle_profile(std::string_view id);
 // The configuration with the profile's own members set.
 Config configured_for(const VehicleProfile& profile, Config config);
+
+// Tuning one named value of a four-wheel car or of the configuration that belongs to it (decision 0046), for calibrating a
+// profile against measurements without rebuilding: any FourWheelCar number by its member name, a tire's number as
+// front_tire.NAME, rear_tire.NAME or tires.NAME (both), and the configuration's wheelbase_m, max_steering_rad and
+// max_speed_mps. Rejects an unknown name, listing the valid ones. The result is not validated: the caller does that with
+// validate_vehicle, as every car is.
+void set_car_value(FourWheelCar& car, Config& config, std::string_view name, double value);
+// Every name set_car_value accepts, in a fixed order.
+std::vector<std::string> car_value_names();
 
 } // namespace fd

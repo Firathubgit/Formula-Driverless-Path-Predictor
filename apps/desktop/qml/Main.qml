@@ -56,6 +56,15 @@ ApplicationWindow {
         else showPrediction = !showPrediction
     }
     property bool showKartGuide: true
+    property bool showKartCoach: true
+    property bool showHall: true
+    readonly property bool hallOn: sim.kartMode && showHall
+    // The hall's floor mirrors its lamps toward the eye; seen from above the roof there are none to mirror.
+    readonly property real hallGloss: hallOn && sim.cameraMode !== 1 ? 1 : 0
+    // The driver's view of a kart (decision 0049): how far the steering wheel turns per degree of the front wheels, and whether the
+    // seat vibrates. Both are drawing only.
+    readonly property real steeringWheelRatio: 3.5
+    property bool seatVibration: true
     property bool showMotionArrow: true
     property bool showKartMotionArrow: false
     readonly property bool motionArrowVisible: sim.kartMode ? showKartMotionArrow : showMotionArrow
@@ -185,6 +194,11 @@ ApplicationWindow {
         speedPlot.requestPaint()
     }
     function refreshPrediction() {
+        // The speed chart is hidden while a person drives. Populate it from the latest state when shown.
+        if (!speedPlot.visible) {
+            if (tireMarginPlot.visible) tireMarginPlot.requestPaint()
+            return
+        }
         var source = sim.predictionPoints
         var points = []
         var peak = 1
@@ -212,7 +226,7 @@ ApplicationWindow {
         target: sim
         function onPlanChanged() { window.refreshPlan() }
         function onModeChanged() { window.refreshComparison() }
-        function onUpdated() { window.refreshPrediction(); circuitMap.requestPaint() }
+        function onUpdated() { window.refreshPrediction(); circuitMarkers.requestPaint() }
     }
     Shortcut { sequence: "Space"; enabled: showroom.screen !== "showroom"; onActivated: { showroom.startDriving(); sim.toggleRunning() } }
     Shortcut { sequence: "R"; enabled: showroom.screen !== "showroom"; onActivated: sim.reset() }
@@ -479,11 +493,19 @@ ApplicationWindow {
     // given a clarity and blending, as the road is, to show the car's reflection beneath it.
     component GroundMaterial: CustomMaterial {
         property vector3d focus: drivingView.ground
-        property real fadeNear: 26 * drivingView.reach
-        property real fadeFar: 95 * drivingView.reach
+        // The road falls away into the dark with distance, except in the kart hall, whose walls are nearer than that.
+        property real fadeNear: (window.hallOn ? 4000 : 26) * drivingView.reach
+        property real fadeFar: (window.hallOn ? 5000 : 95) * drivingView.reach
         property vector3d horizon: Qt.vector3d(0.031, 0.035, 0.043)
         property real gain: 1
         property real clarity: 0
+        // The kart hall's polished floor (decision 0051): how strongly it mirrors the lamps, how far a mirrored lamp is drawn
+        // out toward the eye, in radians, and where the lamps hang. Nothing but the hall's floor has any gloss.
+        property real gloss: 0
+        property real glossSpread: 0.13
+        property vector4d lampGrid: sim.hallLampGrid
+        property vector4d hallBounds: sim.hallBounds
+        property real lampHeight: sim.hallLampHeight
         shadingMode: CustomMaterial.Unshaded
         cullMode: Material.NoCulling
         vertexShader: "shaders/scene.vert"
@@ -580,7 +602,7 @@ ApplicationWindow {
     Node {
         id: cameraRig
         Node {
-            position: Qt.vector3d(sim.x, 0, -sim.y)
+            position: Qt.vector3d(sim.x, sim.groundHeight, -sim.y)
             eulerRotation.y: sim.yawDegrees - 90
             PerspectiveCamera {
                 id: followCamera
@@ -595,12 +617,101 @@ ApplicationWindow {
             PerspectiveCamera {
                 id: firstPersonCamera
                 objectName: "firstPersonCamera"
-                // Driver eye point relative to the true rear axle; local forward is -Z.
-                position: Qt.vector3d(0, sim.kartMode ? 0.72 : 1.05, -sim.wheelbase * 0.35)
-                eulerRotation.x: -2
-                fieldOfView: 75
-                clipNear: 0.04
+                // The seat's vibration and lean (decision 0049), drawn as the driver's eye moving, never the kart: a road's
+                // hum that grows with speed, a buzz when the tires are scrubbing near their limit, a lean toward the outside of
+                // a bend. Display only, from speed and actual tire slip, and still while paused.
+                readonly property real time: sim.simulationTime
+                readonly property real pace: sim.running ? Math.min(1, sim.speedKmh / 60) : 0
+                readonly property real scrub: sim.running && sim.speedKmh > 0.18 ? sim.kartTireScrub : 0
+                readonly property real shake: sim.kartMode && window.seatVibration ? 0.25 : 0
+                readonly property real roadShake: sim.kartMode && window.seatVibration ? 0.4 : 0
+                // Driver eye point relative to the true rear axle; local forward is -Z. In a kart the eyes are about 0.8 m up
+                // and look a little down the road, over the wheel and the nose panel (decision 0051).
+                position: Qt.vector3d(shake * scrub * 0.004 * Math.sin(time * 61.7),
+                                     (sim.kartMode ? 0.82 : 1.05) + roadShake * pace * 0.003 * (0.5 * Math.sin(time * 47.0) + 0.35 * Math.sin(time * 31.3 + 1.3) + 0.15 * Math.sin(time * 73.1 + 0.4)),
+                                     -sim.wheelbase * 0.35)
+                eulerRotation.x: (sim.kartMode ? -8 : -2) + roadShake * pace * 0.2 * Math.sin(time * 37.9 + 0.8)
+                eulerRotation.z: sim.groundRollDegrees + shake * (-Math.max(-1, Math.min(1, sim.ggLateral / 9.81)) * 1.1 + scrub * 0.15 * Math.sin(time * 53.3))
+                // A kart's driver sees the front tires at the foot of the view, so the kart's view is wider.
+                fieldOfView: sim.kartMode ? 85 : 75
+                clipNear: sim.kartMode ? 0.1 : 0.04
                 clipFar: 1500
+            }
+            // The kart's own front as its driver sees it (decisions 0049, 0051): the steering wheel, turned as the front
+            // wheels are, with hands at nine and three; beyond it the nose panel, the bumper and the two front tires, which
+            // steer. It is part of the kart, so it stays with the kart while the seat's vibration moves the eye. A kart's
+            // wheel turns about 110 degrees either side at full lock, 3.5 times the front wheels' angle, and is drawn so.
+            // Seen only from the driver's seat; from outside the car keeps the looks the showroom gave it (decision 0038).
+            Node {
+                id: kartCockpit
+                objectName: "kartCockpit"
+                visible: sim.kartMode && sim.cameraMode === 2
+                eulerRotation.z: sim.groundRollDegrees
+                PrincipledMaterial { id: kartBlack; baseColor: "#0b0c0e"; roughness: 0.6 }
+                // The tray and the bumper face the lamps flat on; lit like the rest they would shine grey, and a kart's are black.
+                PrincipledMaterial { id: kartMatt; baseColor: "#0d0e10"; lighting: PrincipledMaterial.NoLighting }
+                PrincipledMaterial { id: kartTire; baseColor: "#0d0d0f"; roughness: 0.92 }
+                PrincipledMaterial { id: kartNeon; baseColor: "#8fa81c"; roughness: 0.6 }
+                PrincipledMaterial { id: wheelRubber; baseColor: "#2b2d32"; roughness: 0.6; metalness: 0.2 }
+                PrincipledMaterial { id: wheelButton; baseColor: "#c9cbd0"; roughness: 0.4 }
+                PrincipledMaterial { id: wheelGlove; baseColor: "#1b448c"; roughness: 0.9 }
+                // The front tires, steering with the plant's own front wheels.
+                Repeater3D {
+                    model: 2
+                    Node {
+                        required property int index
+                        objectName: index === 0 ? "cockpitTireLeft" : "cockpitTireRight"
+                        position: Qt.vector3d(index === 0 ? -0.5 : 0.5, 0.135, -sim.wheelbase)
+                        eulerRotation.y: sim.steeringDegrees
+                        Model { source: "#Cylinder"; eulerRotation.z: 90; scale: Qt.vector3d(0.0027, 0.0014, 0.0027); materials: kartTire }
+                        Model { source: "#Cylinder"; eulerRotation.z: 90; scale: Qt.vector3d(0.0013, 0.00145, 0.0013); materials: kartBlack }
+                    }
+                }
+                // The bumper across the front, and the floor tray between the wheels.
+                Model { source: "#Cube"; position: Qt.vector3d(0, 0.17, -sim.wheelbase - 0.42); scale: Qt.vector3d(0.0064, 0.0011, 0.0018); materials: kartMatt }
+                Model { source: "#Cube"; position: Qt.vector3d(0, 0.06, -sim.wheelbase + 0.1); scale: Qt.vector3d(0.0062, 0.0004, 0.0075); materials: kartMatt }
+                // The nose panel: black, with a neon chevron along its top edge.
+                Node {
+                    objectName: "cockpitNose"
+                    position: Qt.vector3d(0, 0.55, -sim.wheelbase - 0.135)
+                    eulerRotation.x: -40
+                    Model { source: "#Cube"; scale: Qt.vector3d(0.0025, 0.0021, 0.0003); materials: kartBlack }
+                    Model { source: "#Cube"; position: Qt.vector3d(-0.062, 0.086, 0.004); eulerRotation.z: 14; scale: Qt.vector3d(0.00132, 0.0004, 0.0003); materials: kartNeon }
+                    Model { source: "#Cube"; position: Qt.vector3d(0.062, 0.086, 0.004); eulerRotation.z: -14; scale: Qt.vector3d(0.00132, 0.0004, 0.0003); materials: kartNeon }
+                }
+                // The steering column, from the wheel's hub down to the front axle.
+                Model { source: "#Cylinder"; position: Qt.vector3d(0, 0.4, -1.02); eulerRotation.x: 41.8; scale: Qt.vector3d(0.0003, 0.0038, 0.0003); materials: kartBlack }
+                Node {
+                    objectName: "cockpitWheel"
+                    position: Qt.vector3d(0, 0.54, -0.9)
+                    eulerRotation.x: -30
+                    Node {
+                        id: wheelSpin
+                        objectName: "cockpitWheelSpin"
+                        eulerRotation.z: Math.max(-110, Math.min(110, sim.steeringDegrees * window.steeringWheelRatio))
+                        Repeater3D {
+                            model: 28
+                            Model {
+                                required property int index
+                                readonly property real angle: index * 2 * Math.PI / 28
+                                source: "#Cube"
+                                position: Qt.vector3d(0.12 * Math.cos(angle), 0.12 * Math.sin(angle), 0)
+                                eulerRotation.z: angle * 180 / Math.PI + 90
+                                scale: Qt.vector3d(0.00031, 0.00024, 0.00032)
+                                materials: wheelRubber
+                            }
+                        }
+                        Model { source: "#Cube"; scale: Qt.vector3d(0.002, 0.00024, 0.0002); materials: wheelRubber }
+                        Model { source: "#Cube"; position: Qt.vector3d(0, -0.06, 0); scale: Qt.vector3d(0.00024, 0.0012, 0.0002); materials: wheelRubber }
+                        Model { source: "#Cylinder"; eulerRotation.x: 90; scale: Qt.vector3d(0.0009, 0.0003, 0.0009); materials: wheelRubber }
+                        Model { source: "#Sphere"; position: Qt.vector3d(0, 0.03, 0.02); scale: Qt.vector3d(0.00018, 0.00018, 0.00012); materials: wheelButton }
+                        Model { source: "#Sphere"; position: Qt.vector3d(-0.03, -0.02, 0.02); scale: Qt.vector3d(0.00018, 0.00018, 0.00012); materials: wheelButton }
+                        Model { source: "#Sphere"; position: Qt.vector3d(0.03, -0.02, 0.02); scale: Qt.vector3d(0.00018, 0.00018, 0.00012); materials: wheelButton }
+                        Model { source: "#Cube"; position: Qt.vector3d(0, 0.124, 0.012); scale: Qt.vector3d(0.00035, 0.00014, 0.00022); materials: kartNeon }
+                        Model { source: "#Sphere"; position: Qt.vector3d(-0.125, -0.005, 0.025); scale: Qt.vector3d(0.00052, 0.00074, 0.00046); materials: wheelGlove }
+                        Model { source: "#Sphere"; position: Qt.vector3d(0.125, -0.005, 0.025); scale: Qt.vector3d(0.00052, 0.00074, 0.00046); materials: wheelGlove }
+                    }
+                }
             }
         }
         PerspectiveCamera {
@@ -662,6 +773,7 @@ ApplicationWindow {
             scale: Qt.vector3d(1, -1, 1)
             position: sceneCar.position
             eulerRotation.y: sceneCar.eulerRotation.y
+            eulerRotation.z: sceneCar.eulerRotation.z
             appearance: sceneCar.appearance
             asset: sceneCar.asset
             drawnWheelbase: sceneCar.drawnWheelbase
@@ -728,6 +840,9 @@ ApplicationWindow {
             geometry: TrackGeometry { objectName: "roadGeometry"; kind: 0; bridge: sim }
             materials: GroundMaterial {
                 clarity: window.showReflections ? 0.32 : 0
+                gloss: window.hallGloss
+                // Under the hall's lamps the asphalt is a lighter grey than a road at night.
+                gain: window.hallOn ? 1.3 : 1
                 sourceBlend: CustomMaterial.SrcAlpha
                 destinationBlend: CustomMaterial.OneMinusSrcAlpha
                 sourceAlphaBlend: CustomMaterial.One
@@ -737,6 +852,8 @@ ApplicationWindow {
         }
         Model {
             objectName: "trackEdges"
+            // The kart hall paints its own lines and kerbs.
+            visible: !window.hallOn
             geometry: TrackGeometry { kind: 1; bridge: sim }
             materials: GroundMaterial {}
         }
@@ -745,7 +862,7 @@ ApplicationWindow {
             objectName: "latticeAhead"
             visible: sim.latticeAvailable && window.latticeVisible
             depthBias: 300000
-            geometry: TrackGeometry { objectName: "latticeGeometry"; kind: 6; bridge: sim }
+            geometry: TrackGeometry { objectName: "latticeGeometry"; kind: 6; bridge: sim; active: sim.latticeAvailable && window.latticeVisible }
             materials: OverlayMaterial { strength: 0.22; fadeNear: 4 * drivingView.reach; fadeFar: 30 * drivingView.reach }
         }
         Model {
@@ -759,7 +876,7 @@ ApplicationWindow {
             objectName: "rejectedAlternatives"
             visible: sim.evaluatedOptions > 1 && window.showAlternatives
             depthBias: 100000
-            geometry: TrackGeometry { objectName: "alternativesGeometry"; kind: 4; bridge: sim }
+            geometry: TrackGeometry { objectName: "alternativesGeometry"; kind: 4; bridge: sim; active: sim.evaluatedOptions > 1 && window.showAlternatives }
             materials: OverlayMaterial { strength: 0.85 }
         }
         Model {
@@ -775,10 +892,52 @@ ApplicationWindow {
             geometry: TrackGeometry { objectName: "kartStartGeometry"; kind: 13; bridge: sim }
             materials: OverlayMaterial { fadeNear: 200; fadeFar: 260 }
         }
+        // The kart hall (decision 0051), after Gokartcentralen's own as the user's onboard video shows it: a polished dark floor
+        // with the lamps standing in it, twin-tube barriers with red rims inside the bends, red and white kerbs, green islands,
+        // the red gallery along the start straight, the footbridge, the fence on the banked bend's island, a pitched steel roof
+        // under rows of lamps. Drawn from scratch, with solid planar barriers and walls during human kart driving.
+        Model {
+            objectName: "kartFloor"
+            visible: window.hallOn
+            geometry: TrackGeometry { objectName: "kartFloorGeometry"; kind: 15; bridge: sim }
+            materials: GroundMaterial { gloss: window.hallGloss }
+        }
+        Model {
+            objectName: "kartWear"
+            visible: window.hallOn
+            geometry: TrackGeometry { objectName: "kartWearGeometry"; kind: 19; bridge: sim }
+            materials: OverlayMaterial { fadeNear: 4000; fadeFar: 5000 }
+        }
+        Model {
+            objectName: "kartBarriers"
+            visible: window.hallOn
+            geometry: TrackGeometry { objectName: "kartBarrierGeometry"; kind: 14; bridge: sim }
+            materials: GroundMaterial {}
+        }
+        // The room itself is out of the way of the overview, whose camera is above its roof.
+        Model {
+            id: kartHall
+            objectName: "kartHall"
+            visible: window.hallOn && sim.cameraMode !== 1
+            geometry: TrackGeometry { objectName: "kartShellGeometry"; kind: 16; bridge: sim }
+            materials: GroundMaterial {}
+        }
+        Model {
+            objectName: "kartLamps"
+            visible: kartHall.visible
+            geometry: TrackGeometry { objectName: "kartLampGeometry"; kind: 17; bridge: sim }
+            materials: GroundMaterial {}
+        }
+        Model {
+            objectName: "kartLampGlow"
+            visible: kartHall.visible
+            geometry: TrackGeometry { objectName: "kartGlowGeometry"; kind: 18; bridge: sim }
+            materials: OverlayMaterial { fadeNear: 4000; fadeFar: 5000 }
+        }
         Model {
             objectName: "plannedTrajectory"
             visible: sim.predictionAvailable && window.predictionVisible
-            geometry: TrackGeometry { objectName: "predictionGeometry"; kind: 2; bridge: sim }
+            geometry: TrackGeometry { objectName: "predictionGeometry"; kind: 2; bridge: sim; active: sim.predictionAvailable && window.predictionVisible }
             materials: OverlayMaterial { fadeNear: 200 * drivingView.reach; fadeFar: 260 * drivingView.reach }
         }
         // The course's cones, ground truth, and what the simulated perception's newest frames made of them
@@ -786,27 +945,27 @@ ApplicationWindow {
         Model {
             objectName: "courseCones"
             visible: sim.perceptionFitted
-            geometry: TrackGeometry { objectName: "conesGeometry"; kind: 7; bridge: sim }
+            geometry: TrackGeometry { objectName: "conesGeometry"; kind: 7; bridge: sim; active: sim.perceptionFitted }
             materials: DefaultMaterial { diffuseColor: "white"; vertexColorsEnabled: true; lighting: DefaultMaterial.NoLighting; cullMode: Material.NoCulling }
         }
         Model {
             objectName: "simulatedDetections"
             visible: sim.perceptionFitted && sim.perceptionFrameAvailable
-            geometry: TrackGeometry { objectName: "detectionsGeometry"; kind: 8; bridge: sim }
+            geometry: TrackGeometry { objectName: "detectionsGeometry"; kind: 8; bridge: sim; active: sim.perceptionFitted && sim.perceptionFrameAvailable }
             materials: DefaultMaterial { diffuseColor: "white"; vertexColorsEnabled: true; lighting: DefaultMaterial.NoLighting; cullMode: Material.NoCulling }
         }
         // Cones the judge saw knocked down or out, whether or not the car perceives the course (decision 0032).
         Model {
             objectName: "knockedCones"
             visible: sim.conesHit > 0
-            geometry: TrackGeometry { objectName: "knockedGeometry"; kind: 10; bridge: sim }
+            geometry: TrackGeometry { objectName: "knockedGeometry"; kind: 10; bridge: sim; active: sim.conesHit > 0 }
             materials: DefaultMaterial { diffuseColor: "white"; vertexColorsEnabled: true; lighting: DefaultMaterial.NoLighting; cullMode: Material.NoCulling }
         }
         // The path the car believes from those detections, where its believed pose placed them (decision 0031).
         Model {
             objectName: "believedPath"
             visible: sim.drivingOnCones
-            geometry: TrackGeometry { objectName: "believedGeometry"; kind: 9; bridge: sim }
+            geometry: TrackGeometry { objectName: "believedGeometry"; kind: 9; bridge: sim; active: sim.drivingOnCones }
             materials: DefaultMaterial { diffuseColor: "white"; vertexColorsEnabled: true; lighting: DefaultMaterial.NoLighting; cullMode: Material.NoCulling }
         }
         Model {
@@ -822,7 +981,7 @@ ApplicationWindow {
             readonly property real length: Math.max(1.0, sim.speedKmh / 3.6 * 0.6)  // 0.6 s of travel
             // Drawn finer beside a kart-sized car (decision 0038).
             readonly property real size: sim.kartMode ? 0.45 : 1
-            position: Qt.vector3d(sim.x, 0.09, -sim.y)
+            position: Qt.vector3d(sim.x, 0.09 + sim.groundHeight, -sim.y)
             Node {
                 objectName: "headingLine"
                 eulerRotation.y: sim.yawDegrees - 90
@@ -855,8 +1014,10 @@ ApplicationWindow {
             id: sceneCar
             objectName: "simulatedCar"
             visible: sim.cameraMode !== 2
-            position: Qt.vector3d(sim.x, 0, -sim.y)
+            position: Qt.vector3d(sim.x, sim.groundHeight, -sim.y)
             eulerRotation.y: sim.yawDegrees - 90
+            // The banked bend tilts the kart with the road, drawing only (decision 0050).
+            eulerRotation.z: sim.groundRollDegrees
             appearance: sim.carAppearance
             asset: liveCars.cars[sim.carAppearance]
             drawnWheelbase: sim.kartMode ? sim.wheelbase : 0
@@ -994,7 +1155,7 @@ ApplicationWindow {
             }
             SmallLabel {
                 objectName: "modeLabel"
-                text: sim.replay ? "REPLAY  ·  RECORDED RUN" : sim.kartMode ? "GOKART  ·  GOKARTCENTRALEN GÖTEBORG"
+                text: sim.replay ? "REPLAY  ·  RECORDED RUN" : sim.kartMode ? "GOKART  ·  GOKARTCENTRALEN GÖTEBORG  ·  " + (sim.realisticKart ? "REALISTIC KART" : "EARLIER KART")
                       : sim.drivingOnCones ? "SIMULATION  ·  ON CONES" : "SIMULATION  ·  KNOWN TRACK"
                 color: window.muted
             }
@@ -1101,6 +1262,89 @@ ApplicationWindow {
         }
     }
 
+    // The kart coach (decision 0049): the next thing the poster's line asks of the driver, from the car's place on it, and the
+    // steering the line's bend asks for beside the steering the car has. Advice from the line's own geometry; it drives nothing.
+    Rectangle {
+        id: coachHud
+        objectName: "coachHud"
+        visible: sim.kartMode && sim.humanDriving && window.showKartCoach && sim.coachAvailable
+        // Centred, but never over the circuit card at the right.
+        x: Math.max(window.margin, Math.min((parent.width - width) / 2, parent.width - window.margin - window.sideWidth - 12 - width))
+        y: window.margin + 36
+        width: 250; height: coachColumn.height + 20
+        radius: 16
+        color: window.glass
+        border.color: window.hairline
+        readonly property int call: sim.coachCall
+        readonly property color callColor: call === 2 ? window.brakeColor : call === 0 ? window.accelerateColor
+                                           : call === 1 ? window.coastColor : window.holdColor
+        readonly property string callText: ["GAS", "LIFT", "BRAKE", "TURN IN", "APEX NOW"][call]
+        readonly property string side: sim.coachDirection > 0 ? "left" : "right"
+        readonly property real wanted: sim.coachAdvisedSteeringDegrees
+        readonly property real shortfall: wanted - sim.steeringDegrees
+        readonly property string detail: {
+            if (sim.coachCorner === 0) return ""
+            var corner = "T" + sim.coachCorner + " " + side
+            if (sim.coachInCorner) return corner + (sim.coachToApex > 1 ? " · apex in " + Math.round(sim.coachToApex) + " m" : "")
+            var text = corner + " · turn in " + Math.round(sim.coachToTurnIn) + " m"
+            if (sim.coachToBrake > 0.5 && sim.coachToBrake < sim.coachToTurnIn + 30) text = "Brake in " + Math.round(sim.coachToBrake) + " m · " + text
+            return text
+        }
+        Column {
+            id: coachColumn
+            x: 10; y: 10
+            width: parent.width - 20
+            spacing: 4
+            Text {
+                objectName: "coachCall"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: coachHud.callText
+                color: coachHud.callColor
+                font.pixelSize: 34; font.weight: Font.DemiBold; font.letterSpacing: 1
+            }
+            Text {
+                objectName: "coachDetail"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: coachHud.detail
+                visible: text.length > 0
+                color: window.muted; font.pixelSize: 12
+            }
+            // The steering the line's bend asks for (the ticks) against the car's own, to thirty degrees either side.
+            Item {
+                objectName: "coachSteeringBar"
+                width: parent.width; height: 16
+                Rectangle { anchors.verticalCenter: parent.verticalCenter; width: parent.width; height: 3; radius: 1.5; color: "#2c3137" }
+                Rectangle { x: parent.width / 2 - 0.5; width: 1; height: parent.height; color: window.faint }
+                Rectangle {
+                    objectName: "coachWantedSteering"
+                    width: 4; height: 14; radius: 2; anchors.verticalCenter: parent.verticalCenter
+                    x: parent.width / 2 - width / 2 - Math.max(-30, Math.min(30, coachHud.wanted)) / 30 * (parent.width / 2 - 6)
+                    color: coachHud.callColor
+                }
+                Rectangle {
+                    objectName: "coachActualSteering"
+                    width: 10; height: 10; radius: 5; anchors.verticalCenter: parent.verticalCenter
+                    x: parent.width / 2 - width / 2 - Math.max(-30, Math.min(30, sim.steeringDegrees)) / 30 * (parent.width / 2 - 6)
+                    color: "#ffffff"
+                }
+            }
+            Text {
+                objectName: "coachSteeringAdvice"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: Math.abs(coachHud.shortfall) < 1.5 ? "STEERING OK"
+                      : "MORE " + (coachHud.shortfall > 0 ? "LEFT " : "RIGHT ") + Math.abs(coachHud.shortfall).toFixed(0) + "°"
+                color: Math.abs(coachHud.shortfall) < 1.5 ? window.accelerateColor : window.ink
+                font.pixelSize: 12; font.letterSpacing: 1
+            }
+            Text {
+                objectName: "coachLineOffset"
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: Math.abs(sim.coachOffset) < 0.3 ? "On the line" : Math.abs(sim.coachOffset).toFixed(1) + " m " + (sim.coachOffset > 0 ? "left" : "right") + " of the line"
+                color: window.faint; font.pixelSize: 11
+            }
+        }
+    }
+
     // The circuit and the car on it, with the judge's view either side of the map's foot (decision 0032): the last lap as
     // timed from the start line, and what the penalties cost and were for, with the verdict when there is one.
     Card {
@@ -1158,12 +1402,28 @@ ApplicationWindow {
                     ctx.beginPath(); ctx.moveTo(px(points[j].x),py(points[j].y)); ctx.lineTo(px(next.x),py(next.y))
                     ctx.strokeStyle=window.trajectoryColor(points[j].acceleration); ctx.stroke()
                 }
-                if (sim.ghostVisible) {
-                    ctx.beginPath(); ctx.arc(px(sim.ghostX),py(sim.ghostY),4.5,0,Math.PI*2)
-                    ctx.lineWidth=1.5; ctx.strokeStyle="#e4ecf0"; ctx.stroke()
+            }
+            // The circuit is static between plan/mode changes. Only the car and ghost need painting each frame.
+            Canvas {
+                id: circuitMarkers
+                objectName: "circuitMarkers"
+                anchors.fill: parent
+                onPaint: {
+                    var ctx = getContext("2d")
+                    ctx.reset()
+                    if (!window.cachedPoints || window.cachedPoints.length < 2) return
+                    var b = window.bounds
+                    var area = height - 30
+                    var factor = Math.min((width - 20) / Math.max(1, b.maxX-b.minX), (area - 8) / Math.max(1, b.maxY-b.minY))
+                    function px(v) { return width/2 + (v-(b.minX+b.maxX)/2)*factor }
+                    function py(v) { return area/2 - (v-(b.minY+b.maxY)/2)*factor }
+                    if (sim.ghostVisible) {
+                        ctx.beginPath(); ctx.arc(px(sim.ghostX),py(sim.ghostY),4.5,0,Math.PI*2)
+                        ctx.lineWidth=1.5; ctx.strokeStyle="#e4ecf0"; ctx.stroke()
+                    }
+                    ctx.beginPath(); ctx.arc(px(sim.x),py(sim.y),7,0,Math.PI*2); ctx.fillStyle="rgba(76, 141, 255, 0.3)"; ctx.fill()
+                    ctx.beginPath(); ctx.arc(px(sim.x),py(sim.y),3.5,0,Math.PI*2); ctx.fillStyle="#ffffff"; ctx.fill()
                 }
-                ctx.beginPath(); ctx.arc(px(sim.x),py(sim.y),7,0,Math.PI*2); ctx.fillStyle="rgba(76, 141, 255, 0.3)"; ctx.fill()
-                ctx.beginPath(); ctx.arc(px(sim.x),py(sim.y),3.5,0,Math.PI*2); ctx.fillStyle="#ffffff"; ctx.fill()
             }
             Column {
                 objectName: "lastLapReadout"
@@ -1823,6 +2083,7 @@ ApplicationWindow {
                 Canvas {
                     id: speedPlot
                     objectName: "speedPlanPlot"
+                    onVisibleChanged: if (visible) window.refreshPrediction()
                     width: parent.width
                     height: window.compact ? 40 : 56
                     onPaint: {
@@ -2321,6 +2582,24 @@ ApplicationWindow {
                         onToggled: if (!sim.setKartMode(checked)) checked = sim.kartMode
                     }
                 }
+                // Which kart (decision 0046): fitted to the poster's coloured line and to real lap times, or the earlier one.
+                SettingRow {
+                    objectName: "realisticKartRow"
+                    visible: sim.kartMode
+                    label: "Realistic kart"
+                    Text {
+                        objectName: "realisticKartState"
+                        text: sim.realisticKart ? "ON  ·  fitted to the poster line" : "OFF  ·  earlier kart"
+                        color: sim.realisticKart ? window.accent : window.muted
+                        font.pixelSize: 12; font.weight: Font.DemiBold; elide: Text.ElideRight; Layout.fillWidth: true
+                    }
+                    Toggle {
+                        objectName: "realisticKartSwitch"
+                        checked: sim.realisticKart
+                        enabled: !sim.running && !sim.replay
+                        onToggled: if (!sim.setRealisticKart(checked)) checked = sim.realisticKart
+                    }
+                }
                 Text {
                     objectName: "kartNote"
                     visible: sim.kartMode && !(sim.forgivenessEnabled && sim.forgivenessManual)
@@ -2330,11 +2609,25 @@ ApplicationWindow {
                     color: window.muted
                     font.pixelSize: 11
                     text: "400 m, 6 m wide, clockwise, traced from Gokartcentralen's own track map. A Sodi RSX2 rental kart: " +
-                          "261 kg with its driver, about 14 hp, about 60 km/h. Your car is drawn at the kart's size."
+                          "261 kg with its driver, about 14 hp, about 60 km/h. Your car is drawn at the kart's size." +
+                          (sim.realisticKart ? " REALISTIC KART IS ON: 40% more tire grip for cornering, acceleration and braking, with steering travel reduced as speed rises. " +
+                                               "Coasting allows at least 17° of front-wheel travel; either pedal smoothly restores the tighter speed-based limit. More wheel angle adds no grip: excess demand still causes understeer or sliding. Barriers, walls and ground-level pillars are solid; " +
+                                               "the bumper stops or scrapes along them. Hiding the hall does not disable contact."
+                                             : " REALISTIC KART IS OFF: this is the earlier kart, with a grip of 1 every way. It laps the poster's line 3 to 5 s slower and spins at its limit.")
+                }
+                Text {
+                    objectName: "forgivenessOffNote"
+                    visible: sim.kartMode && sim.humanDriving && sim.realisticKart
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    lineHeight: 1.1
+                    color: window.muted
+                    font.pixelSize: 11
+                    text: "Tire grip is increased by 40%; tire slip physics remain active. Switch Realistic kart off to use the separate Forgiveness controls."
                 }
                 SettingRow {
                     objectName: "forgivenessRow"
-                    visible: sim.kartMode && sim.humanDriving
+                    visible: sim.kartMode && sim.humanDriving && !sim.realisticKart
                     label: "Forgiveness"
                     labelWidth: 150
                     Item { Layout.fillWidth: true }
@@ -2347,7 +2640,7 @@ ApplicationWindow {
                 Column {
                     id: presetsPanel
                     objectName: "forgivenessPresetsPanel"
-                    visible: sim.kartMode && sim.humanDriving
+                    visible: sim.kartMode && sim.humanDriving && !sim.realisticKart
                     property int selectedSlot: 0
                     width: parent.width; spacing: 6
                     Text { text: "LOCAL PRESETS · " + (presetsPanel.selectedSlot + 1) + (sim.forgivenessPresets[presetsPanel.selectedSlot] ? " saved" : " empty")
@@ -2391,7 +2684,7 @@ ApplicationWindow {
                 }
                 Column {
                     objectName: "forgivenessPanel"
-                    visible: sim.kartMode && sim.humanDriving && sim.forgivenessEnabled
+                    visible: sim.kartMode && sim.humanDriving && sim.forgivenessEnabled && !sim.realisticKart
                     width: parent.width; spacing: 8
                     Segmented {
                         width: parent.width
@@ -2498,6 +2791,50 @@ ApplicationWindow {
                 }
                 SettingRow {
                     visible: sim.kartMode
+                    label: "Coach cues"
+                    labelWidth: 150
+                    Item { Layout.fillWidth: true }
+                    Toggle {
+                        objectName: "kartCoachSwitch"
+                        checked: window.showKartCoach
+                        onToggled: window.showKartCoach = checked
+                    }
+                }
+                SettingRow {
+                    visible: sim.kartMode
+                    label: "Hall and barriers"
+                    labelWidth: 150
+                    Item { Layout.fillWidth: true }
+                    Toggle {
+                        objectName: "kartHallSwitch"
+                        checked: window.showHall
+                        onToggled: window.showHall = checked
+                    }
+                }
+                SettingRow {
+                    visible: sim.kartMode
+                    label: "Seat vibration"
+                    labelWidth: 150
+                    Item { Layout.fillWidth: true }
+                    Toggle {
+                        objectName: "seatVibrationSwitch"
+                        checked: window.seatVibration
+                        onToggled: window.seatVibration = checked
+                    }
+                }
+                SettingRow {
+                    visible: sim.kartMode
+                    label: "Controller rumble"
+                    labelWidth: 150
+                    Item { Layout.fillWidth: true }
+                    Toggle {
+                        objectName: "controllerRumbleSwitch"
+                        checked: sim.controllerRumble
+                        onToggled: sim.controllerRumble = checked
+                    }
+                }
+                SettingRow {
+                    visible: sim.kartMode
                     label: "Prediction line"
                     labelWidth: 150
                     Item { Layout.fillWidth: true }
@@ -2532,7 +2869,7 @@ ApplicationWindow {
                     objectName: "kartGuideNote"
                     visible: sim.kartMode
                     width: parent.width; wrapMode: Text.WordWrap
-                    text: "Full-lap coaching from the poster, painted on the road. Fixed advice; it does not adjust to your speed. Switch either line on or off while driving."
+                    text: "Full-lap coaching from the poster, painted on the road. Fixed advice; it does not adjust to your speed. Coach cues add what to do next, from the line's own bends: brake, turn in, apex, gas, and the steering angle the bend asks for. Switch any of them on or off while driving."
                     color: window.muted; font.pixelSize: 11
                 }
                 Rule { width: parent.width }

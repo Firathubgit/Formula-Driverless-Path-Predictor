@@ -1,0 +1,105 @@
+{
+  "date": "2026-10-04",
+  "decision": "0051-kart-hall-after-the-video",
+  "request": "A mega audit of the user's onboard video against the drawn kart hall, to make it close to the real place.",
+  "reference": {
+    "what": "The user's own onboard video of a lap of Gokartcentralen Goteborg, 40.6 s, a 30.101 s lap",
+    "kept": "outside the repository, as a private reference; no frame of it is committed",
+    "read": "two frames a second, laid against the traced 400 m track by its ten turns",
+    "video_seconds_to_station_m": {
+      "2.6": 0,
+      "5.5": 32,
+      "7.0": 52,
+      "10.0": 109,
+      "14.0": 155,
+      "16.7": 196,
+      "19.5": 230,
+      "22.0": 260,
+      "24.0": 290,
+      "25.8": 314,
+      "29.3": 356,
+      "32.7": 400
+    }
+  },
+  "comparison": {
+    "method": "fd_desktop --kart --camera 2 --at-station S --capture-scene FILE at 24 stations, each beside the video's frame at the matching time",
+    "stations_m": [
+      388,
+      12,
+      28,
+      50,
+      78,
+      105,
+      128,
+      148,
+      160,
+      188,
+      196,
+      214,
+      228,
+      246,
+      258,
+      280,
+      290,
+      302,
+      314,
+      326,
+      342,
+      354,
+      366,
+      376
+    ],
+    "passes": 2,
+    "corrected_after_first_pass": [
+      "floor too blue and too even: made neutral, darker underfoot, with stronger lamp streaks",
+      "fence ran 25 m up the approach to the ninth corner: now from 3 m before it, a plain banner for 18 m after it",
+      "footbridge 10 m too early: moved to 378 m",
+      "gallery wall ended at 10 m: now runs to 18 m, its door near its end",
+      "east wall a bare red plane: darker, with a balcony's deck edge, posts and rail",
+      "round red deck over the ninth corner's island missing: added",
+      "yellow wedge too large and too near the first corner: smaller, further along the west wall",
+      "cockpit floor tray lit grey: matt black"
+    ],
+    "sheets": "out/kart-hall-audit/ (ignored by Git)",
+    "judged": "by eye"
+  },
+  "hall": {
+    "triangles": {
+      "barriers": 38464,
+      "floor": 27126,
+      "shell": 2531,
+      "lamps": 1956,
+      "glow": 3360
+    },
+    "build_ms": 81.5
+  },
+  "tests": {
+    "core": {
+      "command": "./scripts/build.ps1",
+      "suites": 33,
+      "passed": 33,
+      "seconds": 423.3
+    },
+    "desktop": {
+      "command": "./scripts/build.ps1 -Desktop",
+      "suites": 40,
+      "passed": 40,
+      "seconds": 593.37
+    },
+    "fd_kart_hall_checks": 852557,
+    "fd_kart_coach_groups": "6/6",
+    "fd_track_relief_groups": "4/4",
+    "fd_gamepad_checks": 40,
+    "desktop_ui": {
+      "checks": 1001,
+      "qml_warnings": 0,
+      "seconds": 172.25
+    }
+  },
+  "not_done": [
+    "driving the hall with a controller",
+    "a frame-rate measurement after the second pass",
+    "any measurement of the real hall: wall positions, heights, lamp counts and the bank's 6 degrees are chosen",
+    "people, other karts, lettering, the red stair tower, reflections of the walls in the floor"
+  ]
+}

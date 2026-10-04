@@ -1,5 +1,9 @@
 #include "track_geometry.hpp"
+#include "performance_probe.hpp"
 #include "bridge.hpp"
+#include "kart_guide.hpp"
+#include "kart_hall.hpp"
+#include "scene_vertex.hpp"
 #include "fd/cones.hpp"
 #include <QColor>
 #include <QFile>
@@ -12,38 +16,42 @@
 #include <cmath>
 
 namespace {
-struct Vertex {float x,y,z,r,g,b,a;};
-Vertex vertex(double x,double y,double z,const QColor& c,double alpha=1) {
-    const auto linear=[](float v) {return v<=0.04045f?v/12.92f:std::pow((v+0.055f)/1.055f,2.4f);};
-    return {float(x),float(y),float(z),linear(c.redF()),linear(c.greenF()),linear(c.blueF()),float(alpha)};
-}
+using Vertex=SceneVertex;
+Vertex vertex(double x,double y,double z,const QColor& c,double alpha=1) {return scene_vertex(x,y,z,c,alpha);}
 struct CoachingPoint { fd::Vec2 position; QColor color; };
 const std::vector<CoachingPoint>& kart_guide() {
-    // Bundled display data from the user's poster, never passed to a driver or plant.
+    // Bundled display data from the user's poster, never passed to a driver or plant. The traced stroke wavers by a few
+    // centimetres from sample to sample, which a ribbon seen from the kart's seat shows as a wobble, so each drawn point is
+    // the stroke averaged over about a metre and a half of itself; every sample keeps its own advice.
     static const auto points=[] {
-        QFile file(":/kart/gokartcentralen-goteborg-guide.csv");
-        if(!file.open(QIODevice::ReadOnly)) qFatal("Missing bundled kart coaching line");
-        QTextStream input(&file);
+        const auto& line=kart_guide_line();
+        const long n=static_cast<long>(line.size());
+        static const double weights[]={1,4,10,18,24,18,10,4,1};
         std::vector<CoachingPoint> result;
-        while(!input.atEnd()) {
-            const auto line=input.readLine();
-            if(line.startsWith('#') || line.startsWith("x_m,") || line.isEmpty())continue;
-            const auto fields=line.split(',');
-            if(fields.size()!=3) qFatal("Invalid bundled kart coaching line");
-            bool x_ok{},y_ok{};
-            const double x=fields[0].toDouble(&x_ok),y=fields[1].toDouble(&y_ok);
-            if(!x_ok || !y_ok || !std::isfinite(x) || !std::isfinite(y) ||
-               (fields[2]!="accelerate" && fields[2]!="coast" && fields[2]!="brake"))
-                qFatal("Invalid bundled kart coaching point");
-            result.push_back({{x,y},QColor(fields[2]=="accelerate"?"#89eab5":fields[2]=="brake"?"#f47770":"#36adf1")});
+        for(long i=0;i<n;++i) {
+            double x=0,y=0,total=0;
+            for(long k=-4;k<=4;++k) {
+                const auto& sample=line[static_cast<std::size_t>(((i+k)%n+n)%n)];
+                const double w=weights[k+4];
+                x+=sample.position.x*w;y+=sample.position.y*w;total+=w;
+            }
+            const auto advice=line[static_cast<std::size_t>(i)].advice;
+            result.push_back({{x/total,y/total},QColor(advice==fd::Advice::Accelerate?"#89eab5":advice==fd::Advice::Brake?"#f47770":"#36adf1")});
         }
-        if(result.size()<3) qFatal("Incomplete bundled kart coaching line");
         return result;
     }();
     return points;
 }
 }
 QObject* TrackGeometry::bridge() const {return bridge_.data();}
+void TrackGeometry::setActive(bool active) {
+    if (active_==active) return;
+    active_=active;
+    // Rebuild synchronously before the model becomes visible, from the latest simulation state.
+    if (active_) rebuild();
+    else { clear(); update(); }
+    emit activeChanged();
+}
 void TrackGeometry::setKind(int value) {kind_=value;rebuild();emit kindChanged();}
 void TrackGeometry::setBridge(QObject* object) {
     if(bridge_) disconnect(bridge_,nullptr,this,nullptr);
@@ -52,6 +60,7 @@ void TrackGeometry::setBridge(QObject* object) {
         connect(bridge_,&Bridge::planChanged,this,&TrackGeometry::rebuild);
         connect(bridge_,&Bridge::modeChanged,this,&TrackGeometry::rebuild);
         connect(bridge_,&Bridge::updated,this,[this]{
+            if (!active_) return;
             // The lattice ahead changes only when the car passes a layer, so it is redrawn only then.
             if(kind_==2||kind_==4||kind_==7||kind_==8||kind_==9||kind_==10||(kind_==6&&(bridge_->latticeLayersAhead()!=lattice_layers_||bridge_->lattice()!=lattice_drawn_)))rebuild();
         });
@@ -59,7 +68,8 @@ void TrackGeometry::setBridge(QObject* object) {
     rebuild();emit bridgeChanged();
 }
 void TrackGeometry::rebuild() {
-    if(!bridge_)return;
+    PerformanceScope timing(desktop_performance.geometry_ms,desktop_performance.geometries);
+    if(!bridge_ || !active_)return;
     const auto& t=bridge_->track();
     std::vector<Vertex> vertices;
     // The corridor's edges at each sample, measured from the reference along its normal: a track that records its own
@@ -89,8 +99,17 @@ void TrackGeometry::rebuild() {
         else if(kind_==11) {
             // Beyond the edges, ground in the backdrop's own colour, unseen: it hides what lies under the surface, the
             // car's reflection, wherever the road does not reach.
-            band(i,[&](size_t k){return -right(k)-4.0;},[&](size_t k){return -right(k)-0.05;},0.0,QColor("#08090b"));
-            band(i,[&](size_t k){return left(k)+0.05;},[&](size_t k){return left(k)+4.0;},0.0,QColor("#08090b"));
+            if(bridge_->relief()) {
+                // Where a bend is banked (decision 0050) the ground rises with the road as far as the barrier's footing and no
+                // further, so the shoulder is laid in two bands: under the barrier, and the flat floor beyond its retaining wall.
+                band(i,[&](size_t k){return -right(k)-4.0;},[&](size_t k){return -right(k)-0.345;},0.0,QColor("#08090b"));
+                band(i,[&](size_t k){return -right(k)-0.30;},[&](size_t k){return -right(k)-0.05;},0.0,QColor("#08090b"));
+                band(i,[&](size_t k){return left(k)+0.05;},[&](size_t k){return left(k)+0.30;},0.0,QColor("#08090b"));
+                band(i,[&](size_t k){return left(k)+0.345;},[&](size_t k){return left(k)+4.0;},0.0,QColor("#08090b"));
+            } else {
+                band(i,[&](size_t k){return -right(k)-4.0;},[&](size_t k){return -right(k)-0.05;},0.0,QColor("#08090b"));
+                band(i,[&](size_t k){return left(k)+0.05;},[&](size_t k){return left(k)+4.0;},0.0,QColor("#08090b"));
+            }
         }
         else if(kind_==1) {
             // The edges read as a road's lines; the kerbs beyond them stay faint, a sense of speed rather than a feature.
@@ -126,6 +145,9 @@ void TrackGeometry::rebuild() {
             for (auto v:{a,b,c,b,right_end,c}) vertices.push_back(v);
         }
     };
+    // The kart hall's own parts (decision 0051): barriers, floor, shell, lamps, their glow and the banked bend's wear.
+    if(kind_>=14 && kind_<=19 && bridge_->kartMode())
+        build_kart_hall(static_cast<KartHallPart>(kind_),t,bridge_->cornerSpans(),bridge_->relief(),vertices);
     if(kind_==12 && bridge_->kartMode()) {
         const auto& guide=kart_guide();
         std::vector<fd::Vec2> points;
@@ -346,11 +368,16 @@ void TrackGeometry::rebuild() {
         }
     }
     clear();
+    // The banked bend lifts everything drawn on the ground with it (decision 0050), by the ground's height at each vertex.
+    // The banked bend lifts everything drawn on the ground with it (decision 0050); the hall's own parts arrive already
+    // placed.
+    if(const auto* relief=kind_<14 ? bridge_->relief() : nullptr)
+        for(auto& v:vertices) v.y+=static_cast<float>(relief->ground_at({v.x,-v.z}).height_m);
     setVertexData(QByteArray(reinterpret_cast<const char*>(vertices.data()),qsizetype(vertices.size()*sizeof(Vertex))));
     setStride(sizeof(Vertex));
     setPrimitiveType(kind_==6?PrimitiveType::Lines:PrimitiveType::Triangles);
     addAttribute(Attribute::PositionSemantic,0,Attribute::F32Type);
     addAttribute(Attribute::ColorSemantic,3*sizeof(float),Attribute::F32Type);
-    setBounds(QVector3D(-1000,-1,-1000),QVector3D(1000,5,1000));
+    setBounds(QVector3D(-1000,-1,-1000),QVector3D(1000,12,1000));
     update();
 }

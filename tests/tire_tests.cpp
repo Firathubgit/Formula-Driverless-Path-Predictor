@@ -29,6 +29,24 @@ template<class Action> void rejects(Action action, const std::string& message) {
 
 constexpr double degree = std::numbers::pi/180;
 
+void longitudinal_only_is_exactly_the_combined_force_component() {
+    for (double shape : {0.61,0.75,0.9}) {
+        auto parameters=fd::TireParameters{};
+        parameters.sliding_fraction_lateral=shape;
+        for (double load : {200.0,2000.0,4500.0,8000.0}) {
+            const fd::TireAtLoad tire(parameters,load);
+            for (double ratio : {-3.0,-0.1,-1e-10,0.0,1e-10,0.1,3.0})
+                for (double angle : {-0.5,-0.08,0.0,0.08,0.5})
+                    near(tire.longitudinal_force(ratio,angle),tire.force(ratio,angle).longitudinal_n,0,
+                         "wheel solver uses exactly the same combined-slip longitudinal force");
+            for (double bad : {std::numeric_limits<double>::quiet_NaN(),std::numeric_limits<double>::infinity()}) {
+                rejects([&] { tire.longitudinal_force(bad,0); },"invalid longitudinal slip rejected");
+                rejects([&] { tire.longitudinal_force(0,bad); },"invalid lateral slip rejected");
+            }
+        }
+    }
+}
+
 // Slip ratio in [0, limit] at which pure longitudinal force peaks, by dense scan.
 double longitudinal_peak_slip(const fd::TireParameters& tire, double load, double limit) {
     double best_slip = 0, best_force = 0;
@@ -276,6 +294,7 @@ void invalid_inputs_are_rejected() {
 int main() {
     const std::vector<std::pair<std::string, std::function<void()>>> tests{
         {"zero_slip_gives_zero_force", zero_slip_gives_zero_force},
+        {"longitudinal_only_is_exactly_the_combined_force_component", longitudinal_only_is_exactly_the_combined_force_component},
         {"forces_are_odd_and_signed_by_slip", forces_are_odd_and_signed_by_slip},
         {"peak_lies_at_the_named_slip", peak_lies_at_the_named_slip},
         {"force_falls_past_the_peak_toward_the_sliding_fraction", force_falls_past_the_peak_toward_the_sliding_fraction},

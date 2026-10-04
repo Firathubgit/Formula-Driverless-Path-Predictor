@@ -33,6 +33,33 @@ int main() {
             for (const int trigger : {0, 31, 128, 255})
                 fd::validate_driver_controls(pad_from_xinput(x, trigger, 255-trigger, 0).controls);
         ++checks;
+        check(rumble_for(10,1,false).heavy==0 && rumble_for(10,1,false).light==0,"pause silences both motors");
+        check(rumble_for(0,1,true).heavy==0 && rumble_for(0,1,true).light==0,"stationary kart is silent even with stale slip");
+        const auto cruising=rumble_for(16.7,0,true);
+        check(near(cruising.heavy,0.063) && near(cruising.light,0.0105),"coasting has light road hum without tire slip");
+        check(rumble_for(8,0,true).heavy<cruising.heavy,"road hum grows with speed");
+        const auto scrubbing=rumble_for(12,1,true);
+        check(scrubbing.heavy>cruising.heavy && scrubbing.light>0.1925,"overloaded tires add the softened warning vibration");
+        fd::Demand tire;
+        tire.tire_slip_modeled=true;
+        tire.wheel_combined_slip={0.4,0.5,0.4,0.5};
+        tire.lateral_acceleration_mps2=15;
+        check(tire_scrub_for(tire)==0,"lateral acceleration alone does not invent tire slip");
+        tire.wheel_combined_slip[0]=1;
+        const double at_peak=tire_scrub_for(tire);
+        check(at_peak>0 && at_peak<0.3,"warning starts gently near the grip peak");
+        tire.wheel_combined_slip[0]=1.5;
+        check(tire_scrub_for(tire)==1,"combined braking or cornering slip reaches the warning bound");
+        tire.wheel_combined_slip={}; tire.front_peak_slip_angle_rad=0.1; tire.front_slip_angle_rad=0.15;
+        const double left=tire_scrub_for(tire); tire.front_slip_angle_rad=-0.15;
+        check(near(left,tire_scrub_for(tire)) && left>0.99,"lateral tire slip warns in either steering direction");
+        tire.tire_slip_modeled=false;
+        check(tire_scrub_for(tire)==0,"unmodeled slip is not fabricated");
+        check(rumble_for(std::nan(""),1,true).heavy==0 && rumble_for(5,std::nan(""),true).light==0,"invalid readings are silent");
+        for (double speed:{0.0,5.0,16.7,40.0}) for (double scrub:{-1.0,0.0,0.5,1.0,2.0}) {
+            const auto motors=rumble_for(speed,scrub,true);
+            check(motors.heavy>=0 && motors.heavy<=0.238+1e-12 && motors.light>=0 && motors.light<=0.203+1e-12,"feedback remains bounded and soft");
+        }
         // No controller in the slots is no controller, and asks for nothing.
         Gamepad gamepad;
         const auto read = gamepad.poll();

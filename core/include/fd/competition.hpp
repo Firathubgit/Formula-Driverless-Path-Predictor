@@ -64,9 +64,14 @@ struct Course {
 // and two thirds of its length, each reaching a metre beyond the corridor either side.
 std::vector<Gate> make_gates(const Track& track);
 
-// Personal practice timing, independent of competition penalties/DNF. Reads true
-// poses only; twelve ordered corridor gates prevent start-line rocking or reverse
-// crossings from producing a lap. The first accelerator input starts the clock.
+// Personal practice timing, independent of competition penalties/DNF. Reads true poses only. The first accelerator input
+// starts the clock. A lap is one track length of forward progress (decision 0048): the kart's place along the track, by
+// where it is projected onto it, is followed without a break, and the lap is timed at the instant the furthest it has
+// reached passes a whole number of track lengths from the line, interpolated within the step. There is no gate to miss,
+// so a kart that cuts a hairpin, runs wide or takes the inside of every bend times every lap; and rocking across the line,
+// driving backwards, a jump of the pose or a run outside the track reach no new furthest point, because only real forward
+// travel along the track does, of which a lap must have covered at least 60% of its length on the ground (the inside
+// line is about 90% of the middle's).
 class PracticeLaps {
 public:
     explicit PracticeLaps(const Track& track);
@@ -78,10 +83,12 @@ public:
     double best_seconds() const { return best_; }
     int completed() const { return completed_; }
 private:
-    std::vector<Gate> gates_;
-    std::size_t next_{1};
+    Track track_;
     bool started_{};
     double start_{}, previous_{}, best_{};
+    // The kart's place along the track from the line, without wrapping; the furthest it has reached; the end of the lap in
+    // progress; the ground it has covered in it.
+    double place_{}, furthest_{}, target_{}, travelled_{};
     int completed_{};
 };
 // Rejects a track validate_track rejects, a gate of no length or not finite, and no gate at all.

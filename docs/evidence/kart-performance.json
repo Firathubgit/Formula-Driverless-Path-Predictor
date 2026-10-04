@@ -1,0 +1,114 @@
+{
+  "date": "2026-10-04",
+  "scenario": "Realistic Gokartcentralen kart, You, first-person camera; scripted controls, 240 fixed batches then 10 seconds of live rendering",
+  "logical_window": [
+    1440,
+    880
+  ],
+  "capture_pixels": [
+    2880,
+    1760
+  ],
+  "before_adapter": "AMD Radeon(TM) 890M Graphics",
+  "after_adapter": "NVIDIA GeForce RTX 5070 Laptop GPU",
+  "before": {
+    "advance_ms": 1601.1450999999995,
+    "fixed_work_wall_ms": 1609.449,
+    "fps": 50.55119736854843,
+    "frame_max_ms": 69.7807,
+    "frame_p50_ms": 18.2035,
+    "frame_p95_ms": 38.6316,
+    "frames": 506,
+    "geometry_ms": 83.0319000000006,
+    "geometry_rebuilds": 1449,
+    "height": 880,
+    "publish_ms": 574.8851000000006,
+    "simulation_seconds": 9.995000000000001,
+    "wall_seconds": 10.0096541,
+    "width": 1440
+  },
+  "after": {
+    "advance_ms": 1185.2671,
+    "fixed_work_wall_ms": 1190.2016,
+    "fps": 80.19721635462032,
+    "frame_max_ms": 61.1454,
+    "frame_p50_ms": 12.0417,
+    "frame_p95_ms": 24.9097,
+    "frames": 802,
+    "geometry_ms": 0,
+    "geometry_rebuilds": 0,
+    "height": 880,
+    "preferred_adapter": "NVIDIA GeForce RTX 5070 Laptop GPU",
+    "publish_ms": 335.4888999999999,
+    "render_stats": {
+      "frameTime": 13.285099983215332,
+      "graphicsApiName": "D3D11",
+      "lastCompletedGpuTime": 0,
+      "renderPrepareTime": 0.3652992248535156,
+      "renderTime": 1.2615995407104492,
+      "syncTime": 0.0011005401611328125
+    },
+    "simulation_seconds": 9.99,
+    "wall_seconds": 10.0003471,
+    "width": 1440
+  },
+  "repeat": {
+    "advance_ms": 1505.504499999999,
+    "fixed_work_wall_ms": 1512.6973,
+    "fps": 74.85624353140615,
+    "frame_max_ms": 68.6906,
+    "frame_p50_ms": 12.9022,
+    "frame_p95_ms": 24.7707,
+    "frames": 749,
+    "geometry_ms": 0,
+    "geometry_rebuilds": 0,
+    "height": 880,
+    "preferred_adapter": "NVIDIA GeForce RTX 5070 Laptop GPU",
+    "publish_ms": 456.04749999999996,
+    "render_stats": {
+      "frameTime": 15.596799850463867,
+      "graphicsApiName": "D3D11",
+      "lastCompletedGpuTime": 0,
+      "renderPrepareTime": 0.5415000915527344,
+      "renderTime": 1.9351997375488281,
+      "syncTime": 0.0026998519897460938
+    },
+    "simulation_seconds": 9.99,
+    "wall_seconds": 10.0058454,
+    "width": 1440
+  },
+  "all_240_pose_samples_exactly_equal": [
+    true,
+    true
+  ],
+  "graphics_settings": "Unchanged MSAA, resolution, shaders, lighting, reflections, geometry and textures",
+  "physics": "Same fixed ticks, equations, solver tolerances, control decisions and forecast horizon; no force approximation",
+  "validation": {
+    "recording_isolated_pass_seconds": 72.58,
+    "final_targeted_suites_passed": 7,
+    "recording_parallel_timeout_seconds": 120,
+    "final_ui": {
+      "passed": true,
+      "checks": 836,
+      "qml_warnings": 0,
+      "seconds": 199.92
+    },
+    "exact_force_comparisons": 420,
+    "final_targeted_seconds": 16.24,
+    "tire_groups": 13,
+    "earlier_regression_suites_passed": 39
+  },
+  "limitations": [
+    "Frame intervals measured when frameSwapped reaches the GUI thread, not hardware presentation timestamps.",
+    "Two after runs and one before run on this laptop; timings vary with machine load and power state.",
+    "Scripted input, not physical Xbox driving or a clean racing lap.",
+    "Qt could not persist shader/pipeline caches under the benchmark sandbox."
+  ],
+  "artifacts": [
+    "out/performance/kart-before",
+    "out/performance/kart-optimized",
+    "out/performance/kart-optimized-repeat",
+    "out/performance/kart-optimized.log",
+    "out/performance/kart-optimized-repeat.log"
+  ]
+}

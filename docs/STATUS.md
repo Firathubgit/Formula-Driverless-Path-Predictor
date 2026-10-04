@@ -1,5 +1,117 @@
 # Status
 
+2026-10-04 kart hall audit (decision 0051), at the user's request for "a mega audit of the video and environment": the
+hall round Gokartcentralen's track is redrawn after the user's own onboard video of a lap, read frame by frame against the
+traced track and compared at 24 stations with the simulator's scene, twice. Drawn now: a polished floor whose shader mirrors
+the hall's lamps as streaks toward the eye, twin-tube barriers red-rimmed inside the bends with green braces, green islands,
+red and white kerbs, painted edge lines, the numbered start grid, the red gallery and footbridge at the start straight, the
+timing board and wedges, the east wall's balcony, T4's coloured blocks and pillar, T10's blue rim and pillar, and at the banked
+ninth corner the slatted fence, banner, round red deck and a faint worn band. The driver's view has the kart's own wheel, nose
+and steering front tires. New capture options `--at-station` and `--capture-scene` repeat the comparison. The bank's ground now
+stays under the barrier's footing instead of lifting the floor behind it. Earlier in the same work: the realistic kart's grip
+aid (0047), practice laps timed by progress so no lap is missed or doubled (0048), the coach, cockpit and rumble (0049), the
+banked bend (0050). Drawn from scratch and not measured; no frame of the video and no asset of the operator's is in the
+repository, and no banner's lettering is reproduced.
+Evidence: `./scripts/build.ps1` passed all 33 core suites in 423 s and `./scripts/build.ps1 -Desktop` all 40 in 593 s, on the
+sources as they stand, which include the acceleration follow-up below that had not been built or tested. `fd_kart_hall` passed
+852,557 checks and builds the hall in 81 ms; `fd_kart_coach` 6/6 groups, `fd_track_relief` 4/4, `fd_gamepad` 40 checks; the
+desktop UI passed 1,001 checks with no QML warnings in 172 s. The comparison sheets were inspected and are kept in
+`out/kart-hall-audit/`. Not done: driving it with a controller, a frame-rate measurement after the second pass, and any
+measurement of the real hall; wall positions, heights, lamp counts and the bank's 6 degrees are chosen. Details:
+`docs/evidence/kart-hall.json`.
+
+2026-10-04 acceleration follow-up: reduced desktop Realistic kart drive torque and power by 10%.
+Source changed only; no build or tests run, at the user's request for an immediate change without testing.
+
+2026-10-04 tire grip increase (decision 0055): desktop Realistic kart now has 40% more longitudinal and lateral
+tire friction on both axles, including the friction floor. Peak coefficients are 1.4 along and 1.89 sideways;
+the ordinary combined-slip/sliding model remains active. Mass stays 261 kg (186 kg kart + 75 kg driver).
+The historical offline fitted profile is unchanged; the UI identifies this chosen desktop tune. Entry, switching
+and setup reset apply it once, with the grip aid derived from the tuned car. Coasting/vibration settings remain.
+Evidence: Release desktop rebuilt. Six targeted CTest suites passed in 18.19 s (tire, vehicle, vehicle profiles,
+human driving, gamepad, barriers). Desktop UI passed 1,000 checks with zero QML warnings in 164.37 s, including
+160 comparisons of actual configured tire forces against the reference over loads and pure/combined/large slips,
+plus reset and kart-switch checks. Physical controller feel was not evaluated. Details: `docs/evidence/kart-grip.json`.
+
+2026-10-04 coasting steering and vibration (decision 0054): after clarification, full-stick coasting in the realistic
+kart permits at least 17 degrees of front-wheel travel at every speed, retaining the wider low-speed range and physical
+lock. Either pedal smoothly restores the ordinary speed-based steering bound over its first quarter travel. This
+changes only the person's command allowance; tire forces, motor limits and solid walls are unchanged. Stronger
+controller/cockpit feedback now follows actual combined tire slip relative to its peak, including braking/acceleration,
+rather than lateral acceleration alone. Coasting retains a light road hum: at 60 km/h about 6.3% heavy and 1.05% light
+motor, and cockpit road motion up to 1.2 mm vertically / 0.08 degrees in pitch. Overload contributions remain softened.
+Evidence: Release desktop rebuilt; all four targeted suites passed in 1.79 s (17 human-driving groups, 40 gamepad checks,
+2,746 barrier checks and the hall suite). Checks cover coast travel at 0/20/40/60/80 km/h in both directions, progressive
+pedal reduction, refusal of invalid allowances, high-speed tire saturation without invented grip, and bounded feedback
+that mutes while paused/stationary. Desktop UI passed 839 checks with no QML warnings in 166.55 s. Physical controller
+feel was not evaluated; vibration amplitudes are chosen presentation settings. Details: `docs/evidence/kart-coasting.json`.
+
+2026-10-04 realism correction (decision 0053): the user rejected the artificial grip added in the preceding change.
+Removed the direct-grip vehicle API, lateral-only rolling blend, environment grip flag and assisted diagnostics.
+Realistic kart driving again uses the ordinary fitted tire physics. The accumulated 1.848 steering multiplier is
+replaced with a modest 1.1 stick sensitivity factor, clamped at the speed-dependent steering limit rather than just
+physical lock. Solid track barriers/hall walls remain. No tire grip, motor limits or steering actuator parameters changed.
+Evidence: Release desktop rebuilt. Nine targeted CTest suites passed in 6.62 s: 16 human-driving groups, 2,746 barrier
+checks, the hall checks and vehicle/wheel/load/aero/trajectory/gamepad regressions. Full-stick angles measured 31.51 deg
+at rest, 19.05 at 20 km/h, 9.95 at 40, 7.00 at 60 and 6.01 at 80. Deliberately seeding 80 km/h with physical full lock
+exceeded tire grip in both directions: yaw rate 0.456 rad/s versus 12.308 rad/s for no-slip rolling. A 20-second
+full-throttle straight reached 59.01 km/h and stayed within the motor limit. Away from walls all tested motion, wheel
+speed and wheel load fields match the ordinary plant exactly. The desktop UI passed 838 checks with no QML warnings
+in 172.92 s. Physical controller feel was not evaluated. Details: `docs/evidence/kart-realism-correction.json`.
+
+2026-10-04 direct kart grip and solid boundaries (decision 0052), at the user's request: human Realistic kart driving
+now has strong lateral rolling assistance for sharper steering with very little sliding, retaining the 1.848 steering
+gain, lock, actuator rate and ordinary longitudinal dynamics. Settings explicitly identify the grip override; the
+unassisted profile and its fitted lap times are unchanged. Both human kart variants collide with the full bumper
+against track barriers and ground-level hall walls/pillars from the shared layout, independently of hall visibility.
+Contact is planar, inelastic and frictional through the vehicle seam on fixed ticks; no path snapping, damage or rollover.
+Evidence: Release desktop rebuilt; all nine targeted CTest suites passed in 12.05 s. The new contact suite passed
+1,555 checks, including two-direction grip response, identical straight acceleration/braking, sustained wall contact,
+glancing impacts, high-speed wall endpoints, corners, reset and autonomous isolation. The hall suite passed 842,871
+checks, including full-throttle driving against the actual Göteborg boundary. Desktop UI passed 838 checks with no
+QML warnings in 204.00 s. At a 10 m/s start and 0.22 rad steering for 1 s, direct yaw rate was 2.380 rad/s against a
+2.392 rad/s geometric target, with 0.00175 rad rear slip; the unassisted yaw rate was 1.365 rad/s, in both directions.
+Final scripted 2880x1760 runs on the RTX 5070 measured 74.2 FPS in Follow and 49.9 FPS in FP; camera workloads differ,
+and the new handling changes the trajectory. Cockpit capture inspected. Physical controller feel was not evaluated.
+Details: `docs/evidence/kart-contact.json`; local logs/capture in `out/kart-contact` and `out/performance/kart-solid-barriers*`.
+
+2026-10-04 realistic-kart performance: Windows now selects the high-performance graphics adapter (this laptop's
+RTX 5070, where Qt previously chose the integrated Radeon 890M) and presentation follows the display cadence.
+The minimap caches its static circuit and redraws moving markers separately; hidden charts and dynamic geometry
+avoid repeated work. Forecasts validate their immutable reference once, and wheel root solves evaluate the exact
+longitudinal tire force without calculating the unused lateral component. Fixed physics/control ticks, forecast
+horizon, force equations and solver tolerances are preserved, as are graphics quality settings and the prior
+steering/vibration adjustments. Explicit graphics overrides remain supported.
+Evidence: Release desktop built. At 2880x1760, the scripted realistic-kart benchmark improved from 50.6 FPS to
+80.2 and 74.9 FPS in two completed runs; GUI-observed p95 frame intervals fell from 38.6 ms to 24.9 and 24.8 ms.
+All 240 sampled six-field motion states matched the baseline exactly in both runs. Scene captures were inspected.
+The earlier regression sweep ultimately passed all 39 suites (recording timed out at 120 s under concurrent load,
+then passed alone in 72.58 s). After the final changes, seven physics/trajectory/human-driving suites passed in
+16.24 s; the desktop UI passed 836 checks with no QML warnings in 199.92 s. Tire tests include 420 exact force
+comparisons. Benchmark timing varies with laptop load/power; physical controller feel and hardware presentation
+timestamps were not measured. Details and limitations: `docs/evidence/kart-performance.json`.
+
+2026-10-04 steering follow-up: You > Gokart > Realistic kart gain increased another 20%, from 1.54 to 1.848,
+still capped at the existing physical lock. Release desktop and human-driving tests rebuilt; fd_human_driving
+passed all 15 groups through CTest (2.61 s). Physical controller feel and UI checks were not exercised.
+
+2026-10-04 follow-up: realistic kart steering gain is now 1.54, another 10% over 1.4, still capped at physical lock.
+Controller rumble is halved from the previous setting (35% of original strength); cockpit seat shake and lateral lean
+are reduced to 25% of their previous amplitude. Banking remains as drawn from the track. These vibration effects
+do not drive the plant. Release desktop and both test targets built; fd_human_driving and fd_gamepad passed through
+CTest (2.62 s total). Physical controller feel and a visual/UI check were not exercised.
+
+2026-10-04: reduced Gokart controller rumble motor strength by 30% at the user's request, preserving the speed and
+tire-scrub response. Release fd_desktop and fd_gamepad_tests built; fd_gamepad passed through CTest (0.07 s), including
+the softer motor bounds and pause/idle behavior. Physical controller feel was not evaluated.
+
+2026-10-04: You > Gokart > Realistic kart now applies 40% more steering command for the same stick input and speed,
+capped at the existing physical steering lock. The grip aid's pedals are unchanged; Forgiveness retains its separate
+steering controls. The gain is selected only for the realistic kart in the desktop (decision 0047 update).
+Evidence: Release fd_desktop and fd_human_driving_tests built; fd_human_driving passed all 15 groups through CTest
+(1.82 s), including both steering directions, partial/full stick at four speeds, physical lock, unchanged pedals,
+invalid gains and the simulation's actual steering actuator. Physical controller driving and the UI suite were not run.
+
 2026-09-28 recorded Formula driving audio (decision 0045), correcting the oscillator engine the user rejected.
 The engine now plays Speed Dreams' Formula V10 WAV, with phase-continuous pitch, smooth loop joins and filtered
 multirate playback; its recorded tire-skid sample replaces the tire oscillator. Seven virtual gears add short

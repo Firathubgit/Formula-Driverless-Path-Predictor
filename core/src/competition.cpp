@@ -134,12 +134,12 @@ std::vector<Gate> make_gates(const Track& track) {
     return {gate_at(track, 0, 1.0), gate_at(track, track.length_m/3, 1.0), gate_at(track, 2*track.length_m/3, 1.0)};
 }
 
-PracticeLaps::PracticeLaps(const Track& track) {
+PracticeLaps::PracticeLaps(const Track& track) : track_(track) {
     validate_track(track);
-    for (int i=0;i<12;++i) gates_.push_back(gate_at(track,track.length_m*i/12,0));
+    target_=track.length_m;
 }
 void PracticeLaps::reset(bool keep_history) {
-    started_=false; start_=0; next_=1;
+    started_=false; start_=0; place_=furthest_=travelled_=0; target_=track_.length_m;
     if (!keep_history) { previous_=best_=0; completed_=0; }
 }
 double PracticeLaps::current_seconds(double now) const {
@@ -150,28 +150,36 @@ void PracticeLaps::observe(const State& before, const State& after, double throt
         !std::isfinite(before.time_s) || !std::isfinite(after.time_s) || after.time_s<=before.time_s ||
         !std::isfinite(before.x_m) || !std::isfinite(before.y_m) || !std::isfinite(after.x_m) || !std::isfinite(after.y_m))
         throw std::invalid_argument("Practice timing needs finite forward-time poses and a valid throttle");
+    const double length=track_.length_m;
+    const auto from=project(track_,{before.x_m,before.y_m}), to=project(track_,{after.x_m,after.y_m});
     if (!started_) {
         if (throttle<=0.05) return;
-        started_=true; start_=before.time_s;
+        started_=true; start_=before.time_s; travelled_=0; target_=length;
+        // Pressed at the line, or just behind it: behind counts as before the start.
+        place_=furthest_=from.s_m>length/2 ? from.s_m-length : from.s_m;
     }
-    const auto& gate=gates_[next_];
-    const auto across=sub(gate.right,gate.left);
-    const double width=norm(across);
-    const Vec2 forward{-across.y/width,across.x/width};
-    const Vec2 a{before.x_m,before.y_m}, b{after.x_m,after.y_m};
-    const double from=dot(sub(a,gate.left),forward), to=dot(sub(b,gate.left),forward);
-    if (!(from<=0 && to>0)) return;
-    const double fraction=-from/(to-from);
-    const Vec2 crossing{a.x+(b.x-a.x)*fraction,a.y+(b.y-a.y)*fraction};
-    const double along=dot(sub(crossing,gate.left),across)/width;
-    if (along<0 || along>width) return;
-    if (next_==0) {
+    // Where the kart is along the track, followed through this step by its two projections. On the inside of a tight bend a
+    // projection ticks back as it passes each vertex of the track, a few tenths of a metre, and forward again after it:
+    // that counts for nothing, because only a new furthest point does. Outside the track by more than a barrier's width, or
+    // a pose that jumps, which neither the step's own travel nor the track's geometry accounts for (the inside of a hairpin
+    // advances the stations several times faster than the kart moves, hence the allowance), moves the kart nowhere.
+    const double travel=std::hypot(after.x_m-before.x_m,after.y_m-before.y_m);
+    const double advance=std::remainder(to.s_m-from.s_m,length);
+    const double reach=track_.width_m/2+4.0;
+    // No kart moves faster than 150 m/s: a pose that does has jumped, however far, and the kart is nowhere new.
+    if (from.distance_m>reach || to.distance_m>reach || travel>150*(after.time_s-before.time_s) || std::abs(advance)>6*travel+2.0) return;
+    place_+=advance;
+    travelled_+=travel;
+    if (place_<=furthest_) return;
+    const double reached=furthest_;
+    furthest_=place_;
+    if (reached<target_ && furthest_>=target_ && travelled_>=0.6*length) {
+        const double fraction=(target_-reached)/(furthest_-reached);
         const double time=before.time_s+(after.time_s-before.time_s)*fraction;
         previous_=time-start_;
         if (best_==0 || previous_<best_) best_=previous_;
-        ++completed_; start_=time;
+        ++completed_; start_=time; target_+=length; travelled_=travel*(1-fraction);
     }
-    next_=(next_+1)%gates_.size();
 }
 
 void validate_course(const Course& course) {

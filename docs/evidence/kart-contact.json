@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-04",
+  "change": "Direct lateral kart grip and solid planar barriers",
+  "direct_grip_share": 0.985,
+  "steering_gain": 1.848,
+  "bumper_radius_m": 0.59,
+  "contact_friction": 0.25,
+  "targeted_suites_passed": 9,
+  "targeted_seconds": 12.05,
+  "barrier_checks": 1555,
+  "hall_checks": 842871,
+  "steering_probe": {
+    "speed_at_start_mps": 10,
+    "command_rad": 0.22,
+    "duration_s": 1,
+    "ordinary_final_yaw_rate_radps": 1.36478,
+    "direct_final_yaw_rate_radps": 2.3798,
+    "direct_geometric_yaw_rate_radps": 2.39222,
+    "direct_rear_sideslip_rad": 0.00175115,
+    "both_turn_directions_passed": true
+  },
+  "straight_acceleration_braking_equivalence": true,
+  "ui": {
+    "passed": true,
+    "checks": 838,
+    "qml_warnings": 0,
+    "seconds": 204.0
+  },
+  "limitations": [
+    "Chosen grip assistance, not a measured refit.",
+    "Planar rigid barriers; no damage, deformation or rollover.",
+    "No physical-controller driving evaluation."
+  ],
+  "performance": {
+    "follow_fps": 74.19723601932347,
+    "follow_p95_ms": 27.9179,
+    "cockpit_fps": 49.94353877936631,
+    "cockpit_p95_ms": 42.8892,
+    "follow_fixed_work_ms": 1246.8339,
+    "cockpit_fixed_work_ms": 1300.1418,
+    "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+    "image_width": 2880,
+    "image_height": 1760,
+    "note": "Scripted driving, one run per camera; GUI-observed frame intervals. Different handling trajectory than the earlier optimization benchmark; no hardware presentation timestamps."
+  }
+}

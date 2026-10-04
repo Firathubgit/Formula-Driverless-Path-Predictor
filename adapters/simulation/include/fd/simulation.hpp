@@ -1,5 +1,6 @@
 #pragma once
 #include "fd/competition.hpp"
+#include "fd/barriers.hpp"
 #include "fd/cone_driving.hpp"
 #include "fd/human_driving.hpp"
 #include "fd/local_planner.hpp"
@@ -163,6 +164,18 @@ public:
     bool human_driving() const noexcept { return human_; }
     // The person's controls: validated immediately, and in force from the next control decision. Released at a reset.
     void set_driver_controls(DriverControls controls);
+    // The stick's grip-aware steering (decision 0047), off by default: with a share in (0, 1] the person's full stick asks the
+    // tires for that share of the plant's own lateral limit at the car's speed and no more. Four-wheel car only; derives the
+    // car's performance envelope when the plan has not (about 0.2 s), and again if the grip changes. Nullopt turns it off.
+    // steering_gain changes stick sensitivity within the selected limit. Optional coast travel opens
+    // wheel travel (not grip) with both pedals released; either pedal restores the ordinary limit smoothly.
+    // In force from the next control decision; the plant and everything recorded are as ever.
+    void set_grip_aid(std::optional<double> share, double steering_gain = 1.0, double coasting_steering_floor_rad = 0);
+    std::optional<double> grip_aid() const noexcept { return aid_share_; }
+    // Human kart scenario, installed only at time zero. Reset retains it; replay
+    // and autonomous driving never use it. Visibility does not affect collisions.
+    void set_kart_environment(KartEnvironment environment);
+    const KartEnvironment* kart_environment() const { return kart_environment_ ? &*kart_environment_ : nullptr; }
     const DriverControls& driver_controls() const noexcept { return controls_; }
     // Human-only, four-wheel training override. Validated now, committed before the next
     // fixed tick's motion, with a revision and event at that tick's starting time.
@@ -210,6 +223,11 @@ private:
     DriverControls controls_;
     DrivingAssistance assistance_;
     std::optional<DrivingAssistance> pending_assistance_;
+    std::optional<double> aid_share_;
+    std::optional<KartEnvironment> kart_environment_;
+    double aid_steering_gain_{1.0};
+    double aid_coasting_steering_floor_rad_{};
+    std::optional<PerformanceEnvelope> aid_envelope_;
     std::uint64_t tick_{}, control_ticks_{4}, decisions_{};
     double previous_s_{}, total_progress_{}, pending_grip_{};
     bool has_pending_grip_{};

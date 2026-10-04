@@ -220,6 +220,10 @@ PlantState advance(const VehicleModel& model, const PlantState& state, Command a
 // second live plant is involved. Commands must come from human_command with the same assistance.
 PlantState advance_assisted(const VehicleModel& model, const PlantState& state, Command applied,
                            const Config& config, double dt_s, DrivingAssistance assistance);
+class KartEnvironment;
+// Human kart driving with solid planar walls, through the same vehicle seam.
+PlantState advance_with_barriers(const VehicleModel&, const PlantState&, Command,
+                                 const Config&, double dt_s, DrivingAssistance, const KartEnvironment&);
 Demand demand(const VehicleModel& model, const PlantState& state, const Config& config,
               double longitudinal_acceleration_mps2);
 // Air at sea level and 15 °C, the standard atmosphere.

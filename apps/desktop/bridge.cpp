@@ -1,4 +1,6 @@
 #include "bridge.hpp"
+#include "performance_probe.hpp"
+#include "kart_guide.hpp"
 #include "fd/track_conditioning.hpp"
 #ifdef FD_HAVE_MPCC
 #include "fd/mpcc.hpp"
@@ -17,6 +19,23 @@
 #include <sstream>
 
 namespace {
+fd::FourWheelCar kart_car(bool realistic) {
+    auto car = fd::vehicle_profile(realistic ? "gokartcentralen-realistic" : "gokartcentralen-rsx2").car;
+    // Chosen desktop driving tune (0055), relative to the unchanged offline lap-fit reference.
+    if (realistic) for (auto* tire : {&car.front_tire, &car.rear_tire}) {
+        tire->peak_friction_longitudinal_low *= 1.4;
+        tire->peak_friction_longitudinal_high *= 1.4;
+        tire->peak_friction_lateral_low *= 1.4;
+        tire->peak_friction_lateral_high *= 1.4;
+        tire->minimum_friction *= 1.4;
+    }
+    if (realistic) {
+        car.max_drive_torque_nm *= 0.9;
+        car.max_drive_power_w *= 0.9;
+    }
+    return car;
+}
+
 QString explain(const std::string& limiting_reason, bool plan_valid, bool envelope_plan) {
     if (!plan_valid) return "Motion exceeds the model envelope. Recovery is not guaranteed.";
     if (envelope_plan) {
@@ -85,6 +104,7 @@ Bridge::Bridge(QObject* parent,QString presetsPath) : QObject(parent),
     timer_.start();
 }
 void Bridge::advanceTicks(int count) {
+    PerformanceScope timing(desktop_performance.advance_ms,desktop_performance.advances);
     const int previous_revision = revision();
     for (int i=0; i<count; ++i) {
         const auto before = simulation_.state();
@@ -98,6 +118,10 @@ void Bridge::advanceTicks(int count) {
     }
     if (count>0) pending_grip_.reset();
     publishUpdate(previous_revision != revision());
+}
+void Bridge::setDisplayRefreshRate(double hz) {
+    if (!std::isfinite(hz) || hz<=0) hz=60;
+    timer_.setInterval(static_cast<int>(std::clamp(std::floor(1000.0/hz),4.0,16.0)));
 }
 void Bridge::readGamepad() {
     const auto before = pad_;
@@ -114,6 +138,11 @@ void Bridge::readGamepad() {
             pad_.controls.throttle > 0.05) emit acceleratorAtLine();
     }
     if (pressed) emit menuPressed();
+    // The road and the tires in the controller's motors, while a person drives the kart and only then.
+    if (pad_.connected) {
+        const bool felt = rumble_enabled_ && kart_mode_ && humanDriving() && !playback_;
+        gamepad_.rumble(felt ? rumble_for(state().speed_mps, kartTireScrub(), running_) : Rumble{});
+    }
     const auto& now = simulation_.driver_controls();
     if (before.connected != pad_.connected || now.throttle != controls.throttle || now.brake != controls.brake ||
         now.steering != controls.steering)
@@ -123,7 +152,7 @@ bool Bridge::setHumanDriving(bool on) {
     if (playback_) { error_ = "Replay shows a recorded run; exit replay to drive"; publishUpdate(); return false; }
     if (simulation_.human_driving() == on) return true;
     simulation_.set_human_driving(on);
-    if (on && kart_mode_ && presets_.current()) simulation_.set_driving_assistance(*presets_.current());
+    if (on && kart_mode_ && !realistic_kart_ && presets_.current()) simulation_.set_driving_assistance(*presets_.current());
     if (practice_laps_) practice_laps_->reset();
     // Taking the car, the controller's controls are the person's from the next control decision.
     if (on && pad_.connected) simulation_.set_driver_controls(pad_.controls);
@@ -138,6 +167,17 @@ bool Bridge::kartRefuses(const char* what) {
     publishUpdate();
     return true;
 }
+bool Bridge::setRealisticKart(bool on) {
+    if (realistic_kart_ == on) return true;
+    if (playback_) { error_ = "Exit replay to choose the kart"; publishUpdate(); return false; }
+    if (!kart_mode_) { realistic_kart_ = on; publishUpdate(false, true); return true; }
+    if (running_) { error_ = "Pause to change the kart"; publishUpdate(); return false; }
+    // Another kart is another session: leave the mode, which returns the run to where it came from, and enter it again.
+    realistic_kart_ = on;
+    if (!setKartMode(false) || !setKartMode(true)) { realistic_kart_ = !on; return false; }
+    return true;
+}
+
 bool Bridge::setKartMode(bool on) {
     if (kart_mode_ == on) return true;
     if (playback_) { error_ = "Exit replay to drive the gokart track"; publishUpdate(); return false; }
@@ -151,20 +191,26 @@ bool Bridge::setKartMode(bool on) {
             options.smoothing_rms_m = 0.02;
             const auto conditioned = fd::condition_track(fd::load_centreline(std::filesystem::path(QStringLiteral(FD_KART_TRACK).toStdU16String())),
                                                          6.0, "Gokartcentralen Göteborg", options);
-            const auto& profile = fd::vehicle_profile("gokartcentralen-rsx2");
+            const auto& profile = fd::vehicle_profile(realistic_kart_ ? "gokartcentralen-realistic" : "gokartcentralen-rsx2");
             auto config = fd::configured_for(profile, simulation_.config());
             config.grip_mu = grip;
             // Hairpins of 4 to 6 m: Pure Pursuit aims 2 m ahead, not 4, as on the traced Formula Student courses.
             config.lookahead_base_m = 2.0;
-            fd::Simulation fresh(conditioned.track, config, profile.car, fd::SteeringMode::pure_pursuit, fd::SpeedPlanMode::grip_fractions,
+            fd::Simulation fresh(conditioned.track, config, kart_car(realistic_kart_), fd::SteeringMode::pure_pursuit, fd::SpeedPlanMode::grip_fractions,
                                  simulation_.local_planner_mode());
             fresh.set_course({}, fd::make_gates(conditioned.track), "Gokartcentralen Göteborg: barriers, no cones");
+            // The realistic kart is playable with a thumbstick: the stick and the pedals ask the tires for no more than the kart
+            // holds (decision 0047), using the envelope of the actual tuned tires (decision 0055).
+            if (realistic_kart_) fresh.set_grip_aid(0.9, 1.1, 17*std::numbers::pi/180);
+            const fd::KartCoach contact_coach(kart_guide_line(),config.wheelbase_m);
+            fresh.set_kart_environment(kart_environment(conditioned.track,kart_corner_spans(conditioned.track,contact_coach)));
             fresh.set_competition(simulation_.judge().rules());
             if (const auto* sensors = simulation_.sensors()) fresh.set_sensors(sensors->settings());
             if (const auto* perception = simulation_.perception()) fresh.set_perception(perception->settings());
             if (simulation_.human_driving()) fresh.set_human_driving(true);
             // Restore the user's last saved/loaded setup only on the kart, through the normal tick-boundary seam.
-            if (fresh.human_driving() && presets_.current()) fresh.set_driving_assistance(*presets_.current());
+            // The realistic kart retains tire slip physics; Forgiveness is reserved for the earlier kart.
+            if (fresh.human_driving() && !realistic_kart_ && presets_.current()) fresh.set_driving_assistance(*presets_.current());
             before_kart_ = BeforeKart{centreline_, course_name_, simulation_.cones(), simulation_.judge().course().gates,
                                       simulation_.course_source(), simulation_.vehicle_model(), simulation_.steering_mode(),
                                       simulation_.speed_plan_mode(), simulation_.config(), loaded_profile_, preset_config_};
@@ -194,8 +240,16 @@ bool Bridge::setKartMode(bool on) {
             before_kart_.reset();
         }
     } catch (const std::exception& e) { error_ = QString::fromUtf8(e.what()); publishUpdate(); return false; }
-    if (kart_mode_) practice_laps_.emplace(simulation_.track());
-    else practice_laps_.reset();
+    if (kart_mode_) {
+        practice_laps_.emplace(simulation_.track());
+        coach_.emplace(kart_guide_line(), simulation_.config().wheelbase_m);
+        relief_.emplace(fd::gokartcentralen_relief(simulation_.track()));
+        // Each corner of the poster line on the track the kart drives, and the hall that stands round it.
+        corner_spans_ = kart_corner_spans(simulation_.track(), *coach_);
+        hall_ = kart_hall_layout(simulation_.track());
+    } else { practice_laps_.reset(); coach_.reset(); relief_.reset(); corner_spans_.clear(); hall_ = {}; }
+    cues_ = {};
+    ground_ = {};
     pending_grip_.reset();
     accumulator_ = 0;
     error_.clear();
@@ -211,6 +265,10 @@ bool Bridge::setDriverControls(double throttle, double brake, double steering) {
 bool Bridge::setForgiveness(bool enabled, double level) {
     if (!kartMode() || !humanDriving()) {
         error_="Choose You and Gokart to use forgiveness"; publishUpdate(); return false;
+    }
+    if (realistic_kart_ && enabled) {
+        error_="Forgiveness is off while the realistic kart is on; switch the realistic kart off to use it";
+        publishUpdate(); return false;
     }
     auto assistance=simulation_.requested_driving_assistance();
     assistance.enabled=enabled; assistance.level=level;
@@ -228,6 +286,10 @@ bool Bridge::setForgivenessManual(bool manual,double acceleration,double braking
     if (!kartMode() || !humanDriving()) {
         error_="Choose You and Gokart to tune forgiveness"; publishUpdate(); return false;
     }
+    if (realistic_kart_) {
+        error_="Forgiveness is off while the realistic kart is on; switch the realistic kart off to use it";
+        publishUpdate(); return false;
+    }
     auto a=simulation_.requested_driving_assistance();
     a.manual=manual; a.acceleration=acceleration; a.braking=braking; a.steering=steering; a.grip=grip; a.speed=speed;
     try { simulation_.set_driving_assistance(a); }
@@ -240,13 +302,13 @@ QVariantList Bridge::forgivenessPresets() const {
     return result;
 }
 bool Bridge::saveForgivenessPreset(int slot) {
-    if (!kartMode() || !humanDriving()) return false;
+    if (!kartMode() || !humanDriving() || realistic_kart_) return false;
     const bool saved=presets_.save(slot,simulation_.requested_driving_assistance());
     preset_message_=saved ? QString("Saved preset %1").arg(slot+1) : presets_.error();
     emit presetsChanged(); return saved;
 }
 bool Bridge::loadForgivenessPreset(int slot) {
-    if (!kartMode() || !humanDriving()) return false;
+    if (!kartMode() || !humanDriving() || realistic_kart_) return false;
     try {
         if (!presets_.slot(slot)) { preset_message_="That slot is empty."; emit presetsChanged(); return false; }
         auto settings=*presets_.slot(slot); settings.enabled=true;
@@ -257,12 +319,19 @@ bool Bridge::loadForgivenessPreset(int slot) {
     publishUpdate(); emit presetsChanged(); return true;
 }
 bool Bridge::deleteForgivenessPreset(int slot) {
-    if (!kartMode() || !humanDriving()) return false;
+    if (!kartMode() || !humanDriving() || realistic_kart_) return false;
     const bool removed=presets_.save(slot,std::nullopt);
     preset_message_=removed ? QString("Deleted preset %1").arg(slot+1) : presets_.error();
     emit presetsChanged(); return removed;
 }
+void Bridge::refreshCoach() {
+    ground_ = relief() ? relief_->ground_at({x(), y()}) : fd::Ground{};
+    if (!kart_mode_ || !coach_ || playback_) { cues_ = {}; return; }
+    // The search keeps to where the car last was while it is on the line, so a hairpin's other leg is never taken for it.
+    cues_ = coach_->cues({x(), y()}, state().speed_mps, cues_.located ? cues_.along_m : -1);
+}
 void Bridge::publishUpdate(bool plan_changed, bool mode_changed) {
+    PerformanceScope timing(desktop_performance.publish_ms,desktop_performance.publishes);
     // QObject property observers can run before ordinary signal slots. Complete all
     // mode-aware caches before notifying any binding or scene geometry observer.
     ensureEnvelope();
@@ -272,6 +341,7 @@ void Bridge::publishUpdate(bool plan_changed, bool mode_changed) {
     if (plan_changed && !playback_) refreshLineEstimates();
     if (plan_changed) refreshPathPoints();
     refreshPrediction();
+    refreshCoach();
     refreshPlanTireUse(plan_changed);
     if (mode_changed) refreshOptimalMatch();
     if (mode_changed) emit modeChanged();
@@ -679,6 +749,11 @@ bool Bridge::rebuild(const fd::Track& track, const fd::VehicleModel& model, fd::
         if (const auto* perception = simulation_.perception()) fresh.set_perception(perception->settings());
         if (const auto* on_cones = simulation_.cone_driver()) fresh.set_cone_driving(on_cones->settings(), on_cones->memory_settings());
         // A person keeps the car through a fresh run, as the other choices keep theirs.
+        if (kart_mode_) {
+            const fd::KartCoach contact_coach(kart_guide_line(),config.wheelbase_m);
+            fresh.set_kart_environment(kart_environment(track,kart_corner_spans(track,contact_coach)));
+            if (realistic_kart_) fresh.set_grip_aid(0.9,1.1,17*std::numbers::pi/180);
+        }
         if (simulation_.human_driving()) {
             fresh.set_human_driving(true);
             fresh.set_driving_assistance(simulation_.requested_driving_assistance());
@@ -812,7 +887,8 @@ bool Bridge::resetSetup() {
     if (!std::holds_alternative<fd::FourWheelCar>(simulation_.vehicle_model())) {
         error_ = "Setup controls apply to the 4 wheels car"; publishUpdate(); return false;
     }
-    const fd::FourWheelCar defaults = loaded_profile_.empty() ? fd::FourWheelCar{} : fd::vehicle_profile(loaded_profile_).car;
+    const fd::FourWheelCar defaults = kart_mode_ ? kart_car(realistic_kart_)
+        : loaded_profile_.empty() ? fd::FourWheelCar{} : fd::vehicle_profile(loaded_profile_).car;
     return rebuild(simulation_.track(), defaults, fd::SteeringMode::pure_pursuit, simulation_.speed_plan_mode());
 }
 bool Bridge::setSteeringMode(int mode) {

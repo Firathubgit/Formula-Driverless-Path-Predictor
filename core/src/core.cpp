@@ -2,6 +2,7 @@
 #include "fd/performance_envelope.hpp"
 #include "fd/steering.hpp"
 #include "speed_limits.hpp"
+#include "control_internal.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -421,6 +422,15 @@ ControlResult compute_control(const Track& track, const std::vector<PlanPoint>& 
         if (!std::isfinite(profile[k].s_m) || !std::isfinite(profile[k].distance_m) || !std::isfinite(profile[k].speed_mps) ||
             profile[k].speed_mps<0 || (k>0 && (profile[k].s_m<=profile[k-1].s_m || profile[k].distance_m<=profile[k-1].distance_m)))
             throw std::invalid_argument("Control intent speed profile requires finite nonnegative speeds at increasing stations and distances");
+    return detail::compute_control_validated(track,plan,state,config,intent,steering,envelope);
+}
+
+ControlResult detail::compute_control_validated(const Track& track, const std::vector<PlanPoint>& plan,
+                              const State& state, const Config& config, ControlIntent intent,
+                              const SteeringTable* steering, const PerformanceEnvelope* envelope) {
+    const auto& profile=intent.speed_profile;
+    if (!valid_state(state))
+        throw std::invalid_argument("Controller requires a finite nonnegative-speed state");
     const auto nearest=project(track,{state.x_m,state.y_m});
     const auto i=nearest.index, j=(i+1)%plan.size();
     const double reference_sq=(1-nearest.fraction)*plan[i].speed_mps*plan[i].speed_mps+

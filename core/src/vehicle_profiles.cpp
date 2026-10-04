@@ -3,7 +3,9 @@
 // values read, no code taken). Tire fits: tools/vehicle_profiles/fit_tires.py.
 #include "fd/vehicle_profiles.hpp"
 
+#include <cmath>
 #include <stdexcept>
+#include <utility>
 
 namespace fd {
 namespace {
@@ -323,6 +325,36 @@ VehicleProfile gokartcentralen_rsx2() {
     return p;
 }
 
+// The rental kart fitted to the poster's line and to a real driver's lap (decision 0046): the same kart as above with the
+// two things that were off. Its tires grip sideways far more than along, as every published kart tire does (Lot's racing
+// kart 1.5 sideways, 0.9 along), and a kart's hands are quick. Fitted so that the plant, driven round the poster's coloured
+// line at the whole of its own envelope, laps in 34.5 s, the operator's own standard for a quick kart, and at 89% of it in
+// 36.4 s, a good driver's best (tools/kart/fit_kart.py).
+VehicleProfile gokartcentralen_realistic() {
+    auto p = gokartcentralen_rsx2();
+    p.id = "gokartcentralen-realistic";
+    p.name = "Rental kart, fitted to the poster line and a real 36 s lap (Gokartcentralen Göteborg)";
+    p.source += "; tire grip and steering rate fitted to the line the operator's poster paints and to the lap times a driver "
+                "gets there, by tools/kart/fit_kart.py (decision 0046)";
+    auto& c = p.car;
+    for (auto* tire : {&c.front_tire, &c.rear_tire}) {
+        tire->peak_friction_lateral_low = tire->peak_friction_lateral_high = 1.35;
+        tire->peak_friction_longitudinal_low = tire->peak_friction_longitudinal_high = 1.0;
+    }
+    p.max_steering_rate_radps = 3.0;
+    for (auto& s : p.parameters) {
+        if (s.parameter == "peak frictions") {
+            s = {"peak frictions", P::fitted, "1.35 sideways and 1.0 along: published kart tires grip sideways more than along "
+                 "(Lot 1.5 and 0.9); the sideways value is the one at which this plant laps the poster's line in 34.5 s at "
+                 "its limit, which the rsx2's 1.0 both ways did in 37.5 s; braking stays tire-limited at 0.74 g, as rental "
+                 "karts' 0.6 to 0.7 g"};
+        }
+    }
+    p.parameters.push_back({"max_steering_rate_radps", P::chosen, "3 rad/s: a kart's front wheels cross their range in a fifth of "
+                            "a second, against the configuration's 0.9 rad/s, which lags in the hairpins"});
+    return p;
+}
+
 } // namespace
 
 const char* provenance_name(Provenance provenance) {
@@ -337,7 +369,8 @@ const char* provenance_name(Provenance provenance) {
 
 const std::vector<VehicleProfile>& vehicle_profiles() {
     static const std::vector<VehicleProfile> profiles{project_roadster(), formula_one_style(), formula_student_electric(),
-                                                      electric_race_car(), racing_kart(), gokartcentralen_rsx2()};
+                                                      electric_race_car(), racing_kart(), gokartcentralen_rsx2(),
+                                                      gokartcentralen_realistic()};
     return profiles;
 }
 
@@ -350,10 +383,78 @@ const VehicleProfile& vehicle_profile(std::string_view id) {
     throw std::invalid_argument("Unknown vehicle profile '"+std::string(id)+"'; the profiles are "+ids);
 }
 
+namespace {
+using CarSetter = void (*)(FourWheelCar&, Config&, double);
+using TireSetter = double TireParameters::*;
+
+const std::vector<std::pair<std::string, double FourWheelCar::*>>& car_members() {
+    static const std::vector<std::pair<std::string, double FourWheelCar::*>> members{
+        {"mass_kg", &FourWheelCar::mass_kg}, {"yaw_inertia_kgm2", &FourWheelCar::yaw_inertia_kgm2},
+        {"cg_to_rear_m", &FourWheelCar::cg_to_rear_m}, {"cg_height_m", &FourWheelCar::cg_height_m},
+        {"roll_balance_front", &FourWheelCar::roll_balance_front}, {"track_front_m", &FourWheelCar::track_front_m},
+        {"track_rear_m", &FourWheelCar::track_rear_m}, {"wheel_radius_m", &FourWheelCar::wheel_radius_m},
+        {"wheel_inertia_kgm2", &FourWheelCar::wheel_inertia_kgm2}, {"drive_front_fraction", &FourWheelCar::drive_front_fraction},
+        {"max_drive_power_w", &FourWheelCar::max_drive_power_w}, {"max_drive_torque_nm", &FourWheelCar::max_drive_torque_nm},
+        {"brake_bias_front", &FourWheelCar::brake_bias_front}, {"max_brake_torque_nm", &FourWheelCar::max_brake_torque_nm},
+        {"max_drive_speed_mps", &FourWheelCar::max_drive_speed_mps}, {"viscous_coupling_nms", &FourWheelCar::viscous_coupling_nms},
+        {"drag_area_m2", &FourWheelCar::drag_area_m2}, {"downforce_area_m2", &FourWheelCar::downforce_area_m2},
+        {"aero_balance_front", &FourWheelCar::aero_balance_front}, {"kinematic_below_mps", &FourWheelCar::kinematic_below_mps},
+        {"dynamic_above_mps", &FourWheelCar::dynamic_above_mps}, {"slip_speed_floor_mps", &FourWheelCar::slip_speed_floor_mps},
+        {"substep_s", &FourWheelCar::substep_s}};
+    return members;
+}
+
+const std::vector<std::pair<std::string, TireSetter>>& tire_members() {
+    static const std::vector<std::pair<std::string, TireSetter>> members{
+        {"reference_load_low_n", &TireParameters::reference_load_low_n}, {"reference_load_high_n", &TireParameters::reference_load_high_n},
+        {"peak_friction_longitudinal_low", &TireParameters::peak_friction_longitudinal_low},
+        {"peak_friction_longitudinal_high", &TireParameters::peak_friction_longitudinal_high},
+        {"peak_friction_lateral_low", &TireParameters::peak_friction_lateral_low},
+        {"peak_friction_lateral_high", &TireParameters::peak_friction_lateral_high},
+        {"peak_slip_ratio_low", &TireParameters::peak_slip_ratio_low}, {"peak_slip_ratio_high", &TireParameters::peak_slip_ratio_high},
+        {"peak_slip_angle_low_rad", &TireParameters::peak_slip_angle_low_rad},
+        {"peak_slip_angle_high_rad", &TireParameters::peak_slip_angle_high_rad},
+        {"sliding_fraction_longitudinal", &TireParameters::sliding_fraction_longitudinal},
+        {"sliding_fraction_lateral", &TireParameters::sliding_fraction_lateral}, {"minimum_friction", &TireParameters::minimum_friction}};
+    return members;
+}
+} // namespace
+
+std::vector<std::string> car_value_names() {
+    std::vector<std::string> names;
+    for (const auto& [name, member] : car_members()) names.push_back(name);
+    for (const char* prefix : {"front_tire.", "rear_tire.", "tires."})
+        for (const auto& [name, member] : tire_members()) names.push_back(prefix+name);
+    for (const char* name : {"wheelbase_m", "max_steering_rad", "max_speed_mps"}) names.push_back(name);
+    return names;
+}
+
+void set_car_value(FourWheelCar& car, Config& config, std::string_view name, double value) {
+    if (!std::isfinite(value)) throw std::invalid_argument("The value of "+std::string(name)+" must be a finite number");
+    for (const auto& [member_name, member] : car_members())
+        if (name == member_name) { car.*member = value; return; }
+    for (const auto& [prefix, tires] : std::vector<std::pair<std::string, std::vector<TireParameters*>>>{
+             {"front_tire.", {&car.front_tire}}, {"rear_tire.", {&car.rear_tire}}, {"tires.", {&car.front_tire, &car.rear_tire}}}) {
+        if (name.substr(0, prefix.size()) != prefix) continue;
+        for (const auto& [member_name, member] : tire_members())
+            if (name.substr(prefix.size()) == member_name) {
+                for (auto* tire : tires) (*tire).*member = value;
+                return;
+            }
+    }
+    if (name == "wheelbase_m") { config.wheelbase_m = value; return; }
+    if (name == "max_steering_rad") { config.max_steering_rad = value; return; }
+    if (name == "max_speed_mps") { config.max_speed_mps = value; return; }
+    std::string names;
+    for (const auto& valid : car_value_names()) names += (names.empty() ? "" : ", ")+valid;
+    throw std::invalid_argument("Unknown car value '"+std::string(name)+"'; the names are "+names);
+}
+
 Config configured_for(const VehicleProfile& profile, Config config) {
     config.wheelbase_m = profile.wheelbase_m;
     config.max_steering_rad = profile.max_steering_rad;
     config.max_speed_mps = profile.max_speed_mps;
+    if (profile.max_steering_rate_radps > 0) config.max_steering_rate_radps = profile.max_steering_rate_radps;
     validate_config(config);
     validate_vehicle(profile.car, config);
     return config;

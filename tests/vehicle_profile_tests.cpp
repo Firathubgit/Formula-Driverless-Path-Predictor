@@ -35,7 +35,8 @@ void every_profile_is_a_sourced_car() {
                   << " m; " << counts[fd::Provenance::published] << " published, " << counts[fd::Provenance::derived] << " derived, "
                   << counts[fd::Provenance::fitted] << " fitted, " << counts[fd::Provenance::chosen] << " chosen\n";
     }
-    require(ids.size() == 6, "six profiles: the project's roadster, four from the audited sources and the Göteborg rental kart");
+    require(ids.size() == 7, "seven profiles: the project's roadster, four from the audited sources, the Göteborg rental kart and "
+            "that kart fitted to the poster's line");
     require(ids.count("road-car") == 0, "no road car, which no audited source describes");
     bool named = false;
     try { fd::vehicle_profile("road-car"); } catch (const std::invalid_argument& e) { named = std::string(e.what()).find("formula-one-style") != std::string::npos; }
@@ -75,8 +76,21 @@ void the_profiles_carry_their_sources_values() {
             rental.car.front_tire.peak_friction_lateral_low == 1.0 && rental.car.rear_tire.peak_friction_longitudinal_high == 1.0 &&
             std::abs(rental.car.yaw_inertia_kgm2-25*261.0/165) < 1e-9,
             "the rental kart: 186 + 75 kg, 14 hp, 60 km/h, the racing kart's geometry, friction 1.0");
+    // The same kart fitted to the poster's line (decision 0046): everything the same but the tires, which grip sideways 1.35
+    // and along 1.0, and the quick steering of a kart.
+    const auto& fitted = fd::vehicle_profile("gokartcentralen-realistic");
+    require(fitted.car.mass_kg == rental.car.mass_kg && fitted.car.max_drive_power_w == rental.car.max_drive_power_w &&
+            fitted.car.max_drive_speed_mps == rental.car.max_drive_speed_mps && fitted.car.brake_bias_front == rental.car.brake_bias_front &&
+            fitted.car.front_tire.peak_friction_lateral_low == 1.35 && fitted.car.rear_tire.peak_friction_lateral_high == 1.35 &&
+            fitted.car.front_tire.peak_friction_longitudinal_low == 1.0 && fitted.car.rear_tire.peak_friction_longitudinal_high == 1.0 &&
+            fitted.max_steering_rate_radps == 3.0 && rental.max_steering_rate_radps == 0,
+            "the fitted rental kart: the rental kart's mass, power and top speed with 1.35 sideways and 1.0 along tire grip and 3 rad/s steering");
+    require(fd::configured_for(fitted, fd::Config{}).max_steering_rate_radps == 3.0 &&
+            fd::configured_for(rental, fd::Config{}).max_steering_rate_radps == fd::Config{}.max_steering_rate_radps,
+            "its steering rate reaches the configuration, and the unfitted kart's does not change");
     for (const auto& p : fd::vehicle_profiles())
-        if (p.id != "gokartcentralen-rsx2") require(!std::isfinite(p.car.max_drive_speed_mps), p.id+": no drive controller top speed");
+        if (p.id != "gokartcentralen-rsx2" && p.id != "gokartcentralen-realistic")
+            require(!std::isfinite(p.car.max_drive_speed_mps), p.id+": no drive controller top speed");
 }
 
 // The profiles behave as their physics must, at the same speeds for every car: a car with wings gains lateral grip from
@@ -110,7 +124,7 @@ void the_profiles_differ_as_their_physics_must() {
         else require(gain[p.id] < 1.02, p.id+": without wings speed adds no lateral grip");
     }
     for (const auto& [id, value] : forward_25)
-        if (id != "racing-kart" && id != "gokartcentralen-rsx2")
+        if (id != "racing-kart" && id != "gokartcentralen-rsx2" && id != "gokartcentralen-realistic")
             require(forward_25["racing-kart"] < value, "the 20 kW kart drives weakest at 25 m/s, under "+id);
     // The rental kart floored from rest reaches the operator's 60 km/h in about the time its power allows and holds just
     // under it (decision 0038); in its hairpin speeds it corners at its tires' grip, not scrubbed by a locked axle.

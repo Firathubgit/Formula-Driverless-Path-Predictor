@@ -227,56 +227,84 @@ void a_pacsim_layout_becomes_a_course() {
     require(refused([&] { fd::course_from_layout(open); }), "an open layout is refused");
 }
 
-void practice_laps_start_on_gas_and_require_a_circuit() {
+// A lap is one track length of forward progress (decision 0048): every lap of a kart that takes any line, wide, tight or cutting
+// every bend, is timed the instant it is done, at the time interpolated within the step; and only real forward travel along
+// the track counts, so nothing else produces one.
+void practice_laps_start_on_gas_and_time_every_lap() {
     const auto track=preset_course().track;
     fd::PracticeLaps clock(track);
     double time=10;
-    auto observe=[&](double from,double to,double throttle=0.0,double dt=0.1,double offset=0.0) {
-        auto a=pose_on(track,from,offset),b=pose_on(track,to,offset);
-        a.time_s=time; b.time_s=time+dt; clock.observe(a,b,throttle); time+=dt;
-    };
-    observe(0,0);
-    require(!clock.started() && clock.current_seconds(time)==0,"waiting or pressing Play alone does not time a lap");
-    observe(0,0,1);
-    require(clock.started() && std::abs(clock.current_seconds(time)-0.1)<1e-9,"gas starts at the beginning of its tick");
-    observe(-0.1,0.1); observe(0.1,-0.1); observe(-0.1,0.1);
-    require(clock.completed()==0 && clock.previous_seconds()==0,"rocking across the line is not a full lap");
-    // Missing a checkpoint cannot be recovered by merely crossing the start.
-    observe(track.length_m/6-0.1,track.length_m/6+0.1);
-    observe(-0.1,0.1);
-    require(clock.completed()==0,"out-of-order checkpoints cannot complete a lap");
-    auto circuit=[&](double dt) {
-        for(int i=1;i<=12;++i) {
-            const double s=track.length_m*i/12;
-            observe(s-0.1,s+0.1,0,dt);
+    // The kart moving along the track from one station to another, in steps of a metre at a speed, on a line a distance
+    // across it (left positive): continuous motion, as the simulation gives.
+    auto drive=[&](double from,double to,double throttle=0.0,double speed=10,double offset=0.0) {
+        const double step=(to>=from ? 1.0 : -1.0);
+        for (double s=from; step*(to-s)>1e-9; s+=step) {
+            const double next=std::abs(to-s)<1.0 ? to : s+step;
+            auto a=pose_on(track,s,offset),b=pose_on(track,next,offset);
+            const double dt=std::abs(next-s)/speed;
+            a.time_s=time; b.time_s=time+dt; clock.observe(a,b,throttle); time+=dt;
         }
     };
-    circuit(1);
-    require(clock.completed()==1 && clock.previous_seconds()>12 && clock.best_seconds()==clock.previous_seconds(),"first whole lap is retained");
-    require(std::abs(clock.current_seconds(time)-0.5)<0.01,"crossing time is interpolated into the new lap");
+    auto jump=[&](double from,double to,double throttle=0.0) {
+        auto a=pose_on(track,from),b=pose_on(track,to);
+        a.time_s=time; b.time_s=time+0.1; clock.observe(a,b,throttle); time+=0.1;
+    };
+    const double length=track.length_m;
+    drive(0,0.001);
+    require(!clock.started() && clock.current_seconds(time)==0,"waiting or pressing Play alone does not time a lap");
+    drive(0,0.5,1);
+    require(clock.started() && clock.current_seconds(time)>0.04 && clock.current_seconds(time)<0.06,"gas starts at the beginning of its tick");
+    drive(0.5,-0.4); drive(-0.4,0.4); drive(0.4,-0.4); drive(-0.4,0.6);
+    require(clock.completed()==0 && clock.previous_seconds()==0,"rocking across the line is not a lap");
+    // A jump of the pose is no progress: a lap cannot be shortcut by a pose that skips round the track.
+    jump(1,length/2); jump(length/2,length-1);
+    require(clock.completed()==0,"a pose that jumps round the track completes no lap");
+    drive(0.6,length-0.5);
+    require(clock.completed()==0,"a lap is not done short of the line: completed "+std::to_string(clock.completed())+", previous "+std::to_string(clock.previous_seconds())+" s at clock "+std::to_string(clock.current_seconds(time)));
+    drive(length-0.5,length+0.5);
+    require(clock.completed()==1 && clock.best_seconds()==clock.previous_seconds() && clock.previous_seconds()>length/10-0.7 && clock.previous_seconds()<length/10+3,
+            "the lap is timed the moment the line is crossed, its clock having run since the first gas, rocking included: completed "+
+            std::to_string(clock.completed())+", previous "+std::to_string(clock.previous_seconds())+" s, a lap "+std::to_string(length/10)+" s");
+    require(std::abs(clock.current_seconds(time)-0.05)<0.06,"the crossing time is interpolated into the new lap");
     const double previous=clock.previous_seconds();
-    observe(0,0);
+    drive(0.5,3,0);
     require(clock.previous_seconds()==previous,"previous means completed lap, never the running timer");
-    circuit(0.5);
-    require(clock.completed()==2 && clock.best_seconds()==clock.previous_seconds() && clock.best_seconds()<previous,"best updates on a faster full lap");
+    // Every lap of every line: the kart's line across the track, at 2 m either way and right at the corridor's edge, and a
+    // faster lap and a slower one.
+    clock.reset(false);
+    drive(0,0.001);
+    require(clock.completed()==0,"a new session starts empty");
+    for (const double offset : {0.0,2.0,-2.0,track.width_m/2-0.5,-(track.width_m/2-0.5)}) {
+        const int before=clock.completed();
+        drive(0.5,length+0.5,1,10,offset);
+        require(clock.completed()==before+1,"a lap on a line "+std::to_string(offset)+" m across the track is timed: completed "+std::to_string(clock.completed())+" after "+std::to_string(before)+", previous "+std::to_string(clock.previous_seconds()));
+    }
     const double best=clock.best_seconds();
-    circuit(1);
-    require(clock.completed()==3 && clock.previous_seconds()>best && clock.best_seconds()==best,"slower lap updates previous but preserves best");
+    drive(0.5,length+0.5,0,12,0.0);
+    require(clock.completed()==6 && clock.previous_seconds()<best+1e-9 && clock.best_seconds()==clock.previous_seconds() && clock.best_seconds()<previous,
+            "a faster lap is the new best");
+    drive(0.5,length+0.5,0,8,0.0);
+    require(clock.completed()==7 && clock.previous_seconds()>clock.best_seconds() && clock.best_seconds()<best,"a slower lap updates previous and keeps the best");
+    // Twenty laps in a row, as a session is: all timed, none a lap and a half.
+    clock.reset(false);
+    drive(0,0.001,1);
+    for (int lap=0; lap<20; ++lap) {
+        const int before=clock.completed();
+        drive(0.5,length+0.5,1,10,(lap%5-2)*1.2);
+        require(clock.completed()==before+1 && clock.previous_seconds()<1.3*length/10,"lap "+std::to_string(lap+1)+" of twenty is timed alone, not merged with the next");
+    }
     clock.reset();
-    require(!clock.started() && clock.current_seconds(0)==0 && clock.previous_seconds()>0 && clock.completed()==3,"restart preserves completed history and waits for gas");
+    require(!clock.started() && clock.current_seconds(0)==0 && clock.previous_seconds()>0 && clock.completed()==20,"restart preserves completed history and waits for gas");
     clock.reset(false);
     require(clock.completed()==0 && clock.previous_seconds()==0 && clock.best_seconds()==0,"new session clears history");
-    observe(0,0,1);
-    for(int i=1;i<=12;++i) {
-        double s=track.length_m*i/12;
-        observe(s+0.1,s-0.1);
-    }
-    require(clock.completed()==0,"reverse crossings never count");
-    for(int i=1;i<=12;++i) {
-        double s=track.length_m*i/12;
-        observe(s-0.1,s+0.1,0,1,track.width_m);
-    }
-    require(clock.completed()==0,"passing outside the timing gates never counts");
+    drive(0,0.5,1);
+    drive(length,0,0);  // backwards from the line the whole way round
+    drive(0,length/2,0);
+    require(clock.completed()==0,"reverse travel never counts");
+    clock.reset(false);
+    drive(0,0.5,1);
+    drive(0.5,length+0.5,0,10,track.width_m/2+6);  // 6 m past the corridor's edge: beyond any barrier, and beyond the clock's 4 m of slack
+    require(clock.completed()==0,"travel outside the track never counts");
 }
 
 void bad_rules_are_refused() {
@@ -296,7 +324,7 @@ void bad_rules_are_refused() {
 int main() {
     const std::vector<std::pair<std::string, std::function<void()>>> tests{
         {"laps_and_sectors_are_timed", laps_and_sectors_are_timed},
-        {"practice_laps_start_on_gas_and_require_a_circuit", practice_laps_start_on_gas_and_require_a_circuit},
+        {"practice_laps_start_on_gas_and_time_every_lap", practice_laps_start_on_gas_and_time_every_lap},
         {"a_cone_touched_costs_two_seconds_once", a_cone_touched_costs_two_seconds_once},
         {"off_course_costs_ten_seconds_and_eight_is_a_dnf", off_course_costs_ten_seconds_and_eight_is_a_dnf},
         {"the_car_must_stop_after_the_finish", the_car_must_stop_after_the_finish},

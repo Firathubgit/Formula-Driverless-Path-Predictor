@@ -1,5 +1,6 @@
 #include "fd/trajectory.hpp"
 #include "fd/performance_envelope.hpp"
+#include "control_internal.hpp"
 
 #include <algorithm>
 #include <array>
@@ -79,7 +80,7 @@ LocalTrajectory make_local_trajectory(const Track& track, const std::vector<Plan
             (predicted.speed_mps-start_speed)/(static_cast<double>(hold_ticks)*config.fixed_dt_s);
         // Corridor and speed-envelope checks at every control point and endpoint.
         // This is a sampled rear-axle check, not continuous swept-body collision.
-        control = compute_control(track, reference, predicted, config, intent, steering, performance);
+        control = detail::compute_control_validated(track, reference, predicted, config, intent, steering, performance);
         check_position_and_speed();
     }
     result.points.push_back({predicted, 0, distance});

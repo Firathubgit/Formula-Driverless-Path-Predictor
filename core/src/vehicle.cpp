@@ -368,7 +368,7 @@ double wheel_update(const FourWheelCar& car, const TireAtLoad& tire, double grip
                     const WheelMotion& motion, double drive, double brake, double coupling, double other) {
     const double R = car.wheel_radius_m, I = car.wheel_inertia_kgm2;
     const auto residual = [&](double w) {
-        const double fx = grip*tire.force(slip_ratio(car, w, motion.forward), motion.slip_angle).longitudinal_n;
+        const double fx = grip*tire.longitudinal_force(slip_ratio(car, w, motion.forward), motion.slip_angle);
         return I*(w-omega)-h*(drive-brake-fx*R-coupling*(w-other));
     };
     // Without brake torque nothing can hold a wheel still against the road, so only a braked wheel can lock.

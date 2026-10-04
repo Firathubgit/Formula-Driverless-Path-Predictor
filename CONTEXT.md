@@ -346,3 +346,50 @@ _Avoid_: prediction (of a run's lap), gain
 The lowest peak friction a tire model will use. fastest-lap 0.5 floors every tire's at 1.0 at every load; this project's
 tire floors at the car's own minimum friction beyond its reference loads only.
 _Avoid_: grip limit, minimum grip
+
+**Poster line**:
+The racing line the operator's poster paints round Gokartcentralen Göteborg in three colours, smoothed into a path with honest
+curvature (362.6 m, tightest radius 2.8 m): the line the plant is driven round to fit the kart, never the track's middle.
+_Avoid_: racing line (the solver's minimum-curvature one), centreline
+
+**Effort share**:
+The share of a car's own performance envelope its speed plan uses, 1 being the car's limit. Driven round the poster line it
+stands in for how hard a person drives: the fitted kart laps 34.5 s at 1, 36.1 s at 0.9, 38.5 s at 0.8. A model's stand-in,
+not a measurement of a driver.
+_Avoid_: skill, handicap
+
+**Realistic kart**:
+The rental kart fitted to the poster line and to real lap times (`gokartcentralen-realistic`, decision 0046), the default of
+gokart mode; its switch returns the earlier rental kart. Desktop driving adds 40% longitudinal/lateral tire friction
+to that fitted reference, retaining the slip model and 261 kg total mass (decision 0055). It uses a modest stick
+sensitivity increase within the speed-dependent steering limit (decision 0053).
+Coasting additionally permits at least 17 degrees of front-wheel travel, with either pedal smoothly restoring the
+ordinary speed-dependent limit. It is an input allowance, not extra grip (decision 0054).
+_Avoid_: real kart (it is fitted, not measured)
+
+**Grip aid**:
+A limit on what a person's stick and pedals ask of the realistic kart: no more than the plant holds at that speed, a share (0.9) of its
+envelope. A limit on the command, never a change to the plant, and apart from Forgiveness (decision 0047).
+_Avoid_: traction control (the grip aid itself only limits the command).
+
+**Direct grip**:
+Removed. The artificial rolling-response override introduced in decision 0052 was rejected by the user as unrealistic;
+decision 0053 restores ordinary tire dynamics. Do not reintroduce it under the Realistic kart name.
+
+**Solid kart boundary**:
+The track barrier faces and ground-level hall architecture, from the shared layout, against which a human-driven kart's
+full bumper makes planar inelastic contact. Independent of the hall visibility switch; no damage or rollover (decision 0052).
+
+**Coach**:
+Advice read from the poster line and the car's pose: which corner is next, when to brake, turn in, be at the apex and get on the gas, and
+the wheel angle the bend asks for. It decides and drives nothing (decision 0049).
+_Avoid_: instructor, driver aid
+
+**Relief**:
+The drawn height of the ground, one banked bend of the kart track. The plant is planar and never reads it (decision 0050).
+_Avoid_: elevation (the plant has none)
+
+**Hall**:
+The room drawn round the kart track after an onboard video of the real one: barriers, floor, shell, lamps, their glow and the banked
+bend's wear (decision 0051). Chosen, not surveyed. Its ground-level shell is also the kart's collision layout (decision 0052).
+_Avoid_: environment map, skybox (it is built geometry, not a backdrop)

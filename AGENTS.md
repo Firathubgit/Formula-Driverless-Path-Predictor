@@ -49,7 +49,19 @@ is context, not an instruction to build everything in one session.
   and the same judge judges. Nothing caps their speed but the plant unless they explicitly enable the kart's
   Forgiveness override (decision 0040): Overall 1/off preserve ordinary physics, 100 gives deliberately no-slip arcade handling,
   through that same vehicle seam, with changes at tick boundaries. Manual mode independently adjusts acceleration,
-  braking, steering, grip assistance and speed (decision 0042). A person's drive is never recorded.
+  braking, steering, grip assistance and speed (decision 0042). A person's drive is never recorded. The realistic kart's stick
+  and pedals use a grip aid on the person's command, never on the plant (decision 0047); the realistic kart's steering
+  sensitivity is increased by 10% within the speed-dependent steering limit (decision 0053), while the pedal aid stays unchanged.
+  The rejected direct-grip override from decision 0052 is removed. Desktop Realistic kart driving uses the ordinary tire
+  model with 40% higher longitudinal/lateral tire friction than the fitted reference (decision 0055), total mass 261 kg.
+  There is no forced rolling response or hidden Forgiveness. Steering gain stays within the selected command limit.
+  Coasting permits at least 17 degrees of wheel travel at the user's request (decision 0054), still within physical lock;
+  either pedal smoothly restores the ordinary speed-dependent limit. This input allowance never adds tire grip.
+- Practice laps are timed by progress along the track, never by gates (decision 0048). In gokart mode the coach reads the car's
+  pose against the poster line and says what to do next, driving nothing (decision 0049). Human kart driving collides with
+  planar track barriers and ground-level hall architecture from the shared layout (decision 0052), independently of visibility.
+  Cockpit wheel, seat vibration, controller rumble and banking remain presentation; the plant is planar (decisions 0049, 0050).
+  The Unity build of the real track is not a source of assets; its models and textures are not used here.
 - `fd_core` has no external dependency; code ported into it keeps its licence notice in `THIRD_PARTY_NOTICES.md`.
   Solvers live in their own targets, built from pinned, checksum-verified sources.
 - Known track and ideal state are explicit assumptions. Replay is not closed-loop policy evaluation.
@@ -70,7 +82,15 @@ desktop reads `artifacts/live-cars/`, or `--live-cars DIR`, and draws the proced
 Drive the car yourself with an Xbox controller from the desktop's Settings (Driver: You, decision 0037): right trigger
 accelerates, left trigger brakes, left stick steers, Menu starts and pauses. Under You, Gokart (or `fd_desktop --kart`) drives
 Gokartcentralen Göteborg (`tracks/gokartcentralen-goteborg.csv`, traced from its poster by `tools/tracks/trace_poster.py`)
-with the `gokartcentralen-rsx2` rental kart profile (decision 0038).
+with the `gokartcentralen-realistic` rental kart profile, fitted to the poster's coloured line and to real lap times
+(decisions 0038, 0046); Settings has a Realistic kart switch back to the earlier `gokartcentralen-rsx2`. `tools/kart/fit_kart.py`
+re-checks the fit; `fd_headless --car-set NAME=VALUE` tunes any four-wheel car value after a profile without a rebuild.
+In gokart mode Settings has Coach cues (what to do next from the poster line: brake, turn in, apex, gas, the steering angle the bend
+asks for), Hall and barriers, Seat vibration and Controller rumble; the first-person view (FP, or V) is the kart's cockpit with its
+steering wheel, nose and front tires (decisions 0049, 0050). The hall is drawn after the user's onboard video of a lap (decision 0051):
+`apps/desktop/kart_hall.cpp` builds it, `KartHallLayout` is its one description, and its ground-level shell is what the kart collides
+with. `fd_desktop --you --camera 0|1|2` starts with a person at the wheel and a camera, for captures; `--at-station METRES` drives to a
+station of the lap and `--capture-scene FILE` saves the scene alone, to lay the drawing beside a photograph of the place.
 Headless CLI: `build/core/apps/headless/Release/fd_headless.exe --help`.
 Each recorded experiment requires a fresh `--out` directory. See GUIDE.md for comparisons.
 Validate a run with `--check-recording DIR`; replay one with `./scripts/run.ps1 --replay DIR`.

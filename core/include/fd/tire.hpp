@@ -52,6 +52,8 @@ public:
     TireAtLoad(const TireParameters& tire, double vertical_load_n);
     // Rejects non-finite slip.
     TireForce force(double slip_ratio, double slip_angle_rad) const;
+    // Same longitudinal component and combined-slip law, without evaluating the unused lateral curve in a wheel solve.
+    double longitudinal_force(double slip_ratio, double slip_angle_rad) const;
     const TirePeak& peak() const noexcept { return peak_; }
     double load_n() const noexcept { return load_n_; }
 private:

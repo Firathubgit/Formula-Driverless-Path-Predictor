@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-04",
+  "change": "17-degree coasting steering allowance and tire-slip feedback",
+  "coasting_floor_degrees": 17,
+  "pedal_blend_full_travel": 0.25,
+  "coast_full_stick_degrees": [
+    {
+      "kmh": 0,
+      "degrees": 31.5127
+    },
+    {
+      "kmh": 20,
+      "degrees": 19.0542
+    },
+    {
+      "kmh": 40,
+      "degrees": 17
+    },
+    {
+      "kmh": 60,
+      "degrees": 17
+    },
+    {
+      "kmh": 80,
+      "degrees": 17
+    }
+  ],
+  "physics": "Unchanged tire forces, vehicle dynamics and motor limits; extra wheel travel does not add grip",
+  "feedback": {
+    "source": "Actual combined wheel/axle slip relative to peak",
+    "start_peak_fraction": 0.85,
+    "full_peak_fraction": 1.5,
+    "road_heavy_at_16_7_mps": 0.063,
+    "road_light_at_16_7_mps": 0.0105,
+    "max_cockpit_road_vertical_m": 0.0012,
+    "max_cockpit_road_pitch_degrees": 0.08
+  },
+  "targeted_ctest": {
+    "passed": 4,
+    "seconds": 1.79,
+    "human_driving_groups": 17,
+    "gamepad_checks": 40,
+    "barrier_checks": 2746,
+    "hall_checks": 842871
+  },
+  "ui": {
+    "passed": true,
+    "checks": 839,
+    "qml_warnings": 0,
+    "seconds": 166.55
+  },
+  "limitations": [
+    "Feedback values are chosen presentation settings, not measured road vibration.",
+    "Physical controller feel not evaluated."
+  ],
+  "logs": [
+    "out/kart-coasting/targeted-tests.log",
+    "out/kart-coasting/ui-tests.log"
+  ]
+}

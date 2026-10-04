@@ -31,8 +31,10 @@ car accelerates, holds speed, brakes or changes line, and lets you take the whee
   path planner, and Formula Student judging after PacSim: laps, sectors, cones down, off course, DNF.
 - **The theoretical best lap.** A car's minimum-time lap solved offline with fastest-lap, cross-checked against TUM's
   formulation, and shown as a translucent "offline optimum" car with sector deltas and setup sensitivities.
-- **Drive it yourself** with an Xbox controller, including a rental-kart mode on a traced indoor track with a coaching
-  line, practice lap timing and adjustable driving assists.
+- **Drive it yourself** with an Xbox controller, including a rental-kart mode on a traced indoor track: the hall drawn
+  after an onboard video of the real one, barriers you can hit, a coaching line with on-screen cues (brake, turn in, apex,
+  gas), a cockpit view and practice lap timing. The kart profile is fitted to the track's real racing line and to real lap
+  times (34.5 s at its limit, about 36 s for a good driver); the desktop's kart is tuned from it by feel for a thumbstick.
 - **Every run is a checked contract.** Recordings replay deterministically and are validated file-by-file on load.
 
 ## Quick start (Windows)

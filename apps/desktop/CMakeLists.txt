@@ -23,11 +23,13 @@ qt_add_resources(fd_race_audio "race_audio_licenses" PREFIX "/audio/licenses" BA
   FILES "${CMAKE_SOURCE_DIR}/assets/audio-licenses/sources.json"
         "${CMAKE_SOURCE_DIR}/assets/audio-licenses/Free-Art-License-1.3.txt"
         "${CMAKE_SOURCE_DIR}/assets/audio-licenses/ExhaustNote-MIT.txt")
-qt_add_executable(fd_desktop WIN32 main.cpp bridge.cpp bridge.hpp assistance_presets.cpp assistance_presets.hpp track_geometry.cpp track_geometry.hpp ui_verification.cpp showroom.cpp showroom.hpp showroom_verification.cpp live_cars.cpp live_cars.hpp gamepad.cpp gamepad.hpp)
+qt_add_executable(fd_desktop WIN32 main.cpp bridge.cpp bridge.hpp assistance_presets.cpp assistance_presets.hpp track_geometry.cpp track_geometry.hpp kart_guide.cpp kart_guide.hpp kart_hall.cpp kart_hall.hpp scene_vertex.hpp ui_verification.cpp showroom.cpp showroom.hpp showroom_verification.cpp live_cars.cpp live_cars.hpp gamepad.cpp gamepad.hpp)
 target_link_libraries(fd_desktop PRIVATE fd_recording fd_race_audio Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Quick3D Qt6::Multimedia)
+target_sources(fd_desktop PRIVATE performance_verification.cpp performance_probe.hpp)
+target_sources(fd_desktop PRIVATE graphics_device.cpp graphics_device.hpp)
 # A person drives with an Xbox controller through XInput, part of Windows (decision 0037).
 if(WIN32)
-  target_link_libraries(fd_desktop PRIVATE xinput)
+  target_link_libraries(fd_desktop PRIVATE xinput dxgi)
 endif()
 target_compile_definitions(fd_desktop PRIVATE FD_SHOWROOM_MEDIA="${CMAKE_SOURCE_DIR}/artifacts/showroom/media"
   FD_LIVE_CARS="${CMAKE_SOURCE_DIR}/artifacts/live-cars"
@@ -76,6 +78,16 @@ if(BUILD_TESTING)
   target_link_libraries(fd_live_cars_tests PRIVATE Qt6::Core)
   add_test(NAME fd_live_cars COMMAND fd_live_cars_tests)
   set_tests_properties(fd_live_cars PROPERTIES TIMEOUT 20
+    ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
+  # The kart hall's drawing, checked against the track it stands round (decision 0051).
+  qt_add_executable(fd_kart_hall_tests kart_hall_tests.cpp kart_hall.cpp kart_hall.hpp scene_vertex.hpp)
+  target_link_libraries(fd_kart_hall_tests PRIVATE fd_core Qt6::Gui)
+  target_compile_definitions(fd_kart_hall_tests PRIVATE FD_KART_DIR="${CMAKE_SOURCE_DIR}/tracks")
+  if(MSVC)
+    target_compile_options(fd_kart_hall_tests PRIVATE /W4 /utf-8)
+  endif()
+  add_test(NAME fd_kart_hall COMMAND fd_kart_hall_tests)
+  set_tests_properties(fd_kart_hall PROPERTIES TIMEOUT 60
     ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:$<TARGET_FILE_DIR:Qt6::Core>")
   get_filename_component(FD_QT_PREFIX "${Qt6_DIR}/../../.." ABSOLUTE)
   add_test(NAME fd_desktop_controls COMMAND fd_desktop --verify-ui "${CMAKE_BINARY_DIR}/ui-evidence")
