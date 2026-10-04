@@ -116,9 +116,10 @@ constexpr double tube_face_m = fd::KartEnvironment::barrier_face_m; // shared wi
 constexpr double tube_radius_m = 0.115;
 constexpr double barrier_top_m = 0.46;
 constexpr double barrier_back_m = tube_face_m + 2 * tube_radius_m;
-// Gokartcentralen's fence stands on the island the ninth corner wraps round: from this far before the corner to this far
-// past it, slats round the corner and a plain banner along the stretch after it. The barrier beneath it is red-rimmed all the way.
-constexpr double fence_lead_m = 3.0, fence_tail_m = 14.0;
+// Gokartcentralen's fence stands on the island the ninth corner wraps round: slats round the corner and a plain banner along
+// the stretch after it, the barrier beneath red-rimmed all the way. It begins where the bend tightens, 10 m into the bend as
+// the coach marks it (a negative lead), and ends this far past it.
+constexpr double fence_lead_m = -10.0, fence_tail_m = 14.0;
 
 // One length of a barrier tube between two samples: an eight-sided tube whose faces are shaded as light from above leaves
 // them, brightest on its upper track-side face.

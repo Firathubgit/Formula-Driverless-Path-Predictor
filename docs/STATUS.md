@@ -14,7 +14,7 @@ banked bend (0050). Drawn from scratch and not measured; no frame of the video a
 repository, and no banner's lettering is reproduced.
 Evidence: `./scripts/build.ps1` passed all 33 core suites in 423 s and `./scripts/build.ps1 -Desktop` all 40 in 593 s, on the
 sources as they stand, which include the acceleration follow-up below that had not been built or tested. `fd_kart_hall` passed
-852,557 checks and builds the hall in 81 ms; `fd_kart_coach` 6/6 groups, `fd_track_relief` 4/4, `fd_gamepad` 40 checks; the
+849,417 checks and builds the hall in 81 ms; `fd_kart_coach` 6/6 groups, `fd_track_relief` 4/4, `fd_gamepad` 40 checks; the
 desktop UI passed 1,001 checks with no QML warnings in 172 s. The comparison sheets were inspected and are kept in
 `out/kart-hall-audit/`. Not done: driving it with a controller, a frame-rate measurement after the second pass, and any
 measurement of the real hall; wall positions, heights, lamp counts and the bank's 6 degrees are chosen. Details:

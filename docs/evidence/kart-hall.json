@@ -52,7 +52,7 @@
     "passes": 2,
     "corrected_after_first_pass": [
       "floor too blue and too even: made neutral, darker underfoot, with stronger lamp streaks",
-      "fence ran 25 m up the approach to the ninth corner: now from 3 m before it, a plain banner for 18 m after it",
+      "fence ran 25 m up the approach to the ninth corner: now from where the bend tightens, a plain banner for 18 m after it",
       "footbridge 10 m too early: moved to 378 m",
       "gallery wall ended at 10 m: now runs to 18 m, its door near its end",
       "east wall a bare red plane: darker, with a balcony's deck edge, posts and rail",
@@ -86,7 +86,7 @@
       "passed": 40,
       "seconds": 593.37
     },
-    "fd_kart_hall_checks": 852557,
+    "fd_kart_hall_checks": 849417,
     "fd_kart_coach_groups": "6/6",
     "fd_track_relief_groups": "4/4",
     "fd_gamepad_checks": 40,

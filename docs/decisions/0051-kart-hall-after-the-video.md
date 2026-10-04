@@ -28,7 +28,7 @@ follows in order. Stations are metres round the 400 m lap from the start line; t
 | 11 to 13 s | 115 to 140 | A straight toward red walls with a balcony | The east wall red, with a balcony's deck edge, posts and yellow rail |
 | 13.5 to 14.5 s | T4, 142 to 169 | A hairpin round a large green island with a pillar; its outside a wall of red, white and black blocks | The same |
 | 16 to 24 s | T5 to T8 | Bends with red-rimmed islands, kerbs, stacked black barriers between the legs | The same, by the general rules below |
-| 24.5 to 27 s | T9, 299 to 329 | The camera tilts: a banked left-hander with a pale scuffed surface, round an island with a slatted green fence, then a dark banner under a green rail | The bank (0050); a faint pale band on its road; the fence from 3 m before the corner, a plain banner for 18 m after it |
+| 24.5 to 27 s | T9, 299 to 329 | The camera tilts: a banked left-hander with a pale scuffed surface, round an island with a slatted green fence, then a dark banner under a green rail | The bank (0050); a faint pale band on its road; the fence from where the bend tightens, a plain banner for 18 m after it |
 | 28 to 29.5 s | T10, 348 to 365 | An island with a pillar; the outside barrier blue-rimmed | The same |
 | everywhere | | A dark polished floor in which every lamp stands as a long streak toward the camera; black twin-tube barriers; a red band and a white line at their foot; red and white kerbs inside the bends; a dark pitched steel roof | See below |
 
@@ -92,7 +92,7 @@ they give the same place again after every change, which is how the audit above 
 
 ## Checks
 
-`fd_kart_hall` (`apps/desktop/kart_hall_tests.cpp`, 852,557 checks): the ten bends in order and direction; the walls outside the
+`fd_kart_hall` (`apps/desktop/kart_hall_tests.cpp`, 849,417 checks): the ten bends in order and direction; the walls outside the
 corridor, every lamp inside the room and under its roof, and no node of the lamp grid inside the walls without a lamp, so the
 floor's shader invents none; every drawn lamp on the grid at the mirrored height, each haze brightest at its lamp and gone at its
 rim; no part of a barrier in the road and none away from its edge, with red rims, green braces, T10's blue rim and T4's white
