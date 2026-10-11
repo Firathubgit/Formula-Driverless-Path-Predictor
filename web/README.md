@@ -109,17 +109,29 @@ Raise it with `?quality=lite|medium|high`, e.g. `?quality=high`. The page also s
 times and steps down a level when frames stay slower than 45 ms, and the HUD shows the active
 level and measured fps under `QUALITY`.
 
-Measured at 1920×1080 on **software rendering** (SwiftShader — the worst case, no GPU at all):
+Measured at 1920×1080 on **software rendering** (SwiftShader — the worst case, no GPU at all;
+these numbers move a few ms between runs):
 
 | level | ms/frame | fps |
 | --- | --- | --- |
-| `racing` | 17 | **58** |
-| `lite` | 29 | 35 |
-| `medium` | 52 | 19 |
-| `high` | 211 | 4.7 |
+| `racing` | 14 | **74** |
+| `lite` | 27 | 37 |
+| `medium` | 43 | 23 |
+| `high` | 198 | 5 |
 
 The fully lit version used to be the only option and ran at 4 fps. On a working GPU, `high` runs
 at well over 100 fps.
+
+Two things are worth knowing about how the view is built, because both were bugs once:
+
+- **The roof and rafters are always drawn.** Dropping them made the ceiling a black void with the
+  lamps floating in it. A ceiling lit only from below renders almost black — we see the unlit
+  underside — so the roof and walls also carry a little emissive.
+- **The driver's helmet, visor and body are hidden in the cockpit view.** They sit centimetres
+  from the camera and otherwise fill the bottom of the frame as unshaded blobs.
+
+The front tyres are deliberately *not* in view: from a seated driver's eye height they are below
+and ahead of you. The steering wheel, the nose and the track are.
 
 If the HUD says `racing` and you expected more, that is the default, not a failure — pass
 `?quality=high`. If it says the browser is drawing without GPU acceleration, turning hardware

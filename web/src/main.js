@@ -133,11 +133,14 @@ async function main() {
   const MODES = ['cockpit', 'chase', 'top'];
   const helmetMesh = kart.group.getObjectByName('helmet');
   const visorMesh = kart.group.getObjectByName('visor');
+  const torsoMesh = kart.group.getObjectByName('torso');
   function applyCameraVisibility() {
-    // from inside the head, the helmet and visor must not be drawn
+    // From inside the head, the helmet, visor and the driver's own body must not be drawn:
+    // the torso is only 24 cm from the camera and fills the bottom of the frame as a blob.
     const inside = cameraMode === 'cockpit';
     if (helmetMesh) helmetMesh.visible = !inside;
     if (visorMesh) visorMesh.visible = !inside;
+    if (torsoMesh) torsoMesh.visible = !inside;
   }
   applyCameraVisibility();
 

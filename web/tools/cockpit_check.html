@@ -69,9 +69,11 @@ try {
   cam.updateProjectionMatrix();
   cam.updateMatrixWorld(true);
 
-  // the helmet must be hidden from inside the head
+  // the helmet must be hidden from inside the head, and so must the driver's own body
   helmet.visible = false;
   visor.visible = false;
+  const torsoMesh = kart.group.getObjectByName('torso');
+  if (torsoMesh) torsoMesh.visible = false;
 
   const project = (local) => {
     const v = kart.group.localToWorld(new THREE.Vector3(local[0], local[1], local[2]));
@@ -96,22 +98,57 @@ try {
   out.frontTyreTopL = project([K.cg_to_front_m, K.wheel_radius_m * 2, K.track_front_m / 2]);
   out.rearTyreL = project([-K.cg_to_rear_m, K.wheel_radius_m, K.track_rear_m / 2]);
   out.helmetHidden = helmet.visible === false;
-  // how much of the frame the roof covers, sampled from the rendered pixels below
+
+  // What is actually on screen at a given point: a raycast names the object, which beats
+  // guessing from a pixel colour. The whole scene's world matrices must be current first.
+  scene.updateMatrixWorld(true);
+  const ray = new THREE.Raycaster();
+  const visible = (o) => { let n = o; while (n) { if (!n.visible) return false; n = n.parent; } return true; };
+  const identify = (nx, ny) => {
+    ray.setFromCamera(new THREE.Vector2(nx, ny), cam);
+    const hits = ray.intersectObjects(scene.children, true).filter((h) => visible(h.object));
+    if (!hits.length) return null;
+    const m = hits[0].object.material;
+    return {
+      name: hits[0].object.name || hits[0].object.type,
+      dist: +hits[0].distance.toFixed(2),
+      colour: m && m.color ? '#' + m.color.getHexString() : null,
+    };
+  };
+  out.atWheelBlob = identify(0, -0.66);
+  out.atWheelCentre = identify(0, -0.63);
+  out.atHorizon = identify(0, 0.0);
+  out.atCeiling = identify(0, 0.55);
+  out.atCeilingLeft = identify(-0.6, 0.5);
+  out.atFloorAhead = identify(0, -0.3);
+
   renderer.render(scene, cam);
   out.glError = renderer.getContext().getError();
   {
-    // how much of the frame is a near-black void (the ceiling used to be one)
     const gl = renderer.getContext();
     const px = new Uint8Array(1280 * 720 * 4);
     gl.readPixels(0, 0, 1280, 720, gl.RGBA, gl.UNSIGNED_BYTE, px);
-    let dark = 0, sum = 0;
-    for (let i = 0; i < px.length; i += 4) {
-      const l = (px[i] + px[i + 1] + px[i + 2]) / 3;
-      sum += l;
-      if (l < 12) dark++;
+    // luminance of the top 40% of the frame (the ceiling region), which is what read as a void
+    let dark = 0, sum = 0, topSum = 0, topN = 0, all = 0;
+    for (let y = 0; y < 720; y++) {
+      for (let x = 0; x < 1280; x++) {
+        const i = (y * 1280 + x) * 4;
+        const l = (px[i] + px[i + 1] + px[i + 2]) / 3;
+        sum += l; all++;
+        if (l < 12) dark++;
+        // readPixels is bottom-up, so the ceiling is the HIGH y end of the buffer
+        if (y >= 720 - 288) { topSum += l; topN++; }
+      }
     }
-    out.meanLuma = +(sum / (px.length / 4)).toFixed(1);
-    out.nearBlackFraction = +(dark / (px.length / 4)).toFixed(3);
+    out.meanLuma = +(sum / all).toFixed(1);
+    out.nearBlackFraction = +(dark / all).toFixed(3);
+    out.ceilingRegionLuma = +(topSum / topN).toFixed(1);
+    // actual pixel colours at points of interest (PNG coordinates, top-left origin)
+    const pix = (ix, iy) => { const i = ((720 - 1 - iy) * 1280 + ix) * 4; return [px[i], px[i + 1], px[i + 2]]; };
+    out.pixel_blob = pix(639, 598);
+    out.pixel_belowWheel = pix(639, 660);
+    out.pixel_ceiling = pix(639, 120);
+    out.pixel_floorAhead = pix(639, 470);
   }
   document.getElementById('png').textContent = canvas.toDataURL('image/png');
 } catch (e) {

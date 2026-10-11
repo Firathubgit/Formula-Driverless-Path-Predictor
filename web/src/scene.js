@@ -116,7 +116,7 @@ export function buildHall(data, opts = {}) {
   // lamps floating in it, which reads as broken. Racing mode drops only the rafters.
   const half = w / 2, rise = hall.ridge_m - hall.eave_m;
   {
-    const roofMat = surf({ color: 0x2b313a, roughness: 0.85, metalness: 0.15, side: THREE.DoubleSide, emissive: 0x1b1f26 });
+    const roofMat = surf({ color: 0x4a5262, roughness: 0.85, metalness: 0.15, side: THREE.DoubleSide, emissive: 0x2e343e });
     const slope = Math.hypot(half, rise);
     for (const side of [-1, 1]) {
       const panel = new THREE.Mesh(new THREE.PlaneGeometry(slope, d), roofMat);
@@ -126,18 +126,22 @@ export function buildHall(data, opts = {}) {
       panel.rotation.x = -Math.atan2(rise, half) * (side > 0 ? 1 : -1);
       group.add(panel);
     }
-    if (!minimal) {
-      const rafterMat = surf({ color: 0x161a1f, roughness: 0.8, metalness: 0.3 });
-      for (let z = hall.min_z + 3; z < hall.max_z; z += 6) {
-        const beam = new THREE.Mesh(new THREE.BoxGeometry(w, 0.18, 0.18), rafterMat);
-        beam.position.set(cx, hall.eave_m + rise / 2, z);
-        group.add(beam);
-      }
+    // The rafters are what give the ceiling structure; without them it is a featureless
+    // surface, which reads as a void however bright it is.
+    const rafterMat = surf({ color: 0x646d7d, roughness: 0.8, metalness: 0.3, emissive: 0x1c2026 });
+    for (let z = hall.min_z + 3; z < hall.max_z; z += 6) {
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(w, 0.22, 0.22), rafterMat);
+      beam.position.set(cx, hall.eave_m + rise / 2, z);
+      group.add(beam);
     }
+    // A ridge beam along the length, the one strong line overhead.
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, d), rafterMat);
+    ridge.position.set(cx, hall.ridge_m - 0.15, cz);
+    group.add(ridge);
   }
 
   // Lamps: an emissive fixture per grid position, with a handful of real lights.
-  const lampGeo = new THREE.CircleGeometry(0.26, 12);
+  const lampGeo = new THREE.CircleGeometry(0.34, 12);
   const lampMat = new THREE.MeshBasicMaterial({ color: 0xfff6e0 });
   const glowMat = new THREE.MeshBasicMaterial({ color: 0xdfe8ff, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false });
   const lamps = new THREE.InstancedMesh(lampGeo, lampMat, hall.lamp_columns * hall.lamp_rows);
@@ -341,29 +345,45 @@ export function buildKart(kart) {
   const helmetMat = surf({ color: 0xf2f2f2, roughness: 0.25, metalness: 0.1 });
 
   const pan = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.09, 0.86), darkMat);
+  pan.name = 'pan';
   pan.position.y = 0.1;
   g.add(pan);
 
   const nose = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.14, 0.7), bodyMat);
+  nose.name = 'nose';
   nose.position.set(0.92, 0.13, 0);
+  // tilted nose-down: seen from the driver's eyes a level top face is a flat red bar with no
+  // shading at all, which reads as a placeholder rather than bodywork
+  nose.rotation.z = -0.12;
   g.add(nose);
+  const panelMat = surf({ color: 0xe8e2d6, roughness: 0.5 });
+  const nosePanel = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.03, 0.44), panelMat);
+  nosePanel.name = 'nose-panel';
+  nosePanel.position.set(0.92, 0.215, 0);
+  nosePanel.rotation.z = -0.12;
+  g.add(nosePanel);
   const bumper = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.2, 0.9), darkMat);
+  bumper.name = 'bumper';
   bumper.position.set(-0.85, 0.16, 0);
   g.add(bumper);
 
   for (const side of [1, -1]) {
     const pod = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.22, 0.26), bodyMat);
+    pod.name = side > 0 ? 'pod-left' : 'pod-right';
     pod.position.set(0.15, 0.19, side * 0.5);
     g.add(pod);
   }
   const seat = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.5, 0.5), seatMat);
+  seat.name = 'seat';
   seat.position.set(-0.08, 0.36, 0);
   g.add(seat);
   const backrest = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.5, 0.46), seatMat);
+  backrest.name = 'backrest';
   backrest.position.set(-0.3, 0.55, 0);
   g.add(backrest);
 
   const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.42, 6, 12), suitMat);
+  torso.name = 'torso';
   torso.position.set(-0.05, 0.72, 0);
   torso.rotation.z = Math.PI / 2 - 0.25;
   g.add(torso);
@@ -400,10 +420,17 @@ export function buildKart(kart) {
     wheels[name] = pivot;
   }
 
-  // Steering wheel, seen in the cockpit view.
+  // Steering wheel, seen in the cockpit view. Lighter than the seat: a near-black rim on a
+  // near-black floor renders as a shapeless hole.
+  const wheelMat = surf({ color: 0x4d5560, roughness: 0.55 });
   const sw = new THREE.Group();
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.02, 8, 24), darkMat);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.022, 8, 24), wheelMat);
+  ring.name = 'steer-ring';
   sw.add(ring);
+  const hub = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.05), wheelMat);
+  hub.name = 'steer-hub';
+  sw.add(hub);
+  sw.name = 'steer-wheel';
   sw.position.set(0.42, 0.72, 0);
   sw.rotation.y = Math.PI / 2;
   sw.rotation.x = -0.5;
