@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Gokartcentralen Göteborg — Formula Driverless</title>
+<meta name="description" content="Drive the Gokartcentralen Göteborg indoor kart track in your browser, with a controller." />
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<div id="hud">
+  <div class="panel top-left">
+    <div class="speed"><span id="speed">0</span><small>km/h</small></div>
+    <div class="bars">
+      <div class="bar"><i id="thr"></i></div>
+      <div class="bar brake"><i id="brk"></i></div>
+    </div>
+    <div class="row"><span class="k">LAP</span><span id="lap">0.00</span></div>
+    <div class="row"><span class="k">BEST</span><span id="best">--.--</span></div>
+    <div class="row"><span class="k">LAPS</span><span id="count">0</span></div>
+  </div>
+
+  <div class="panel top-right">
+    <div class="row"><span class="k">PAD</span><span id="pad">none — press a button</span></div>
+    <div class="row"><span class="k">CAM</span><span id="cam">chase</span></div>
+    <div class="row muted"><span class="k">KEYS</span><span>WASD/arrows · C cam · R reset</span></div>
+  </div>
+
+  <div id="coach">
+    <div id="cue">—</div>
+    <div id="cueNext"></div>
+  </div>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <h1>Gokartcentralen Göteborg</h1>
+    <p class="sub">The indoor rental-kart track from <em>Formula Driverless Path Predictor</em>, driven in the browser.</p>
+    <ul>
+      <li><b>Steer</b> — left stick (or A / D, arrows)</li>
+      <li><b>Throttle</b> — right trigger (or W, up arrow)</li>
+      <li><b>Brake / reverse</b> — left trigger (or S, space)</li>
+      <li><b>Camera</b> — triangle or circle (or C) · <b>Reset</b> — square (or R)</li>
+    </ul>
+    <p class="hint">On a Mac, connect the DualShock 4 by Bluetooth, then press any button on it. Chrome or Edge
+      give the best controller support; Safari works too. The coloured line on the track is the operator's own
+      poster line — green gas, yellow lift, red brake.</p>
+    <button id="start">Drive</button>
+    <p id="status" class="status">Loading the track…</p>
+  </div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

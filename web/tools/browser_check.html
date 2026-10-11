@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>fd gokart browser check</title></head>
+<body>
+<canvas id="view" width="640" height="360"></canvas>
+<pre id="result">running…</pre>
+<script type="module">
+// End-to-end check inside a real browser: fetch the data, build the hall/track/kart,
+// run the physics for 10 s of throttle, and render a frame. Writes JSON into #result.
+const errors = [];
+window.addEventListener('error', (e) => errors.push('error: ' + e.message));
+window.addEventListener('unhandledrejection', (e) => errors.push('rejection: ' + (e.reason && e.reason.message || e.reason)));
+
+const out = {};
+try {
+  const THREE = await import('../vendor/three.module.js');
+  const { Track } = await import('../src/track.js');
+  const { KartSim } = await import('../src/physics.js');
+  const { buildHall, buildRoad, buildBarriers, buildKart } = await import('../src/scene.js');
+
+  const data = await (await fetch('../data/track.json')).json();
+  out.dataOk = !!data.track && data.track.points.length;
+
+  const track = new Track(data);
+  let hint = 0;
+  track.guidePoints = data.guide.map((g) => {
+    const p = track.project(g.x, g.y, hint); hint = p.s;
+    return { x: g.x, y: g.y, advice: g.advice, s: p.s };
+  }).sort((a, b) => a.s - b.s);
+  out.trackLength = +track.length.toFixed(2);
+  out.guidePoints = track.guidePoints.length;
+
+  const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('view'), antialias: true });
+  renderer.setSize(640, 360, false);
+  out.webgl = !!renderer.getContext();
+  const dbg = renderer.getContext().getExtension('WEBGL_debug_renderer_info');
+  out.renderer = dbg ? renderer.getContext().getParameter(dbg.UNMASKED_RENDERER_WEBGL) : 'unknown';
+
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight(0x9fb4d8, 0x1a1d22, 0.55));
+  const hall = buildHall(data); scene.add(hall);
+  const road = buildRoad(track); scene.add(road);
+  const barriers = buildBarriers(track); scene.add(barriers);
+  const kart = buildKart(data.kart); scene.add(kart.group);
+  out.sceneObjects = scene.children.length;
+
+  let tris = 0, meshes = 0;
+  scene.traverse((o) => {
+    if (o.isMesh) {
+      meshes++;
+      const g = o.geometry;
+      if (g && g.index) tris += g.index.count / 3;
+      else if (g && g.attributes.position) tris += g.attributes.position.count / 3;
+    }
+  });
+  out.meshes = meshes; out.triangles = Math.round(tris);
+
+  const camera = new THREE.PerspectiveCamera(62, 640 / 360, 0.1, 400);
+  camera.position.set(0, 3, 6); camera.lookAt(0, 0, 0);
+
+  const sim = new KartSim(data.kart, track);
+  let maxKmh = 0, maxOffset = 0, offSteps = 0, nan = false;
+  const DT = 1 / 200;
+  for (let i = 0; i < 200 * 10; i++) {
+    // gentle throttle and a little steering, to exercise the model
+    sim.step(DT, { steer: 0.25, throttle: 0.7, brake: 0 });
+    maxKmh = Math.max(maxKmh, sim.kmh);
+    maxOffset = Math.max(maxOffset, Math.abs(sim.offset));
+    if (Math.abs(sim.offset) > track.half) offSteps++;
+    if (!Number.isFinite(sim.x) || !Number.isFinite(sim.y)) nan = true;
+  }
+  out.simKmh = +maxKmh.toFixed(1);
+  out.simStation = +sim.s.toFixed(1);
+  out.simMaxOffset = +maxOffset.toFixed(2);
+  out.simOffTrackSteps = offSteps;
+  out.simNaN = nan;
+
+  kart.group.position.set(sim.x, 0, -sim.y);
+  kart.group.rotation.y = sim.yaw;
+  renderer.render(scene, camera);
+  out.rendered = true;
+  out.glError = renderer.getContext().getError();
+} catch (e) {
+  errors.push('fatal: ' + (e && e.stack || e));
+}
+out.errors = errors;
+document.getElementById('result').textContent = JSON.stringify(out, null, 1);
+</script>
+</body>
+</html>

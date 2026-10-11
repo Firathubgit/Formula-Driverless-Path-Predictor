@@ -1,0 +1,6 @@
+{
+  "name": "fd-gokart-web",
+  "private": true,
+  "type": "module",
+  "description": "Browser gokart mode for Formula Driverless Path Predictor (Gokartcentralen Göteborg)."
+}
