@@ -149,6 +149,23 @@ try {
     out.pixel_belowWheel = pix(639, 660);
     out.pixel_ceiling = pix(639, 120);
     out.pixel_floorAhead = pix(639, 470);
+    // Is the ceiling featureless? Count distinct colours and how many bright lamp pixels there
+    // are in the upper part of the frame. A uniform plane has almost no distinct colours.
+    {
+      const seen = new Set();
+      let bright = 0, n = 0;
+      for (let iy = 0; iy < 320; iy++) {
+        for (let ix = 0; ix < 1280; ix += 2) {
+          const i = ((720 - 1 - iy) * 1280 + ix) * 4;
+          seen.add((px[i] >> 3) + ',' + (px[i + 1] >> 3) + ',' + (px[i + 2] >> 3));
+          if ((px[i] + px[i + 1] + px[i + 2]) / 3 > 150) bright++;
+          n++;
+        }
+      }
+      out.ceilingDistinctColours = seen.size;
+      out.ceilingBrightPixels = bright;
+      out.ceilingSampled = n;
+    }
   }
   document.getElementById('png').textContent = canvas.toDataURL('image/png');
 } catch (e) {

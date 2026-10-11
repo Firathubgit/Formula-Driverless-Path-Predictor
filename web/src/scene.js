@@ -80,6 +80,35 @@ function floorTexture() {
   return t;
 }
 
+function roofTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#5a6273';
+  g.fillRect(0, 0, 256, 256);
+  // long panel lines, so the ceiling reads as a built surface rather than a flat fill
+  g.strokeStyle = 'rgba(18,22,28,0.6)';
+  g.lineWidth = 3;
+  for (let i = 0; i <= 256; i += 32) {
+    g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 256); g.stroke();
+  }
+  g.strokeStyle = 'rgba(18,22,28,0.3)';
+  g.lineWidth = 2;
+  for (let i = 0; i <= 256; i += 128) {
+    g.beginPath(); g.moveTo(0, i); g.lineTo(256, i); g.stroke();
+  }
+  for (let i = 0; i < 3000; i++) {
+    const v = 88 + Math.random() * 40;
+    g.fillStyle = `rgba(${v},${v + 6},${v + 14},0.22)`;
+    g.fillRect(Math.random() * 256, Math.random() * 256, 3, 2);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(3, 14);
+  t.anisotropy = 4;
+  return t;
+}
+
 export function buildHall(data, opts = {}) {
   const pointLights = opts.pointLights !== undefined ? opts.pointLights : 8;
   const glow = opts.glow !== false;
@@ -116,7 +145,7 @@ export function buildHall(data, opts = {}) {
   // lamps floating in it, which reads as broken. Racing mode drops only the rafters.
   const half = w / 2, rise = hall.ridge_m - hall.eave_m;
   {
-    const roofMat = surf({ color: 0x4a5262, roughness: 0.85, metalness: 0.15, side: THREE.DoubleSide, emissive: 0x2e343e });
+    const roofMat = surf({ map: roofTexture(), color: 0xffffff, roughness: 0.85, metalness: 0.15, side: THREE.DoubleSide, emissive: 0x262c36 });
     const slope = Math.hypot(half, rise);
     for (const side of [-1, 1]) {
       const panel = new THREE.Mesh(new THREE.PlaneGeometry(slope, d), roofMat);
@@ -127,16 +156,19 @@ export function buildHall(data, opts = {}) {
       group.add(panel);
     }
     // The rafters are what give the ceiling structure; without them it is a featureless
-    // surface, which reads as a void however bright it is.
-    const rafterMat = surf({ color: 0x646d7d, roughness: 0.8, metalness: 0.3, emissive: 0x1c2026 });
+    // surface, which reads as a void however bright it is. They must hang BELOW the roof
+    // everywhere to be seen: the roof is at its lowest (eave_m) at the walls, so a beam at
+    // that height or above is buried inside the roof plane.
+    const rafterMat = surf({ color: 0x6d7788, roughness: 0.8, metalness: 0.3, emissive: 0x1c2026 });
+    const beamY = hall.eave_m - 0.35;
     for (let z = hall.min_z + 3; z < hall.max_z; z += 6) {
-      const beam = new THREE.Mesh(new THREE.BoxGeometry(w, 0.22, 0.22), rafterMat);
-      beam.position.set(cx, hall.eave_m + rise / 2, z);
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(w, 0.26, 0.26), rafterMat);
+      beam.position.set(cx, beamY, z);
       group.add(beam);
     }
-    // A ridge beam along the length, the one strong line overhead.
-    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.3, d), rafterMat);
-    ridge.position.set(cx, hall.ridge_m - 0.15, cz);
+    // A ridge beam just under the ridge, the one strong line overhead.
+    const ridge = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.34, d), rafterMat);
+    ridge.position.set(cx, hall.ridge_m - 0.35, cz);
     group.add(ridge);
   }
 
