@@ -86,8 +86,12 @@ renders a frame, printing a JSON summary — open it through the same local serv
 ## Deployment
 
 `.github/workflows/pages.yml` publishes this folder to GitHub Pages on every push to `main` that
-touches `web/`, using `actions/configure-pages` with `enablement: true` so the first run turns
-Pages on by itself.
+touches `web/`.
+
+Pages must be turned on once by hand: **Settings → Pages → Build and deployment → Source =
+GitHub Actions**. The workflow cannot do it for you — creating a Pages site needs repository-admin
+rights, which a workflow's `GITHUB_TOKEN` does not have. After that first setting, every push
+deploys on its own.
 
 ## Licence
 
