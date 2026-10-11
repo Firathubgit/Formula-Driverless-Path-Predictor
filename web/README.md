@@ -14,8 +14,11 @@ Play it at
 | Steer | left (or right) stick | `A` / `D`, ← / → |
 | Throttle | R2 | `W`, ↑ |
 | Brake / reverse | L2 | `S`, space |
-| Camera (chase / cockpit / top) | △ or ○ | `C` |
+| Camera (cockpit / chase / top) | △ or ○ | `C` |
 | Reset to the line | □ | `R` |
+
+The view starts **in the driver's own head** — the kart's steering wheel, nose and front tyres are
+in frame, as they are from a real seat. `C` cycles to a chase camera and a top-down view.
 
 On macOS, pair the controller over Bluetooth and then **press any button on it** — browsers only
 hand over a gamepad once it has been used. Chrome or Edge give the fullest controller support;
@@ -85,31 +88,41 @@ renders a frame, printing a JSON summary — open it through the same local serv
 
 ## Performance and quality
 
-The hall is lit by point lights, and a point light costs per-fragment work on every lit pixel.
-On a machine without GPU acceleration — a browser with hardware acceleration switched off, a
-blocklisted driver, a VM or a remote session — that alone was enough to push a frame to ~250 ms
-at 1080p (and ~450 ms on a HiDPI display), which makes the browser declare the page unresponsive.
+**This is a racing game, so the default is the cheapest setting, not the prettiest.** The view
+starts in the driver's own eyes, and the hall is drawn with no point lights, no shadows, no glow,
+cheap Lambert shading, no roof, and a half-resolution drawing buffer that the browser scales up.
 
-So the page now picks a quality level:
+The reason is that a point light costs per-fragment work on every lit pixel. On a machine without
+GPU acceleration — a browser with hardware acceleration switched off, a blocklisted driver, a VM
+or a remote session — the fully lit version took ~250 ms per frame at 1080p (455 ms on a HiDPI
+display), which is what makes a browser declare the page unresponsive.
 
-| level | point lights | shadows | lamp glow | pixel ratio |
-| --- | --- | --- | --- | --- |
-| `high` | 6 | yes | yes | up to 1.5 |
-| `medium` | 2 | no | no | 1 |
-| `lite` | 0 | no | no | 1 |
+| level | point lights | shadows | glow | shading | pixel ratio |
+| --- | --- | --- | --- | --- | --- |
+| `racing` **(default)** | 0 | no | no | Lambert | 0.5 |
+| `lite` | 0 | no | no | Lambert | 1 |
+| `medium` | 2 | no | no | PBR | 1 |
+| `high` | 6 | yes | yes | PBR | 1.5 |
 
-- It reads the WebGL renderer string before building anything and starts in `lite` when the
-  renderer looks like software (`SwiftShader`, `llvmpipe`, …), showing why in the start overlay.
-- It also samples real frame times and steps down a level when frames stay slower than 45 ms.
-- The current level and measured fps are shown in the HUD under `QUALITY`.
-- Override with `?quality=high|medium|lite`, e.g. `?quality=high`.
+Raise it with `?quality=lite|medium|high`, e.g. `?quality=high`. The page also samples real frame
+times and steps down a level when frames stay slower than 45 ms, and the HUD shows the active
+level and measured fps under `QUALITY`.
 
-Measured on software rendering (SwiftShader) at 1920×1080: the old fixed settings gave **252
-ms/frame** (4 fps, 455 ms on HiDPI); `lite` gives **~35-51 ms/frame** (~20-29 fps), which is
-playable. On a working GPU the same page runs `high` at well over 100 fps.
+Measured at 1920×1080 on **software rendering** (SwiftShader — the worst case, no GPU at all):
 
-If the HUD says `lite` and you expect `high`, turn hardware acceleration back on in the browser's
-settings.
+| level | ms/frame | fps |
+| --- | --- | --- |
+| `racing` | 17 | **58** |
+| `lite` | 35 | 28 |
+| `medium` | 67 | 15 |
+| `high` | 376 | 2.7 |
+
+The fully lit version used to be the only option and ran at 4 fps. On a working GPU, `high` runs
+at well over 100 fps.
+
+If the HUD says `racing` and you expected more, that is the default, not a failure — pass
+`?quality=high`. If it says the browser is drawing without GPU acceleration, turning hardware
+acceleration back on in the browser settings is the real fix.
 
 ## Deployment
 

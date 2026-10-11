@@ -2,22 +2,23 @@ import * as THREE from '../vendor/three.module.js';
 import { Track } from './track.js';
 import { KartSim } from './physics.js';
 import { Input } from './input.js';
-import { buildHall, buildRoad, buildBarriers, buildKart } from './scene.js';
+import { buildHall, buildRoad, buildBarriers, buildKart, setSimpleMaterials, cockpitCameraPose } from './scene.js';
 
 const FIXED_DT = 1 / 200;
 const MAX_STEPS = 8;
 const ADVICE_TEXT = { accelerate: 'GAS', coast: 'LIFT', brake: 'BRAKE' };
 const ADVICE_COLOUR = { accelerate: '#3fd23f', coast: '#e8c33a', brake: '#e0473a' };
 
-// Quality levels. Point lights, shadows and the lamp glow are the things that cost real
-// fragment work, so on a machine without GPU acceleration the page falls back to `lite`.
-// A HiDPI drawing buffer multiplies everything, hence the pixel-ratio cap.
+// Quality levels. This is a racing game, so the default is the cheapest one that still looks
+// like the hall: no point lights, no shadows, no glow, half-resolution drawing buffer, cheap
+// Lambert shading and no roof. Raise it with ?quality=lite|medium|high.
 const QUALITY = {
-  high: { pointLights: 6, shadows: true, glow: true, maxRatio: 1.5, antialias: true },
-  medium: { pointLights: 2, shadows: false, glow: false, maxRatio: 1, antialias: false },
-  lite: { pointLights: 0, shadows: false, glow: false, maxRatio: 1, antialias: false },
+  racing: { pointLights: 0, shadows: false, glow: false, maxRatio: 0.5, antialias: false, simple: true, minimal: true },
+  lite: { pointLights: 0, shadows: false, glow: false, maxRatio: 1, antialias: false, simple: true, minimal: true },
+  medium: { pointLights: 2, shadows: false, glow: false, maxRatio: 1, antialias: false, simple: false, minimal: false },
+  high: { pointLights: 6, shadows: true, glow: true, maxRatio: 1.5, antialias: true, simple: false, minimal: false },
 };
-const QUALITY_ORDER = ['lite', 'medium', 'high'];
+const QUALITY_ORDER = ['racing', 'lite', 'medium', 'high'];
 // A frame slower than this means the display is stuttering; drop a level and try again.
 const SLOW_FRAME_MS = 45;
 
@@ -47,7 +48,8 @@ async function main() {
   const gpu = probeGpu();
   const params = new URLSearchParams(location.search);
   const forced = params.get('quality');
-  let quality = (forced && QUALITY[forced]) ? forced : (gpu.software ? 'lite' : 'high');
+  // Racing first: the default is the cheapest level, not the prettiest one.
+  let quality = (forced && QUALITY[forced]) ? forced : 'racing';
 
   // Guide stations, found once with a running hint so nothing misprojects at the seam.
   let hint = 0;
@@ -87,7 +89,12 @@ async function main() {
 
   // Built once with the maximum number of lamps; quality only toggles what is visible, and
   // three.js leaves an invisible light out of the shader entirely.
-  const hallGroup = buildHall(data, { pointLights: QUALITY.high.pointLights, glow: true });
+  setSimpleMaterials(QUALITY[quality].simple);
+  const hallGroup = buildHall(data, {
+    pointLights: QUALITY.high.pointLights,
+    glow: true,
+    minimal: QUALITY[quality].minimal,
+  });
   scene.add(hallGroup);
   const hallLights = [];
   let glowMesh = null;
@@ -122,8 +129,17 @@ async function main() {
     cockpit: new THREE.PerspectiveCamera(72, 1, 0.05, 400),
     top: new THREE.PerspectiveCamera(55, 1, 0.1, 400),
   };
-  let cameraMode = 'chase';
-  const MODES = ['chase', 'cockpit', 'top'];
+  let cameraMode = 'cockpit';           // racing default: the driver's own eyes
+  const MODES = ['cockpit', 'chase', 'top'];
+  const helmetMesh = kart.group.getObjectByName('helmet');
+  const visorMesh = kart.group.getObjectByName('visor');
+  function applyCameraVisibility() {
+    // from inside the head, the helmet and visor must not be drawn
+    const inside = cameraMode === 'cockpit';
+    if (helmetMesh) helmetMesh.visible = !inside;
+    if (visorMesh) visorMesh.visible = !inside;
+  }
+  applyCameraVisibility();
 
   // ---- HUD
   const hud = {
@@ -136,9 +152,9 @@ async function main() {
   el('overlay').addEventListener('click', () => el('overlay').classList.add('hidden'));
   if (gpu.software) {
     const note = el('gpuNote');
-    note.textContent = 'Your browser is drawing without GPU acceleration (' + gpu.name
-      + '), so the hall is running in lite mode. Turning on hardware acceleration in the browser'
-      + ' settings will restore the full lighting.';
+    note.textContent = 'This browser is drawing without GPU acceleration (' + gpu.name
+      + '). It is already on the cheapest settings — switching hardware acceleration back on in'
+      + ' the browser would make it considerably smoother.';
     note.style.display = 'block';
   }
 
@@ -211,6 +227,7 @@ async function main() {
     const cmd = input.poll();
     if (input.consumeCamera()) {
       cameraMode = MODES[(MODES.indexOf(cameraMode) + 1) % MODES.length];
+      applyCameraVisibility();
     }
     if (input.consumeReset()) {
       sim.reset(0, 0);
@@ -260,12 +277,14 @@ async function main() {
       cam.fov = 62 + Math.min(12, sim.kmh * 0.18);
       cam.updateProjectionMatrix();
     } else if (cameraMode === 'cockpit') {
+      // The driver's own eyes: at the helmet, which is hidden from inside. Looking slightly
+      // down so the nose, the front tyres and the wheel are in frame, as a kart really looks.
       const cam = cameras.cockpit;
-      cam.position.copy(pos).add(fwd.clone().multiplyScalar(0.1)).add(new THREE.Vector3(0, 1.02, 0));
-      const look = cam.position.clone().add(fwd.clone().multiplyScalar(8)).add(right.clone().multiplyScalar(sim.steer * 2.5)).add(new THREE.Vector3(0, -0.35, 0));
-      cam.lookAt(look);
-      cam.rotateZ(-sim.steer * 0.12);
-      cam.fov = 72 + Math.min(14, sim.kmh * 0.2);
+      const pose = cockpitCameraPose(sim.x, sim.y, sim.yaw, sim.steer, sim.kmh);
+      cam.position.set(pose.position[0], pose.position[1], pose.position[2]);
+      cam.lookAt(pose.look[0], pose.look[1], pose.look[2]);
+      cam.rotateZ(pose.roll);
+      cam.fov = pose.fov;
       cam.updateProjectionMatrix();
     } else {
       const cam = cameras.top;
@@ -313,7 +332,7 @@ async function main() {
   requestAnimationFrame(frame);
 
   // Exposed for automated checks (and for anyone poking at it in the console).
-  window.__fd = { sim, track, cameras, get cameraMode() { return cameraMode; } };
+  window.__fd = { sim, track, cameras, renderer, scene, get cameraMode() { return cameraMode; } };
   const st = el('status');
   st.textContent = 'Ready — ' + data.track.name + ', ' + Math.round(track.length) + ' m. Press Drive, then any button on your controller.';
   st.style.color = '#7fe08a';

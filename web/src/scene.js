@@ -8,6 +8,33 @@ const COACH_COLOURS = {
   brake: new THREE.Color('#e0473a'),
 };
 
+// Racing mode: MeshLambertMaterial is a fraction of the per-fragment cost of the PBR
+// MeshStandardMaterial, which matters when every lit pixel is paid for on the CPU. Set once
+// before the scene is built.
+let SIMPLE = false;
+export function setSimpleMaterials(value) { SIMPLE = value; }
+
+function surf(params, simple = SIMPLE) {
+  if (!simple) return new THREE.MeshStandardMaterial(params);
+  const { roughness, metalness, ...rest } = params;
+  return new THREE.MeshLambertMaterial(rest);
+}
+
+// Where the driver's own eyes are and where they look, in map coordinates (x, y) with yaw
+// counterclockwise from +x. Shared with the automated check so it places the camera exactly as
+// the app does, and cannot drift from it.
+export function cockpitCameraPose(x, y, yaw, steer, kmh) {
+  const fwdX = Math.cos(yaw), fwdZ = -Math.sin(yaw);
+  const rightX = -fwdZ, rightZ = fwdX;
+  const px = x + fwdX * 0.16, pz = -y + fwdZ * 0.16, py = 0.97;
+  return {
+    position: [px, py, pz],
+    look: [px + fwdX * 10 + rightX * steer * 1.4, py - 1.25, pz + fwdZ * 10 + rightZ * steer * 1.4],
+    roll: -steer * 0.10,
+    fov: 84 + Math.min(10, kmh * 0.14),
+  };
+}
+
 function asphaltTexture() {
   const c = document.createElement('canvas');
   c.width = c.height = 256;
@@ -53,6 +80,7 @@ function floorTexture() {
 export function buildHall(data, opts = {}) {
   const pointLights = opts.pointLights !== undefined ? opts.pointLights : 8;
   const glow = opts.glow !== false;
+  const minimal = opts.minimal === true;
   const hall = data.hall;
   const group = new THREE.Group();
   const w = hall.max_x - hall.min_x, d = hall.max_z - hall.min_z;
@@ -60,13 +88,13 @@ export function buildHall(data, opts = {}) {
 
   const floor = new THREE.Mesh(
     new THREE.PlaneGeometry(w, d),
-    new THREE.MeshStandardMaterial({ map: floorTexture(), color: 0xffffff, roughness: 0.95, metalness: 0.02 }));
+    surf({ map: floorTexture(), color: 0xffffff, roughness: 0.95, metalness: 0.02 }));
   floor.rotation.x = -Math.PI / 2;
   floor.position.set(cx, 0, cz);
   floor.receiveShadow = true;
   group.add(floor);
 
-  const wallMat = new THREE.MeshStandardMaterial({ color: 0x2b3038, roughness: 0.9, metalness: 0.05, side: THREE.DoubleSide });
+  const wallMat = surf({ color: 0x2b3038, roughness: 0.9, metalness: 0.05, side: THREE.DoubleSide });
   const mkWall = (width, px, pz, ry) => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(width, hall.eave_m), wallMat);
     m.position.set(px, hall.eave_m / 2, pz);
@@ -78,23 +106,26 @@ export function buildHall(data, opts = {}) {
   mkWall(d, hall.min_x, cz, Math.PI / 2);
   mkWall(d, hall.max_x, cz, -Math.PI / 2);
 
-  // A pitched roof to the ridge, with rafters.
-  const roofMat = new THREE.MeshStandardMaterial({ color: 0x1b1e23, roughness: 0.85, metalness: 0.15, side: THREE.DoubleSide });
+  // A pitched roof to the ridge, with rafters. Racing mode drops both: they are large,
+  // mostly out of view, and cost overdraw.
   const half = w / 2, rise = hall.ridge_m - hall.eave_m;
-  const slope = Math.hypot(half, rise);
-  for (const side of [-1, 1]) {
-    const panel = new THREE.Mesh(new THREE.PlaneGeometry(slope, d), roofMat);
-    panel.position.set(cx + side * half / 2, hall.eave_m + rise / 2, cz);
-    panel.rotation.order = 'YXZ';
-    panel.rotation.y = side > 0 ? 0 : Math.PI;
-    panel.rotation.x = -Math.atan2(rise, half) * (side > 0 ? 1 : -1);
-    group.add(panel);
-  }
-  const rafterMat = new THREE.MeshStandardMaterial({ color: 0x161a1f, roughness: 0.8, metalness: 0.3 });
-  for (let z = hall.min_z + 3; z < hall.max_z; z += 6) {
-    const beam = new THREE.Mesh(new THREE.BoxGeometry(w, 0.18, 0.18), rafterMat);
-    beam.position.set(cx, hall.eave_m + rise / 2, z);
-    group.add(beam);
+  if (!minimal) {
+    const roofMat = surf({ color: 0x1b1e23, roughness: 0.85, metalness: 0.15, side: THREE.DoubleSide });
+    const slope = Math.hypot(half, rise);
+    for (const side of [-1, 1]) {
+      const panel = new THREE.Mesh(new THREE.PlaneGeometry(slope, d), roofMat);
+      panel.position.set(cx + side * half / 2, hall.eave_m + rise / 2, cz);
+      panel.rotation.order = 'YXZ';
+      panel.rotation.y = side > 0 ? 0 : Math.PI;
+      panel.rotation.x = -Math.atan2(rise, half) * (side > 0 ? 1 : -1);
+      group.add(panel);
+    }
+    const rafterMat = surf({ color: 0x161a1f, roughness: 0.8, metalness: 0.3 });
+    for (let z = hall.min_z + 3; z < hall.max_z; z += 6) {
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(w, 0.18, 0.18), rafterMat);
+      beam.position.set(cx, hall.eave_m + rise / 2, z);
+      group.add(beam);
+    }
   }
 
   // Lamps: an emissive fixture per grid position, with a handful of real lights.
@@ -168,7 +199,7 @@ export function buildRoad(track) {
   geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geo.setIndex(idx);
   geo.computeVertexNormals();
-  const road = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: asphaltTexture(), roughness: 0.88, metalness: 0.05 }));
+  const road = new THREE.Mesh(geo, surf({ map: asphaltTexture(), roughness: 0.88, metalness: 0.05 }));
   road.receiveShadow = true;
   group.add(road);
 
@@ -182,13 +213,13 @@ export function buildRoad(track) {
     }
     const line = new THREE.Mesh(
       new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 400, 0.05, 5, true),
-      new THREE.MeshStandardMaterial({ color: 0xd8d8d0, roughness: 0.7 }));
+      surf({ color: 0xd8d8d0, roughness: 0.7 }));
     group.add(line);
   }
 
   // Kerbs on both edges through every corner span.
-  const kerbA = new THREE.MeshStandardMaterial({ color: 0xc9302c, roughness: 0.8 });
-  const kerbB = new THREE.MeshStandardMaterial({ color: 0xe8e6e0, roughness: 0.8 });
+  const kerbA = surf({ color: 0xc9302c, roughness: 0.8 });
+  const kerbB = surf({ color: 0xe8e6e0, roughness: 0.8 });
   for (const corner of track.corners) {
     const span = corner.to_s - corner.from_s;
     const segs = Math.max(2, Math.round(span / 2));
@@ -236,7 +267,7 @@ export function buildRoad(track) {
     geo2.setAttribute('color', new THREE.Float32BufferAttribute(gc, 3));
     geo2.setIndex(gi);
     geo2.computeVertexNormals();
-    group.add(new THREE.Mesh(geo2, new THREE.MeshStandardMaterial({
+    group.add(new THREE.Mesh(geo2, surf({
       vertexColors: true, roughness: 0.6, emissive: 0x111111, side: THREE.DoubleSide })));
   }
 
@@ -250,7 +281,7 @@ export function buildRoad(track) {
       p0.x - 0.2, 0.04, -p0.y, p1.x + 0.2, 0.04, -p1.y, p0.x + 0.2, 0.04, -p0.y,
     ], 3));
     g.computeVertexNormals();
-    group.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.6, side: THREE.DoubleSide })));
+    group.add(new THREE.Mesh(g, surf({ color: 0xf2f2f2, roughness: 0.6, side: THREE.DoubleSide })));
   }
   return group;
 }
@@ -258,8 +289,8 @@ export function buildRoad(track) {
 // Twin-tube barriers along both edges, with posts (decision 0052's solid boundary).
 export function buildBarriers(track) {
   const group = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color: 0xd9d9d9, roughness: 0.5, metalness: 0.35 });
-  const postMat = new THREE.MeshStandardMaterial({ color: 0x8a8f96, roughness: 0.6, metalness: 0.4 });
+  const mat = surf({ color: 0xd9d9d9, roughness: 0.5, metalness: 0.35 });
+  const postMat = surf({ color: 0x8a8f96, roughness: 0.6, metalness: 0.4 });
   for (const sign of [1, -1]) {
     const offset = sign * (track.half + 0.32);
     for (const tubeY of [0.34, 0.62]) {
@@ -295,11 +326,11 @@ export function buildBarriers(track) {
 // A clean, readable kart: pan, pods, seat, driver, nose, bumper and four wheels.
 export function buildKart(kart) {
   const g = new THREE.Group();
-  const bodyMat = new THREE.MeshStandardMaterial({ color: 0xd93b2b, roughness: 0.4, metalness: 0.25 });
-  const darkMat = new THREE.MeshStandardMaterial({ color: 0x1c1f24, roughness: 0.7, metalness: 0.2 });
-  const seatMat = new THREE.MeshStandardMaterial({ color: 0x15181c, roughness: 0.9 });
-  const suitMat = new THREE.MeshStandardMaterial({ color: 0x2b3a67, roughness: 0.7 });
-  const helmetMat = new THREE.MeshStandardMaterial({ color: 0xf2f2f2, roughness: 0.25, metalness: 0.1 });
+  const bodyMat = surf({ color: 0xd93b2b, roughness: 0.4, metalness: 0.25 });
+  const darkMat = surf({ color: 0x1c1f24, roughness: 0.7, metalness: 0.2 });
+  const seatMat = surf({ color: 0x15181c, roughness: 0.9 });
+  const suitMat = surf({ color: 0x2b3a67, roughness: 0.7 });
+  const helmetMat = surf({ color: 0xf2f2f2, roughness: 0.25, metalness: 0.1 });
 
   const pan = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.09, 0.86), darkMat);
   pan.position.y = 0.1;
@@ -330,16 +361,18 @@ export function buildKart(kart) {
   g.add(torso);
   const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.16, 20, 16), helmetMat);
   helmet.position.set(0.16, 0.92, 0);
+  helmet.name = 'helmet';
   g.add(helmet);
   const visor = new THREE.Mesh(new THREE.SphereGeometry(0.163, 20, 16, Math.PI * 0.15, Math.PI * 0.7, Math.PI * 0.3, Math.PI * 0.3),
-    new THREE.MeshStandardMaterial({ color: 0x101820, roughness: 0.1, metalness: 0.6 }));
+    surf({ color: 0x101820, roughness: 0.1, metalness: 0.6 }));
   visor.position.copy(helmet.position);
+  visor.name = 'visor';
   g.add(visor);
 
   const wheelGeo = new THREE.CylinderGeometry(kart.wheel_radius_m, kart.wheel_radius_m, 0.13, 20);
   wheelGeo.rotateX(Math.PI / 2);
-  const tyreMat = new THREE.MeshStandardMaterial({ color: 0x101214, roughness: 0.95 });
-  const rimMat = new THREE.MeshStandardMaterial({ color: 0xcfd3d8, roughness: 0.35, metalness: 0.6 });
+  const tyreMat = surf({ color: 0x101214, roughness: 0.95 });
+  const rimMat = surf({ color: 0xcfd3d8, roughness: 0.35, metalness: 0.6 });
   const wheels = { fl: null, fr: null, rl: null, rr: null };
   const axles = [
     ['fl', kart.cg_to_front_m, kart.track_front_m / 2],

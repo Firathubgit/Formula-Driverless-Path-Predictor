@@ -14,7 +14,7 @@ try {
   const THREE = await import('../vendor/three.module.js');
   const { Track } = await import('../src/track.js');
   const { KartSim } = await import('../src/physics.js');
-  const { buildHall, buildRoad, buildBarriers, buildKart } = await import('../src/scene.js');
+  const { buildHall, buildRoad, buildBarriers, buildKart, setSimpleMaterials } = await import('../src/scene.js');
 
   const data = await (await fetch('../data/track.json')).json();
   const track = new Track(data);
@@ -34,7 +34,8 @@ try {
   out.window = W + 'x' + H;
   const sim = new KartSim(data.kart, track);
 
-  function measure({ pointLights, shadows, glow, ratio, antialias }, frames) {
+  function measure({ pointLights, shadows, glow, ratio, antialias, simple, minimal }, frames) {
+    setSimpleMaterials(simple === true);
     // a fresh canvas each time: a canvas keeps its first WebGL context, so reusing it would
     // silently return the previous context and ignore the new attributes
     const canvas = document.createElement('canvas');
@@ -60,7 +61,7 @@ try {
     key.shadow.camera.updateProjectionMatrix();
     key.shadow.bias = -0.0006;
     scene.add(key);
-    scene.add(buildHall(data, { pointLights, glow }));
+    scene.add(buildHall(data, { pointLights, glow, minimal }));
     scene.add(buildRoad(track));
     scene.add(buildBarriers(track));
     const kart = buildKart(data.kart);
@@ -94,10 +95,10 @@ try {
   }
 
   const N = out.software ? 4 : 10;
-  out.high = measure({ pointLights: 6, shadows: true, glow: true, ratio: 1.5, antialias: true }, N);
-  out.highHiDpi = measure({ pointLights: 6, shadows: true, glow: true, ratio: 2, antialias: true }, N);
-  out.lite = measure({ pointLights: 0, shadows: false, glow: false, ratio: 1, antialias: false }, N);
-  out.highRatio1 = measure({ pointLights: 6, shadows: true, glow: true, ratio: 1, antialias: true }, N);
+  out.racing = measure({ pointLights: 0, shadows: false, glow: false, ratio: 0.5, antialias: false, simple: true, minimal: true }, N);
+  out.lite = measure({ pointLights: 0, shadows: false, glow: false, ratio: 1, antialias: false, simple: true, minimal: true }, N);
+  out.medium = measure({ pointLights: 2, shadows: false, glow: false, ratio: 1, antialias: false, simple: false, minimal: false }, N);
+  out.high = measure({ pointLights: 6, shadows: true, glow: true, ratio: 1.5, antialias: true, simple: false, minimal: false }, N);
 } catch (e) {
   errors.push('fatal: ' + (e && e.stack || e));
 }

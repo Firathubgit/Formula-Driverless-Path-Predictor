@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>fd cockpit check</title></head>
+<body>
+<canvas id="view" width="1280" height="720"></canvas>
+<pre id="result">running…</pre>
+<pre id="png"></pre>
+<script type="module">
+// Renders the app's default first-person view and reports what is actually in frame, using the
+// same cockpitCameraPose the app calls. Writes the frame as a data URL for a human/vision check.
+const errors = [];
+window.addEventListener('error', (e) => errors.push('error: ' + e.message));
+const out = {};
+try {
+  const THREE = await import('../vendor/three.module.js');
+  const { Track } = await import('../src/track.js');
+  const { KartSim } = await import('../src/physics.js');
+  const { buildHall, buildRoad, buildBarriers, buildKart, setSimpleMaterials, cockpitCameraPose } =
+    await import('../src/scene.js');
+
+  const data = await (await fetch('../data/track.json')).json();
+  const track = new Track(data);
+  let hint = 0;
+  track.guidePoints = data.guide.map((g) => {
+    const p = track.project(g.x, g.y, hint); hint = p.s;
+    return { x: g.x, y: g.y, advice: g.advice, s: p.s };
+  }).sort((a, b) => a.s - b.s);
+
+  // exactly the app's default: racing quality
+  setSimpleMaterials(true);
+  const canvas = document.getElementById('view');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(1);
+  renderer.setSize(1280, 720, false);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.15;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0d0f12);
+  scene.fog = new THREE.Fog(0x0d0f12, 40, 110);
+  scene.add(new THREE.HemisphereLight(0x9fb4d8, 0x1a1d22, 0.55));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.22));
+  const key = new THREE.DirectionalLight(0xfff0dc, 1.1);
+  key.position.set(30, 40, 20);
+  scene.add(key);
+  scene.add(buildHall(data, { pointLights: 0, glow: false, minimal: true }));
+  scene.add(buildRoad(track));
+  scene.add(buildBarriers(track));
+  const kart = buildKart(data.kart);
+  scene.add(kart.group);
+  const helmet = kart.group.getObjectByName('helmet');
+  const visor = kart.group.getObjectByName('visor');
+
+  const cam = new THREE.PerspectiveCamera(84, 1280 / 720, 0.05, 400);
+  const sim = new KartSim(data.kart, track);
+  // put the kart mid-track at speed, in cockpit view
+  sim.reset(52, 7.5);
+  for (let i = 0; i < 200; i++) sim.step(1 / 200, { steer: 0.15, throttle: 0.7, brake: 0 });
+  kart.group.position.set(sim.x, 0, -sim.y);
+  kart.group.rotation.y = sim.yaw;
+  kart.group.updateMatrixWorld(true);
+
+  const pose = cockpitCameraPose(sim.x, sim.y, sim.yaw, sim.steer, sim.kmh);
+  cam.position.set(...pose.position);
+  cam.lookAt(...pose.look);
+  cam.rotateZ(pose.roll);
+  cam.fov = pose.fov;
+  cam.updateProjectionMatrix();
+  cam.updateMatrixWorld(true);
+
+  // the helmet must be hidden from inside the head
+  helmet.visible = false;
+  visor.visible = false;
+
+  const ndc = (v) => { const p = v.clone().project(cam); return { x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), inFrame: Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1 && p.z > -1 && p.z < 1 }; };
+  const worldOf = (local) => kart.group.localToWorld(new THREE.Vector3(local[0], local[1], local[2]));
+  out.cameraFov = +cam.fov.toFixed(1);
+  out.cameraPos = pose.position.map((v) => +v.toFixed(2));
+  out.kartStation = +sim.s.toFixed(1);
+  out.kartKmh = +sim.kmh.toFixed(1);
+  out.steeringWheel = ndc(worldOf([0.42, 0.72, 0]));
+  out.noseTip = ndc(worldOf([1.17, 0.13, 0]));
+  out.frontLeftTyre = ndc(worldOf([1.045, 0.139, 0.53]));
+  out.frontRightTyre = ndc(worldOf([1.045, 0.139, -0.53]));
+  out.helmetHidden = helmet.visible === false;
+
+  renderer.render(scene, cam);
+  out.glError = renderer.getContext().getError();
+  document.getElementById('png').textContent = canvas.toDataURL('image/png');
+} catch (e) {
+  errors.push('fatal: ' + (e && e.stack || e));
+}
+out.errors = errors;
+document.getElementById('result').textContent = JSON.stringify(out, null, 1);
+</script>
+</body>
+</html>
