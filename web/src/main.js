@@ -76,8 +76,8 @@ async function main() {
   scene.background = new THREE.Color(0x0d0f12);
   scene.fog = new THREE.Fog(0x0d0f12, 40, 110);
 
-  scene.add(new THREE.HemisphereLight(0x9fb4d8, 0x1a1d22, 0.55));
-  scene.add(new THREE.AmbientLight(0xffffff, 0.22));
+  scene.add(new THREE.HemisphereLight(0xb4c6e0, 0x2a2f38, 0.75));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.38));
   const key = new THREE.DirectionalLight(0xfff0dc, 1.1);
   key.position.set(30, 40, 20);
   key.shadow.mapSize.set(1024, 1024);

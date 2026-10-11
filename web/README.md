@@ -90,7 +90,8 @@ renders a frame, printing a JSON summary — open it through the same local serv
 
 **This is a racing game, so the default is the cheapest setting, not the prettiest.** The view
 starts in the driver's own eyes, and the hall is drawn with no point lights, no shadows, no glow,
-cheap Lambert shading, no roof, and a half-resolution drawing buffer that the browser scales up.
+cheap Lambert shading instead of PBR, and a half-resolution drawing buffer that the browser scales
+up. The roof and walls stay, because without them the ceiling is a black void.
 
 The reason is that a point light costs per-fragment work on every lit pixel. On a machine without
 GPU acceleration — a browser with hardware acceleration switched off, a blocklisted driver, a VM
@@ -113,9 +114,9 @@ Measured at 1920×1080 on **software rendering** (SwiftShader — the worst case
 | level | ms/frame | fps |
 | --- | --- | --- |
 | `racing` | 17 | **58** |
-| `lite` | 35 | 28 |
-| `medium` | 67 | 15 |
-| `high` | 376 | 2.7 |
+| `lite` | 29 | 35 |
+| `medium` | 52 | 19 |
+| `high` | 211 | 4.7 |
 
 The fully lit version used to be the only option and ran at 4 fps. On a working GPU, `high` runs
 at well over 100 fps.

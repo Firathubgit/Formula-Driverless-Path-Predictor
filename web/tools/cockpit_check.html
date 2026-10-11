@@ -39,8 +39,8 @@ try {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0d0f12);
   scene.fog = new THREE.Fog(0x0d0f12, 40, 110);
-  scene.add(new THREE.HemisphereLight(0x9fb4d8, 0x1a1d22, 0.55));
-  scene.add(new THREE.AmbientLight(0xffffff, 0.22));
+  scene.add(new THREE.HemisphereLight(0xb4c6e0, 0x2a2f38, 0.75));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.38));
   const key = new THREE.DirectionalLight(0xfff0dc, 1.1);
   key.position.set(30, 40, 20);
   scene.add(key);
@@ -73,20 +73,46 @@ try {
   helmet.visible = false;
   visor.visible = false;
 
-  const ndc = (v) => { const p = v.clone().project(cam); return { x: +p.x.toFixed(2), y: +p.y.toFixed(2), z: +p.z.toFixed(2), inFrame: Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1 && p.z > -1 && p.z < 1 }; };
-  const worldOf = (local) => kart.group.localToWorld(new THREE.Vector3(local[0], local[1], local[2]));
+  const project = (local) => {
+    const v = kart.group.localToWorld(new THREE.Vector3(local[0], local[1], local[2]));
+    const vs = v.clone().applyMatrix4(cam.matrixWorldInverse);
+    const p = v.clone().project(cam);
+    return {
+      x: +p.x.toFixed(2), y: +p.y.toFixed(2),
+      inFront: vs.z < 0,
+      inFrame: vs.z < 0 && Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1,
+    };
+  };
+  const K = data.kart;
   out.cameraFov = +cam.fov.toFixed(1);
   out.cameraPos = pose.position.map((v) => +v.toFixed(2));
   out.kartStation = +sim.s.toFixed(1);
   out.kartKmh = +sim.kmh.toFixed(1);
-  out.steeringWheel = ndc(worldOf([0.42, 0.72, 0]));
-  out.noseTip = ndc(worldOf([1.17, 0.13, 0]));
-  out.frontLeftTyre = ndc(worldOf([1.045, 0.139, 0.53]));
-  out.frontRightTyre = ndc(worldOf([1.045, 0.139, -0.53]));
+  // the kart's real local geometry (buildKart): forward is +x, lateral +z
+  out.steeringWheel = project([0.42, 0.72, 0]);
+  out.noseTip = project([0.92 + 0.25, 0.13, 0]);
+  out.frontTyreL = project([K.cg_to_front_m, K.wheel_radius_m, K.track_front_m / 2]);
+  out.frontTyreR = project([K.cg_to_front_m, K.wheel_radius_m, -K.track_front_m / 2]);
+  out.frontTyreTopL = project([K.cg_to_front_m, K.wheel_radius_m * 2, K.track_front_m / 2]);
+  out.rearTyreL = project([-K.cg_to_rear_m, K.wheel_radius_m, K.track_rear_m / 2]);
   out.helmetHidden = helmet.visible === false;
-
+  // how much of the frame the roof covers, sampled from the rendered pixels below
   renderer.render(scene, cam);
   out.glError = renderer.getContext().getError();
+  {
+    // how much of the frame is a near-black void (the ceiling used to be one)
+    const gl = renderer.getContext();
+    const px = new Uint8Array(1280 * 720 * 4);
+    gl.readPixels(0, 0, 1280, 720, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    let dark = 0, sum = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      const l = (px[i] + px[i + 1] + px[i + 2]) / 3;
+      sum += l;
+      if (l < 12) dark++;
+    }
+    out.meanLuma = +(sum / (px.length / 4)).toFixed(1);
+    out.nearBlackFraction = +(dark / (px.length / 4)).toFixed(3);
+  }
   document.getElementById('png').textContent = canvas.toDataURL('image/png');
 } catch (e) {
   errors.push('fatal: ' + (e && e.stack || e));

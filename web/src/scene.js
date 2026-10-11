@@ -26,12 +26,15 @@ function surf(params, simple = SIMPLE) {
 export function cockpitCameraPose(x, y, yaw, steer, kmh) {
   const fwdX = Math.cos(yaw), fwdZ = -Math.sin(yaw);
   const rightX = -fwdZ, rightZ = fwdX;
-  const px = x + fwdX * 0.16, pz = -y + fwdZ * 0.16, py = 0.97;
+  // Just behind the helmet's centre: far enough back that the wheel is not in the face, close
+  // enough that it is still a driver's view. Looking ~6 degrees down, so the wheel sits at the
+  // bottom of the frame and the track fills the rest.
+  const px = x + fwdX * 0.02, pz = -y + fwdZ * 0.02, py = 1.0;
   return {
     position: [px, py, pz],
-    look: [px + fwdX * 10 + rightX * steer * 1.4, py - 1.25, pz + fwdZ * 10 + rightZ * steer * 1.4],
-    roll: -steer * 0.10,
-    fov: 84 + Math.min(10, kmh * 0.14),
+    look: [px + fwdX * 10 + rightX * steer * 1.2, py - 1.05, pz + fwdZ * 10 + rightZ * steer * 1.2],
+    roll: -steer * 0.09,
+    fov: 78 + Math.min(8, kmh * 0.12),
   };
 }
 
@@ -94,7 +97,10 @@ export function buildHall(data, opts = {}) {
   floor.receiveShadow = true;
   group.add(floor);
 
-  const wallMat = surf({ color: 0x2b3038, roughness: 0.9, metalness: 0.05, side: THREE.DoubleSide });
+  // An indoor hall is lit from below by its own lamps, so the ceiling and upper walls would
+  // otherwise render almost black (we see the unlit underside of the roof). Give them a little
+  // self-illumination so the room reads as a room rather than a void.
+  const wallMat = surf({ color: 0x3a414c, roughness: 0.9, metalness: 0.05, side: THREE.DoubleSide, emissive: 0x14171c });
   const mkWall = (width, px, pz, ry) => {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(width, hall.eave_m), wallMat);
     m.position.set(px, hall.eave_m / 2, pz);
@@ -106,11 +112,11 @@ export function buildHall(data, opts = {}) {
   mkWall(d, hall.min_x, cz, Math.PI / 2);
   mkWall(d, hall.max_x, cz, -Math.PI / 2);
 
-  // A pitched roof to the ridge, with rafters. Racing mode drops both: they are large,
-  // mostly out of view, and cost overdraw.
+  // A pitched roof to the ridge. Always built: without it the ceiling is a black void with the
+  // lamps floating in it, which reads as broken. Racing mode drops only the rafters.
   const half = w / 2, rise = hall.ridge_m - hall.eave_m;
-  if (!minimal) {
-    const roofMat = surf({ color: 0x1b1e23, roughness: 0.85, metalness: 0.15, side: THREE.DoubleSide });
+  {
+    const roofMat = surf({ color: 0x2b313a, roughness: 0.85, metalness: 0.15, side: THREE.DoubleSide, emissive: 0x1b1f26 });
     const slope = Math.hypot(half, rise);
     for (const side of [-1, 1]) {
       const panel = new THREE.Mesh(new THREE.PlaneGeometry(slope, d), roofMat);
@@ -120,11 +126,13 @@ export function buildHall(data, opts = {}) {
       panel.rotation.x = -Math.atan2(rise, half) * (side > 0 ? 1 : -1);
       group.add(panel);
     }
-    const rafterMat = surf({ color: 0x161a1f, roughness: 0.8, metalness: 0.3 });
-    for (let z = hall.min_z + 3; z < hall.max_z; z += 6) {
-      const beam = new THREE.Mesh(new THREE.BoxGeometry(w, 0.18, 0.18), rafterMat);
-      beam.position.set(cx, hall.eave_m + rise / 2, z);
-      group.add(beam);
+    if (!minimal) {
+      const rafterMat = surf({ color: 0x161a1f, roughness: 0.8, metalness: 0.3 });
+      for (let z = hall.min_z + 3; z < hall.max_z; z += 6) {
+        const beam = new THREE.Mesh(new THREE.BoxGeometry(w, 0.18, 0.18), rafterMat);
+        beam.position.set(cx, hall.eave_m + rise / 2, z);
+        group.add(beam);
+      }
     }
   }
 
