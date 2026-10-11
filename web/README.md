@@ -83,6 +83,34 @@ cd web; python -m http.server 8123
 `web/tools/browser_check.html` loads the data, builds the whole scene, runs 10 s of physics and
 renders a frame, printing a JSON summary — open it through the same local server.
 
+## Performance and quality
+
+The hall is lit by point lights, and a point light costs per-fragment work on every lit pixel.
+On a machine without GPU acceleration — a browser with hardware acceleration switched off, a
+blocklisted driver, a VM or a remote session — that alone was enough to push a frame to ~250 ms
+at 1080p (and ~450 ms on a HiDPI display), which makes the browser declare the page unresponsive.
+
+So the page now picks a quality level:
+
+| level | point lights | shadows | lamp glow | pixel ratio |
+| --- | --- | --- | --- | --- |
+| `high` | 6 | yes | yes | up to 1.5 |
+| `medium` | 2 | no | no | 1 |
+| `lite` | 0 | no | no | 1 |
+
+- It reads the WebGL renderer string before building anything and starts in `lite` when the
+  renderer looks like software (`SwiftShader`, `llvmpipe`, …), showing why in the start overlay.
+- It also samples real frame times and steps down a level when frames stay slower than 45 ms.
+- The current level and measured fps are shown in the HUD under `QUALITY`.
+- Override with `?quality=high|medium|lite`, e.g. `?quality=high`.
+
+Measured on software rendering (SwiftShader) at 1920×1080: the old fixed settings gave **252
+ms/frame** (4 fps, 455 ms on HiDPI); `lite` gives **~35-51 ms/frame** (~20-29 fps), which is
+playable. On a working GPU the same page runs `high` at well over 100 fps.
+
+If the HUD says `lite` and you expect `high`, turn hardware acceleration back on in the browser's
+settings.
+
 ## Deployment
 
 `.github/workflows/pages.yml` publishes this folder to GitHub Pages on every push to `main` that

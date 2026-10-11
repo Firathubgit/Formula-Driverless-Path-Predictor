@@ -50,7 +50,9 @@ function floorTexture() {
   return t;
 }
 
-export function buildHall(data) {
+export function buildHall(data, opts = {}) {
+  const pointLights = opts.pointLights !== undefined ? opts.pointLights : 8;
+  const glow = opts.glow !== false;
   const hall = data.hall;
   const group = new THREE.Group();
   const w = hall.max_x - hall.min_x, d = hall.max_z - hall.min_z;
@@ -100,7 +102,7 @@ export function buildHall(data) {
   const lampMat = new THREE.MeshBasicMaterial({ color: 0xfff6e0 });
   const glowMat = new THREE.MeshBasicMaterial({ color: 0xdfe8ff, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false });
   const lamps = new THREE.InstancedMesh(lampGeo, lampMat, hall.lamp_columns * hall.lamp_rows);
-  const glows = new THREE.InstancedMesh(lampGeo, glowMat, hall.lamp_columns * hall.lamp_rows);
+  const glows = glow ? new THREE.InstancedMesh(lampGeo, glowMat, hall.lamp_columns * hall.lamp_rows) : null;
   const dummy = new THREE.Object3D();
   let i = 0;
   const lightPositions = [];
@@ -113,22 +115,30 @@ export function buildHall(data) {
       dummy.scale.setScalar(1);
       dummy.updateMatrix();
       lamps.setMatrixAt(i, dummy.matrix);
-      dummy.position.y = hall.lamp_height_m - 0.05;
-      dummy.scale.setScalar(3.6);
-      dummy.updateMatrix();
-      glows.setMatrixAt(i, dummy.matrix);
+      if (glows) {
+        dummy.position.y = hall.lamp_height_m - 0.05;
+        dummy.scale.setScalar(3.2);
+        dummy.updateMatrix();
+        glows.setMatrixAt(i, dummy.matrix);
+      }
       if ((col + row) % 3 === 0) lightPositions.push([x, hall.lamp_height_m - 0.2, z]);
       i++;
     }
   }
   lamps.instanceMatrix.needsUpdate = true;
-  glows.instanceMatrix.needsUpdate = true;
-  group.add(lamps, glows);
+  group.add(lamps);
+  if (glows) { glows.name = 'lamp-glow'; glows.instanceMatrix.needsUpdate = true; group.add(glows); }
 
-  for (const [x, y, z] of lightPositions.slice(0, 14)) {
+  // Point lights are the most expensive thing in the fragment shader, so their number is a
+  // quality setting: a few on a capable GPU, none on a machine rendering in software.
+  const stride = Math.max(1, Math.ceil(lightPositions.length / Math.max(1, pointLights)));
+  let added = 0;
+  for (let n = 0; n < lightPositions.length && added < pointLights; n += stride) {
+    const [x, y, z] = lightPositions[n];
     const pl = new THREE.PointLight(0xfff2d8, 26, 26, 2.0);
     pl.position.set(x, y, z);
     group.add(pl);
+    added++;
   }
   return group;
 }

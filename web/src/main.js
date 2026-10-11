@@ -9,11 +9,45 @@ const MAX_STEPS = 8;
 const ADVICE_TEXT = { accelerate: 'GAS', coast: 'LIFT', brake: 'BRAKE' };
 const ADVICE_COLOUR = { accelerate: '#3fd23f', coast: '#e8c33a', brake: '#e0473a' };
 
+// Quality levels. Point lights, shadows and the lamp glow are the things that cost real
+// fragment work, so on a machine without GPU acceleration the page falls back to `lite`.
+// A HiDPI drawing buffer multiplies everything, hence the pixel-ratio cap.
+const QUALITY = {
+  high: { pointLights: 6, shadows: true, glow: true, maxRatio: 1.5, antialias: true },
+  medium: { pointLights: 2, shadows: false, glow: false, maxRatio: 1, antialias: false },
+  lite: { pointLights: 0, shadows: false, glow: false, maxRatio: 1, antialias: false },
+};
+const QUALITY_ORDER = ['lite', 'medium', 'high'];
+// A frame slower than this means the display is stuttering; drop a level and try again.
+const SLOW_FRAME_MS = 45;
+
+// Read the GPU before building anything, because `antialias` is fixed at context creation.
+function probeGpu() {
+  try {
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl2') || c.getContext('webgl');
+    if (!gl) return { name: 'none', software: true };
+    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    const name = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : String(gl.getParameter(gl.RENDERER));
+    const software = /swiftshader|llvmpipe|software|basic render|microsoft basic/i.test(name);
+    const lose = gl.getExtension('WEBGL_lose_context');
+    if (lose) lose.loseContext();
+    return { name, software };
+  } catch {
+    return { name: 'unknown', software: false };
+  }
+}
+
 const el = (id) => document.getElementById(id);
 
 async function main() {
   const data = await (await fetch('./data/track.json')).json();
   const track = new Track(data);
+
+  const gpu = probeGpu();
+  const params = new URLSearchParams(location.search);
+  const forced = params.get('quality');
+  let quality = (forced && QUALITY[forced]) ? forced : (gpu.software ? 'lite' : 'high');
 
   // Guide stations, found once with a running hint so nothing misprojects at the seam.
   let hint = 0;
@@ -28,9 +62,9 @@ async function main() {
 
   // ---- renderer
   const canvas = el('view');
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
+  const renderer = new THREE.WebGLRenderer({
+    canvas, antialias: QUALITY[quality].antialias, powerPreference: 'high-performance',
+  });
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.15;
@@ -44,18 +78,44 @@ async function main() {
   scene.add(new THREE.AmbientLight(0xffffff, 0.22));
   const key = new THREE.DirectionalLight(0xfff0dc, 1.1);
   key.position.set(30, 40, 20);
-  key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.mapSize.set(1024, 1024);
   const S = 46;
   Object.assign(key.shadow.camera, { left: -S, right: S, top: S, bottom: -S, near: 1, far: 160 });
+  key.shadow.camera.updateProjectionMatrix();
   key.shadow.bias = -0.0006;
   scene.add(key);
 
-  scene.add(buildHall(data));
+  // Built once with the maximum number of lamps; quality only toggles what is visible, and
+  // three.js leaves an invisible light out of the shader entirely.
+  const hallGroup = buildHall(data, { pointLights: QUALITY.high.pointLights, glow: true });
+  scene.add(hallGroup);
+  const hallLights = [];
+  let glowMesh = null;
+  hallGroup.traverse((o) => {
+    if (o.isPointLight) hallLights.push(o);
+    if (o.name === 'lamp-glow') glowMesh = o;
+  });
   scene.add(buildRoad(track));
   scene.add(buildBarriers(track));
   const kart = buildKart(data.kart);
   scene.add(kart.group);
+
+  function applyQuality(level) {
+    const q = QUALITY[level];
+    renderer.setPixelRatio(Math.min(devicePixelRatio, q.maxRatio));
+    renderer.shadowMap.enabled = q.shadows;
+    key.castShadow = q.shadows;
+    hallLights.forEach((l, i) => { l.visible = i < q.pointLights; });
+    if (glowMesh) glowMesh.visible = q.glow;
+    renderer.setSize(innerWidth, innerHeight, false);
+    // a shadow-map or light-count change needs the affected programs rebuilt
+    scene.traverse((o) => {
+      const m = o.material;
+      if (!m) return;
+      (Array.isArray(m) ? m : [m]).forEach((x) => { x.needsUpdate = true; });
+    });
+  }
+  applyQuality(quality);
 
   const cameras = {
     chase: new THREE.PerspectiveCamera(62, 1, 0.1, 400),
@@ -70,10 +130,17 @@ async function main() {
     speed: el('speed'), throttle: el('thr'), brake: el('brk'),
     lap: el('lap'), best: el('best'), count: el('count'),
     cue: el('cue'), cueNext: el('cueNext'), pad: el('pad'),
-    cam: el('cam'), status: el('status'),
+    cam: el('cam'), status: el('status'), quality: el('quality'),
   };
   el('start').addEventListener('click', () => el('overlay').classList.add('hidden'));
   el('overlay').addEventListener('click', () => el('overlay').classList.add('hidden'));
+  if (gpu.software) {
+    const note = el('gpuNote');
+    note.textContent = 'Your browser is drawing without GPU acceleration (' + gpu.name
+      + '), so the hall is running in lite mode. Turning on hardware acceleration in the browser'
+      + ' settings will restore the full lighting.';
+    note.style.display = 'block';
+  }
 
   // ---- lap timing
   let lapStart = performance.now();
@@ -109,6 +176,7 @@ async function main() {
   // ---- resize
   function resize() {
     const w = innerWidth, h = innerHeight;
+    renderer.setPixelRatio(Math.min(devicePixelRatio, QUALITY[quality].maxRatio));
     renderer.setSize(w, h, false);
     for (const c of Object.values(cameras)) { c.aspect = w / h; c.updateProjectionMatrix(); }
   }
@@ -118,11 +186,27 @@ async function main() {
   // ---- loop
   let last = performance.now();
   let acc = 0;
+  let frameAcc = 0, frameCount = 0, avgMs = 0;
 
   function frame(now) {
     requestAnimationFrame(frame);
-    const dt = Math.min(0.05, (now - last) / 1000);
+    const rawMs = now - last;
+    const dt = Math.min(0.05, rawMs / 1000);
     last = now;
+
+    // Adaptive quality: the first frames of a heavy page can take a second each, which is
+    // exactly what makes a browser declare the page unresponsive. Sample real frame times
+    // and step down a level when they stay slow.
+    if (rawMs > 0 && rawMs < 2000) { frameAcc += rawMs; frameCount++; }
+    if (frameCount >= 60) {
+      avgMs = frameAcc / frameCount;
+      const level = QUALITY_ORDER.indexOf(quality);
+      if (avgMs > SLOW_FRAME_MS && level > 0) {
+        quality = QUALITY_ORDER[level - 1];
+        applyQuality(quality);
+      }
+      frameAcc = 0; frameCount = 0;
+    }
 
     const cmd = input.poll();
     if (input.consumeCamera()) {
@@ -212,6 +296,7 @@ async function main() {
     hud.cue.style.color = ADVICE_COLOUR[cue.advice] || '#fff';
     hud.cueNext.textContent = cue.nextText;
     hud.cam.textContent = cameraMode;
+    hud.quality.textContent = quality + (avgMs ? ' · ' + Math.round(1000 / avgMs) + ' fps' : '');
     hud.pad.textContent = input.connected
       ? (input.padName.length > 34 ? input.padName.slice(0, 34) + '…' : input.padName)
       : 'none — press a button';

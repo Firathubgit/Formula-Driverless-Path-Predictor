@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>fd gokart perf check</title></head>
+<body>
+<canvas id="view"></canvas>
+<pre id="result">running…</pre>
+<script type="module">
+// GPU-synced frame cost (gl.finish + a 1px readPixels forces the pipeline to drain, so the
+// clock sees the GPU work). A/Bs the quality settings the app now exposes.
+const errors = [];
+window.addEventListener('error', (e) => errors.push('error: ' + e.message));
+const out = {};
+try {
+  const THREE = await import('../vendor/three.module.js');
+  const { Track } = await import('../src/track.js');
+  const { KartSim } = await import('../src/physics.js');
+  const { buildHall, buildRoad, buildBarriers, buildKart } = await import('../src/scene.js');
+
+  const data = await (await fetch('../data/track.json')).json();
+  const track = new Track(data);
+  let hint = 0;
+  track.guidePoints = data.guide.map((g) => {
+    const p = track.project(g.x, g.y, hint); hint = p.s;
+    return { x: g.x, y: g.y, advice: g.advice, s: p.s };
+  }).sort((a, b) => a.s - b.s);
+
+  const canvas = document.getElementById('view');
+  const gl0 = canvas.getContext('webgl2') || canvas.getContext('webgl');
+  const dbg = gl0 && gl0.getExtension('WEBGL_debug_renderer_info');
+  out.gpu = dbg ? gl0.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : '?';
+  out.software = /swiftshader|llvmpipe|software|basic render/i.test(out.gpu);
+
+  const W = innerWidth || 1920, H = innerHeight || 1080;
+  out.window = W + 'x' + H;
+  const sim = new KartSim(data.kart, track);
+
+  function measure({ pointLights, shadows, glow, ratio, antialias }, frames) {
+    // a fresh canvas each time: a canvas keeps its first WebGL context, so reusing it would
+    // silently return the previous context and ignore the new attributes
+    const canvas = document.createElement('canvas');
+    document.body.appendChild(canvas);
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(ratio);
+    renderer.setSize(W, H, false);
+    renderer.shadowMap.enabled = shadows;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0d0f12);
+    scene.fog = new THREE.Fog(0x0d0f12, 40, 110);
+    scene.add(new THREE.HemisphereLight(0x9fb4d8, 0x1a1d22, 0.55));
+    scene.add(new THREE.AmbientLight(0xffffff, 0.22));
+    const key = new THREE.DirectionalLight(0xfff0dc, 1.1);
+    key.castShadow = shadows;
+    key.shadow.mapSize.set(shadows ? 1024 : 512, shadows ? 1024 : 512);
+    const S = 46;
+    Object.assign(key.shadow.camera, { left: -S, right: S, top: S, bottom: -S, near: 1, far: 160 });
+    key.shadow.camera.updateProjectionMatrix();
+    key.shadow.bias = -0.0006;
+    scene.add(key);
+    scene.add(buildHall(data, { pointLights, glow }));
+    scene.add(buildRoad(track));
+    scene.add(buildBarriers(track));
+    const kart = buildKart(data.kart);
+    scene.add(kart.group);
+    let lights = 0;
+    scene.traverse((o) => { if (o.isLight) lights++; });
+
+    const cam = new THREE.PerspectiveCamera(62, W / H, 0.1, 400);
+    const gl = renderer.getContext();
+    const drive = () => {
+      for (let s = 0; s < 8; s++) sim.step(1 / 200, { steer: 0.1, throttle: 0.8, brake: 0 });
+      kart.group.position.set(sim.x, 0, -sim.y);
+      kart.group.rotation.y = sim.yaw;
+      const fwd = new THREE.Vector3(Math.cos(sim.yaw), 0, -Math.sin(sim.yaw));
+      cam.position.set(sim.x - fwd.x * 4.6, 2.35, -sim.y - fwd.z * 4.6);
+      cam.lookAt(sim.x + fwd.x * 6, 0.9, -sim.y + fwd.z * 6);
+      key.position.set(sim.x + 30, 40, -sim.y + 20);
+      key.target.position.set(sim.x, 0, -sim.y);
+      key.target.updateMatrixWorld();
+      renderer.render(scene, cam);
+      gl.finish();
+      const px = new Uint8Array(4); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+    };
+    for (let i = 0; i < 2; i++) drive();
+    const t0 = performance.now();
+    for (let i = 0; i < frames; i++) drive();
+    const ms = (performance.now() - t0) / frames;
+    scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) { const m = o.material; Array.isArray(m) ? m.forEach((x) => x.dispose()) : m.dispose(); } });
+    renderer.dispose();
+    return { lights, ratio, shadows, glow, ms: +ms.toFixed(1), fps: +(1000 / ms).toFixed(1) };
+  }
+
+  const N = out.software ? 4 : 10;
+  out.high = measure({ pointLights: 6, shadows: true, glow: true, ratio: 1.5, antialias: true }, N);
+  out.highHiDpi = measure({ pointLights: 6, shadows: true, glow: true, ratio: 2, antialias: true }, N);
+  out.lite = measure({ pointLights: 0, shadows: false, glow: false, ratio: 1, antialias: false }, N);
+  out.highRatio1 = measure({ pointLights: 6, shadows: true, glow: true, ratio: 1, antialias: true }, N);
+} catch (e) {
+  errors.push('fatal: ' + (e && e.stack || e));
+}
+out.errors = errors;
+document.getElementById('result').textContent = JSON.stringify(out, null, 1);
+</script>
+</body>
+</html>
